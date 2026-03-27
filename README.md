@@ -1,8 +1,14 @@
-# **Evolution of Drone Behavior for Simulated Search and Rescue Missions**
-## Introduction
-This is what I looked at while choosing a topic for the master thesis. I wandered around multiple directions, such that the topic is relevant, has a real-world extension, and fun to work on. I'm still not 100%
+# **GECCO 2026: Automated Design Competition**
+## Working Area
 
-Q: What would be a good level of complexity for a master's thesis?
+
+
+**NotebookLM** for generating diagrams for the pptx
+
+Baseline (adaptMut with default FramsticksEvolution): 286 MB (14.01% of RAM budget)
+With simple data collection for each evaluation: 462 MB (22.56% of RAM budget) \[+8.55%\]
+
+
 ### Source Index
 *Sorted by relevancy. Notes about each source in the footnotes.*
 
@@ -98,7 +104,7 @@ Q: What would be a good level of complexity for a master's thesis?
 [^robots-aco-routing]: [AntHocNet: An Adaptive Nature-Inspired Algorithm for Routing in Mobile Ad Hoc Networks](https://cs.unibo.it/bison/publications/IDSIA-27-04.pdf) - European transactions on telecommunications (2005)
 
 [^rl-evo-comparison]: [Evolution Strategies as a Scalable Alternative to Reinforcement Learning](https://arxiv.org/pdf/1703.03864) - (Sep 2017)
-	- Centers on comparison between Reinforcement Learning and Evolutionary Strategies, comparing runtime and data used 
+	- Centers on comparison between Reinforcement Learning and Evolutionary Strategies, comparing runtime and data used
 
 [^robots-swarm-review]: [A Systematic Review of Swarm Robots](https://www.researchgate.net/publication/342298390_A_Systematic_Review_of_Swarm_Robots) - Current Journal of Applied Science and Technology (Jun 2020)
 	- Swarm robots can be used for medical interventions (miniaturization, blood clots)

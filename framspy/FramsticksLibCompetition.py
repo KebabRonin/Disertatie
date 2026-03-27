@@ -18,7 +18,7 @@ class FramsticksLibCompetition(FramsticksLib):
 	See also: https://www.framsticks.com/gecco-competition
 	"""
 
-	COMPETITOR_ID = 'AliceTeam'
+	COMPETITOR_ID = 'KebabRoninUAIC'
 	SIMPLE_FITNESS_FORMAT = False  # set to False only if you want compatibility with existing sources of optimization algorithms such as FramsticksEvolution.py. Otherwise (for True), you will just get a simple number as fitness.
 	FITNESS_DICT_KEY = 'COGpath'  # only used for SIMPLE_FITNESS_FORMAT = False
 
@@ -98,4 +98,5 @@ class FramsticksLibCompetition(FramsticksLib):
 			outfile.write(s)
 			outfile.write("\n")
 		print("Saved '%s' (%s)" % (filename, competitor))
-		sys.exit()  # only call end() once
+		# sys.exit()  # only call end() once
+		raise EOFError
