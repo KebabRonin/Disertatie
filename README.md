@@ -9,13 +9,28 @@ Instalation instructions: See [The competition page](https://www.framsticks.com/
 Baseline (adaptMut with default FramsticksEvolution): 286 MB (14.01% of RAM budget)
 With pandas data collection for each evaluation:      462 MB (22.56% of RAM budget) \[+8.55%\]
 
+[Competition website](https://www.framsticks.com/gecco-competition)
+[GECCO competition link](https://gecco-2026.sigevo.org/Competition?itemId=8259)
+
+## Introduction
+
+The competition concerns the development of an efficient algorithm to optimize active 3D designs (i.e., simulated agents or robots). The simulation environment is Framsticks, and participants have a Python binding available to the native simulator library, so algorithms should be implemented entirely in Python.
+
+The goal of the competition is to propose an algorithm that will discover agents whose center of gravity moves in the desired way in different environments used during optimization. The properties of the desired movement are defined by the fitness function (unknown to participants); examples of such movements are: following a specific path in 3D, swinging or jumping. The set of parameters that define each environment (such as gravity, water level, terrain, and initial agent rotation) is published, but their values will be set during the evaluation phase. Each submitted algorithm will be tested to optimize agents in 10 different settings (environments and desired movements). These settings will be the same for all participants.
+
+## Notes
+GOMEA - de vazut, algo puternic, complicat de implementat
+de vazut AdaptMut
+CMA-ES algo
+Simulated Annealer
+Riisto Miikkulainen - hyena simulation complexifying, diversity search
 
 ### Source Index
 *Sorted by relevancy. Notes about each source in the footnotes.*
 
 **Drones**
 - Human-Computer Interaction/Practical Experiments[^robots-firefighter-perception] [^robots-rescuer-opinion] [^robots-evolve-behavior]
-- Algorithms [^robots-gradient-perception] [^robots-evolve-behavior] [^robots-abstract-map] [^robots-aco-routing] [^robots-enn] 
+- Algorithms [^robots-gradient-perception] [^robots-evolve-behavior] [^robots-abstract-map] [^robots-aco-routing] [^robots-enn]
 - Reviews/Surveys [^robots-swarm-review] [^robots-SLAM-review] [^robots-uav-sar-survey]
 
 **Games** [^npc-bachelor-sisyphus-neat] [^npc-behavior-tree-optimisation] [^npc-bachelor-variety-ga]
@@ -33,10 +48,10 @@ With pandas data collection for each evaluation:      462 MB (22.56% of RAM budg
 - Use [OpenAI gym](https://github.com/XHR-ZJU/rl-pybullet-drones) as physics simulator (alternative?: [Drone Watch And Rescue](https://github.com/vrodriguezf/dwr))
 - Use co-evolution for test environments/victim placement? Maybe VAE?
 	- If procedurally generating test scenarions, could maybe identify some parts which are easy/hard for drones to navigate (like having a certain room shape which confuses drones, which can be used as a building block in test scenarions)
-- To look into real life limitations/costs/available sensors for drones 
+- To look into real life limitations/costs/available sensors for drones
 - Papers frequently use simulations with questionable applicability to real life[^robots-swarm-review], this[^robots-gradient-perception] used kinematic simulation + physics simulation + real life tests
 - Drones should create some kind of map to lead rescuers to victims, could maybe lead conscious victims to safety?
-	- A research direction could include a system to assign roles for human rescuers 
+	- A research direction could include a system to assign roles for human rescuers
 - Use messenger drones to communicate instructions from base of operations?
 - Establish ad hoc bases of operations/repeaters?
 	- In the disaster zone, hand picked locations probably
@@ -131,7 +146,7 @@ With pandas data collection for each evaluation:      462 MB (22.56% of RAM budg
 	- Drone imaging preferred over satellite map, but it takes a long time to create (2h)
 	- Thermal camera less useful in hot environments
 	- eBee, albris (formerly called eXom) and one MD4-200 microdrone were used
-	- Most useful for live-video assessments of severity/required resources 
+	- Most useful for live-video assessments of severity/required resources
 	- Live-feed is very costly, base of operations was 2km from the event site
 	- Drones cannot match the precision and ability of animals (dogs were still used)
 	- Scent, sound to consider
