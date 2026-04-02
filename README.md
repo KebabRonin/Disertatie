@@ -1,12 +1,13 @@
 # **GECCO 2026: Automated Design Competition**
 ## Working Area
 
-
+Instalation instructions: See [The competition page](https://www.framsticks.com/gecco-competition)
+*Some folder paths are hardcoded, so you might have to edit some of the code*
 
 **NotebookLM** for generating diagrams for the pptx
 
 Baseline (adaptMut with default FramsticksEvolution): 286 MB (14.01% of RAM budget)
-With simple data collection for each evaluation: 462 MB (22.56% of RAM budget) \[+8.55%\]
+With pandas data collection for each evaluation:      462 MB (22.56% of RAM budget) \[+8.55%\]
 
 
 ### Source Index

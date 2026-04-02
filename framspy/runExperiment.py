@@ -140,6 +140,8 @@ def parseArguments():
 	parser.add_argument('-initialgenotype', required=False, help='The genotype used to seed the initial population. If given, the -genformat argument is ignored.')
 
 	parser.add_argument('-algorithm', default='eaSimple', help='The genotype used to seed the initial population. If given, the -genformat argument is ignored.')
+	parser.add_argument('-nislands', type=int, default=10, help="Number of islands (only for convection), default: 10.")
+	parser.add_argument('-migrate_after', type=int, default=10, help="Number of generations to execute for each island before migrating all islands (only for convection), default: 10.")
 
 	parser.add_argument('-opt', required=True, help='optimization criteria: vertpos, velocity, distance, vertvel, lifespan, numjoints, numparts, numneurons, numconnections (or other as long as it is provided by the .sim file and its .expdef). For multiple criteria optimization, separate the names by the comma.')
 	parser.add_argument('-popsize', type=int, default=50, help="Population size, default: 50.")
@@ -207,6 +209,31 @@ def main():
 			case "eaSimple":
 				print('ea')
 				pop, log = algorithms.eaSimple(pop, toolbox, cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations, stats=stats, halloffame=hof, verbose=True)
+			case "convection_eaSimple":
+				print('cv_ea')
+				def algo_ea(population, toolbox, **params):
+					return algorithms.eaSimple(
+						population, toolbox, ngen=params['generations'],
+						cxpb=parsed_args.pxov, mutpb=parsed_args.pmut,
+						stats=stats, halloffame=hof, verbose=True)
+
+				from ConvectionSelection import convectionSelection
+				pop, log = convectionSelection(pop, toolbox, ngen=parsed_args.generations,
+								n_islands=10, reconvene_gen_interval=10, algo=algo_ea,
+								stats=stats, halloffame=hof, verbose=True)
+			case "convection_AdaptMut":
+				print('cv_am')
+				from AdaptMut import adaptMut
+				def algo_am(population, toolbox, **params):
+					return adaptMut(
+						population, toolbox, ngen=params['generations'],
+						cxpb=parsed_args.pxov, mutpb=parsed_args.pmut,
+						stats=stats, halloffame=hof, verbose=True)
+
+				from ConvectionSelection import convectionSelection
+				pop, log = convectionSelection(pop, toolbox, ngen=parsed_args.generations,
+								n_islands=10, reconvene_gen_interval=10, algo=algo_am,
+								stats=stats, halloffame=hof, verbose=True)
 			case _:
 				raise "Unknown algorithm"
 	except EOFError:
