@@ -1,4 +1,5 @@
 # **GECCO 2026: Automated Design Competition**
+
 ## Working Area
 
 Instalation instructions: See [The competition page](https://www.framsticks.com/gecco-competition)
@@ -11,6 +12,41 @@ With pandas data collection for each evaluation:      462 MB (22.56% of RAM budg
 
 [Competition website](https://www.framsticks.com/gecco-competition)
 [GECCO competition link](https://gecco-2026.sigevo.org/Competition?itemId=8259)
+[Disertation presentation slides](https://docs.google.com/presentation/d/1LQFmr2H28BHL-tTbk1Y-5kiM2AudMlV4DHNNDb9gkyQ/edit?usp=sharing)
+
+**Notes**:
+GOMEA - de vazut, algo puternic, complicat de implementat
+de vazut AdaptMut
+CMA-ES algo
+Simulated Annealer
+Riisto Miikkulainen - hyena simulation complexifying, diversity search
+
+**TODO**:
+
+* [x] Simple EA (TODO: more details here)
+* [x] AdaptMut (Same as Simple EA, but stronger mutation)
+* [x] Convection Selection (Island-based, split by fitness score)
+* [ ] GOMEA ([2025 competition entry description here](https://www.framsticks.com/filebrowser/download/341) - it relies on f1)
+* [ ] More EA variants: [(μ/ρ +, λ), (1+(λ, λ)), (μ, λ), (μ+λ), (μ+1), (1+1)](https://algorithmafternoon.com/strategies/mu_slash_rho_plus_lambda_evolution_strategy/), ...
+* [ ] That speciation algorithm (niching by similarity, and encouraging explotration)
+* [ ] Hyena for float tuning only?
+* [ ] Investigate Building Block algorithms
+* [ ] Try AdaptMut Convection without `simplest genotype insertion` mutation
+* [ ] Variate popsize (25, 50, 100)
+* [ ] Use the distance metric somehow?
+
+**Improvements to be done**:
+
+* [ ] Smarter initialization (the first generation should already contain different individuals) - aka. don't evaluate the first generation (which is filled with the simplest genotype)
+* [ ] Add an additional test map (some heightfield + water, instead of superflat) (**Is this worth it for the paper/algorithm?**)
+
+**Questions**:
+
+* [ ] Can I touch the **mutation operator**? It might have some `p_mutate_neurons` or `p_mutate_body` to fine-tune.
+* [ ] Since the example experiment setup has randomness turned off, can I rely on that to be the case at evaluation time? Can I 'cheat' by **not re-evaluating genotypes which were seen before**?
+* [ ] What could I change from the [2025 GOMEA entry](https://www.framsticks.com/filebrowser/download/341) to improve it?
+  * I could substitute the island migrations for the Convection Selection Scheme
+* [ ] What stats are interesting to compute? (average run fitness plot? average 'biggest fitness jump' generation? Plotting a GIF of the population over the run?)
 
 ## Introduction
 
@@ -18,14 +54,26 @@ The competition concerns the development of an efficient algorithm to optimize a
 
 The goal of the competition is to propose an algorithm that will discover agents whose center of gravity moves in the desired way in different environments used during optimization. The properties of the desired movement are defined by the fitness function (unknown to participants); examples of such movements are: following a specific path in 3D, swinging or jumping. The set of parameters that define each environment (such as gravity, water level, terrain, and initial agent rotation) is published, but their values will be set during the evaluation phase. Each submitted algorithm will be tested to optimize agents in 10 different settings (environments and desired movements). These settings will be the same for all participants.
 
-## Notes
-GOMEA - de vazut, algo puternic, complicat de implementat
-de vazut AdaptMut
-CMA-ES algo
-Simulated Annealer
-Riisto Miikkulainen - hyena simulation complexifying, diversity search
+### Experiments
+
+#### Setup
+
+Unless specified otherwise, the default values are as follows:
+
+*`pmut`*: 0.5 (mutation)
+*`pxov`*: 0.2 (crossover)
+*`selection`*: tournament with only feasible solutions (tournament size = 5)
+*`crossover`*: ??? (handled by framsticks, probably single point crossover)
+*`mutation`*: ??? (handled by framsticks)
+*`popsize`*: 50
+*`genformat`*: F1
+`when mutation or crossover is unable to perform its operation for the provided genotype(s), return the original genotype`
+
+#### Results
+
 
 ### Source Index
+
 *Sorted by relevancy. Notes about each source in the footnotes.*
 
 **Drones**
@@ -98,6 +146,32 @@ Riisto Miikkulainen - hyena simulation complexifying, diversity search
 **Multi-robot SLAM**: Many costly robots
 
 ## Sources
+
+[^xover-building-block]: [How Crossover Speeds Up Building-Block Assembly in Genetic Algorithms](https://arxiv.org/pdf/1403.6600v2) - Nov 2014
+	- #tosee
+	- Using crossover increases the optimal value of p_mutation
+		- This is because introducing crossover makes neutral mutations more useful and larger mutation rates increase the chance of a neutral mutation.
+	- recombination favours individuals that are good “mixers”
+	- the population must be able to store individuals with different building blocks for long enough so that crossover can combine them
+	- crossover generally reduces function evaluations in half
+		- This holds provided that the parent population and offspring population sizes µ and λ are moderate, so that the inertia of a large population does not slow down exploitation
+		- The reason for this speedup is that the GA can store a neutral mutation (a mutation not altering the parent’s fitness) in the population, along with the respective parent. It can then use crossover to combine the good building blocks between these two individuals, improving the current best fitness.
+		- In other words, crossover can capitalize on mutations that have both beneficial and disruptive effects on building blocks.
+	- #forgames speed of adaptation as a metric
+	- royal roads = fitness function landscapes built to show the power of GAs
+	- (μ+λ)-ES : popsize = μ -> generate λ offspring -> select best μ from joint population and continue (elitism)
+		- A common rule of thumb is to set μ ≈ λ/7
+	- #deeper-subject This left open the question whether k-point crossover is as effective as uniform crossover for assembling building blocks in ONEMAX. Here we provide a new and refined analysis, which gives an affirmative answer, under mild conditions on the crossover probability
+	- #deeper-subject The **(1+(λ, λ)) EA** from \[[9](http://www.cmap.polytechnique.fr/~nikolaus.hansen/proceedings/2013/GECCO/proceedings/p781.pdf)\] shows that crossover can lower the expected running time by more than a constant factor.
+		- Starting with one parent, it first creates λ offspring by mutation, with a random and potentially high mutation rate.
+		- Then it selects the best mutant, and crosses it λ times with the original parent, using parameterized uniform crossover (the probability of taking a bit from the first parent is not always 1/2, but a parameter of the algorithm).
+		- This leads to a number of O(n √ log n) expected function evaluations, which can be further decreased to O(n) with a scheme adapting λ according to the current fitness.
+		- It uses a non-standard EA design because of its two phases of environmental selection.
+		- Other differences are that mutation is performed before crossover, and mutation is not fully independent for all offspring: the number of flipping bits is a random variable determined as for standard bit mutations, but the same number of flipping bits is then used in all offspring.
+	- #advice Try all the EA variants (λ, λ), (μ, λ), (μ+λ), ...
+	- #advice Metric: We measure the performance of the algorithm with respect to the number of function evaluations performed until an optimum is found, and refer to this as optimization time
+	- (µ+λ) EAs or (µ+λ) GAs: What's the difference?
+	- the number of generations needed to optimize a fitness function can often be easily decreased by using offspring populations or parallel evolutionary algorithms
 
 [^robots-gradient-perception]: [Collective gradient perception with a flying robot swarm](https://link.springer.com/content/pdf/10.1007/s11721-022-00220-1.pdf) - Swarm Intelligence Journal (Oct 2022)
 	- Ordered and cohesive collective motion, while not exchanging information between the agents directly
