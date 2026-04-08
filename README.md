@@ -60,7 +60,7 @@ The goal of the competition is to propose an algorithm that will discover agents
 
 Unless specified otherwise, the default values are as follows:
 
-*`pmut`*: 0.5 (mutation)
+*`pmut`*: 0.9 (mutation)
 *`pxov`*: 0.2 (crossover)
 *`selection`*: tournament with only feasible solutions (tournament size = 5)
 *`crossover`*: ??? (handled by framsticks, probably single point crossover)
@@ -71,6 +71,10 @@ Unless specified otherwise, the default values are as follows:
 
 #### Results
 
+> Highlighted in red are the baseline and the competition winner of the last 2 years.
+
+![Run_results_boxplot.png](Run_results_boxplot.png)
+![Run_results_violin.png](Run_results_violin.png)
 
 ### Source Index
 

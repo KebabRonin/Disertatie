@@ -3,33 +3,48 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
-PATH = './framspy/experiments/'
-
+PATH = '/home/xwiki/Documents/fac/GECCO_Robot_Body/Disertatie/framspy/experiments/'
+HIGHLIGHT = {
+    'eaSimpleF1': 'red',
+    'adaptMutF0Firstpmut08': 'red',
+}
 COLORS = ['red','blue','green','black', 'orange','purple','brown', 'magenta']
 N_RUNS = 20
 MAX_STEPS = 100_001
 example_idx = 0
-DATA_FILE = '/home/xwiki/Documents/fac/GECCO_Robot_Body/Disertatie/parsed_result_data.json'
+DATA_PATH = '/home/xwiki/Documents/fac/GECCO_Robot_Body/Disertatie/'
+DATA_FILE = DATA_PATH + 'parsed_result_data.json'
 
 def running_stat(arr, fn, radius=50):
     return [fn(arr[i-radius:i+radius]) for i in range(len(arr))]
 
 def violins(rk):
-    plt.figure()
+    plt.figure(figsize=(10,7))
     names = {}
     for n in rk:
         if n[0] not in names:
             names[n[0]] = []
         names[n[0]].append(n[1])
-    for idx, n in enumerate(names):
+    ordered_names = list(names.keys())
+    ordered_names.sort(key=lambda n: np.median(names[n]), reverse=True)
+    json.dump((ordered_names, names), open(DATA_PATH + 'd.txt', 'w'))
+    for idx, n in enumerate(ordered_names):
         plt.scatter([idx+1] * 20, names[n], color=COLORS[idx % len(COLORS)], label=n)
-    vp = plt.violinplot([names[n] for n in names], showmeans=True)
+    vp = plt.violinplot([names[n] for n in ordered_names], showmeans=True, showmedians=True)
     for i, body in enumerate(vp['bodies']):
-        body.set_facecolor(COLORS[i])
+        body.set_facecolor(COLORS[i % len(COLORS)])
         body.set_edgecolor('blue')
     vp['cmeans'].set_color('black')
-    plt.legend()
-    plt.show()
+    vp['cmeans'].set_linewidth(1.5)
+    vp['cmedians'].set_color('white')
+    vp['cmedians'].set_linestyle(':')
+    vp['cmedians'].set_linewidth(1.5)
+    plt.xticks(range(1, len(names)+1), names, rotation=45, ha='right')
+    plt.legend(handles = [vp['cmeans'], vp['cmedians']],labels=['mean', 'median'])
+    ax = plt.gca()
+    for tick in ax.get_xticklabels():
+        if tick.get_text() in HIGHLIGHT:
+            tick.set_color(HIGHLIGHT[tick.get_text()])
 
 def parse_data():
     rs = {}
@@ -43,13 +58,18 @@ def parse_data():
             avg_arr = []
             with open(os.path.join(PATH, d, f'results_{i}.stdout'), 'r') as f:
                 print(d, i)
+                # First line tells us the arguments the run had.
+                argvalues = f.readline()
+                argvalues = argvalues[len('Argument values: '):]
+                arggs = re.findall('([^=]+)=([^, ]+),? ?', argvalues)
+                args = {a[0]: a[1] for a in arggs}
                 for l in f:
                     rgx = r'([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?)\s+'
                     m = re.match(f'^{rgx}{rgx}{rgx}{rgx}{rgx}{rgx}{rgx}{rgx}$', l)
                     if m:
                         gen, nevals, avg, stdev, mn, mx, totalevals, nonevalTime = m.groups()
                         if int(totalevals) - len(mx_arr) != int(nevals):
-                            if m.groups()[1] == '50' and int(totalevals) - len(mx_arr) == 0:
+                            if m.groups()[1] == args['popsize'] and int(totalevals) - len(mx_arr) == 0:
                                 # For convection selection, the global population counts twice for some reason
                                 continue
                             print(m.groups(), int(totalevals), len(mx_arr), f"{int(totalevals) - len(mx_arr)} != {int(nevals)}")
@@ -75,6 +95,23 @@ def parse_data():
         }
     return rs
 
+def boxplots(rk):
+    plt.figure(figsize=(10,7))
+    names = {}
+    for n in rk:
+        if n[0] not in names:
+            names[n[0]] = []
+        names[n[0]].append(n[1])
+    ordered_names = list(names.keys())
+    ordered_names.sort(key=lambda n: np.median(names[n]), reverse=True)
+    for idx, n in enumerate(ordered_names):
+        plt.scatter([idx+1] * 20, names[n], color=COLORS[idx % len(COLORS)], label=n, alpha=0.2)
+    plt.boxplot([names[n] for n in ordered_names], showmeans=True)
+    plt.xticks(range(1, len(names)+1), names, rotation=45, ha='right')
+    ax = plt.gca()
+    for tick in ax.get_xticklabels():
+        if tick.get_text() in HIGHLIGHT:
+            tick.set_color(HIGHLIGHT[tick.get_text()])
 
 if not os.path.exists(DATA_FILE):
     print('Parsing results...')
@@ -87,8 +124,12 @@ else:
 
 def show_runs(rs, example_idx, plot=False):
     y_vals = [i for i in range(MAX_STEPS)]
-    # plt.figure(figsize=(12,6))
+    if plot:
+        plt.figure(figsize=(12,6))
     res = []
+    # print(rs.keys())
+    # ordered_names = list(rs.keys())
+    # ordered_names.sort(key=lambda n: np.mean(rs[n]['avg_arrs'][example_idx]), reverse=True)
     for idx, d in enumerate(rs):
         if plot:
             color = COLORS[idx % len(COLORS)]
@@ -103,9 +144,13 @@ def show_runs(rs, example_idx, plot=False):
         print(f"{idx+1:>4}. {r[0]:<50} {r[1]:10.5f}")
     print(f" run {example_idx:>2} ".center(90, '='))
     if plot:
+        plt.legend()
         plt.show()
     return res
 
+# for example_idx in range(N_RUNS):
+#     show_runs(rs, example_idx, plot=True)
+# exit(0)
 ress = []
 for example_idx in range(N_RUNS):
     ress.append(show_runs(rs, example_idx))
@@ -164,6 +209,13 @@ def plot_rank_gaussians(data, sigma_min=0.2, x_pad=0.5, figsize=(8,4)):
 # plot_rank_gaussians(rk)
 # plt.show()
 violins(global_clasament)
+plt.tight_layout(pad=0.2)
+# plt.show()
+plt.savefig(DATA_PATH + 'Run_results_violin.png')
+boxplots(global_clasament)
+plt.tight_layout(pad=0.2)
+# plt.show()
+plt.savefig(DATA_PATH + 'Run_results_boxplot.png')
 
 exit()
 for i in range(0):

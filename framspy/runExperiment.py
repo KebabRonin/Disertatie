@@ -139,7 +139,7 @@ def parseArguments():
 	parser.add_argument('-genformat', required=False, help='Genetic format for the simplest initial genotype, for example 4, 9, or B. If not given, f1 is assumed.')
 	parser.add_argument('-initialgenotype', required=False, help='The genotype used to seed the initial population. If given, the -genformat argument is ignored.')
 
-	parser.add_argument('-algorithm', default='eaSimple', help='The genotype used to seed the initial population. If given, the -genformat argument is ignored.')
+	parser.add_argument('-algorithm', required=True, help='The genotype used to seed the initial population. If given, the -genformat argument is ignored.')
 	parser.add_argument('-nislands', type=int, default=10, help="Number of islands (only for convection), default: 10.")
 	parser.add_argument('-migrate_after', type=int, default=10, help="Number of generations to execute for each island before migrating all islands (only for convection), default: 10.")
 
