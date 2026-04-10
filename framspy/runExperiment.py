@@ -142,6 +142,7 @@ def parseArguments():
 	parser.add_argument('-algorithm', required=True, help='The genotype used to seed the initial population. If given, the -genformat argument is ignored.')
 	parser.add_argument('-nislands', type=int, default=10, help="Number of islands (only for convection), default: 10.")
 	parser.add_argument('-migrate_after', type=int, default=10, help="Number of generations to execute for each island before migrating all islands (only for convection), default: 10.")
+	parser.add_argument('-xmut_enabled', type=int, default=1, help="0/1 If to enable mutation = replace with simple individual (only for AdaptMut), default: 1.")
 
 	parser.add_argument('-opt', required=True, help='optimization criteria: vertpos, velocity, distance, vertvel, lifespan, numjoints, numparts, numneurons, numconnections (or other as long as it is provided by the .sim file and its .expdef). For multiple criteria optimization, separate the names by the comma.')
 	parser.add_argument('-popsize', type=int, default=50, help="Population size, default: 50.")
@@ -199,16 +200,24 @@ def main():
 	stats.register("min", lambda fitness_criteria: filter_feasible_for_function(np.min, fitness_criteria))
 	stats.register("max", lambda fitness_criteria: filter_feasible_for_function(np.max, fitness_criteria))
 	stats.register("totalevals", lambda _: framsLib._evaluation_count)
-	stats.register("nonevalTime", lambda _: framsLib._evaluation_time)
+	stats.register("evalTime", lambda _: framsLib._evaluation_time)
+	stats.register("noneval_Time", lambda _: time.perf_counter() - framsLib._time0 - framsLib._evaluation_time)
+	
 	try:
 		match parsed_args.algorithm:
 			case "AdaptMut":
 				print('am')
 				from AdaptMut import adaptMut
-				pop, log = adaptMut(pop, toolbox, cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations, stats=stats, halloffame=hof, verbose=True)
+				pop, log = adaptMut(
+							pop, toolbox, 
+							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations, xmut_enabled=parsed_args.xmut_enabled,
+							stats=stats, halloffame=hof, verbose=True)
 			case "eaSimple":
 				print('ea')
-				pop, log = algorithms.eaSimple(pop, toolbox, cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations, stats=stats, halloffame=hof, verbose=True)
+				pop, log = algorithms.eaSimple(
+							pop, toolbox, 
+							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations, 
+							stats=stats, halloffame=hof, verbose=True)
 			case "convection_eaSimple":
 				print('cv_ea')
 				def algo_ea(population, toolbox, **params):
@@ -219,7 +228,7 @@ def main():
 
 				from ConvectionSelection import convectionSelection
 				pop, log = convectionSelection(pop, toolbox, ngen=parsed_args.generations,
-								n_islands=10, reconvene_gen_interval=10, algo=algo_ea,
+								n_islands=parsed_args.nislands, reconvene_gen_interval=parsed_args.migrate_after, algo=algo_ea,
 								stats=stats, halloffame=hof, verbose=True)
 			case "convection_AdaptMut":
 				print('cv_am')
@@ -227,12 +236,12 @@ def main():
 				def algo_am(population, toolbox, **params):
 					return adaptMut(
 						population, toolbox, ngen=params['generations'],
-						cxpb=parsed_args.pxov, mutpb=parsed_args.pmut,
+						cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, xmut_enabled=parsed_args.xmut_enabled,
 						stats=stats, halloffame=hof, verbose=True)
 
 				from ConvectionSelection import convectionSelection
 				pop, log = convectionSelection(pop, toolbox, ngen=parsed_args.generations,
-								n_islands=10, reconvene_gen_interval=10, algo=algo_am,
+								n_islands=parsed_args.nislands, reconvene_gen_interval=parsed_args.migrate_after, algo=algo_am,
 								stats=stats, halloffame=hof, verbose=True)
 			case _:
 				raise "Unknown algorithm"

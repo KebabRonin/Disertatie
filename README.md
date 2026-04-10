@@ -1,5 +1,13 @@
 # **GECCO 2026: Automated Design Competition**
 
+[Working Area](#working-area)
+
+[Competition](#competition)
+
+[Results](#results)
+
+[Source Index](#source-index)
+
 ## Working Area
 
 Instalation instructions: See [The competition page](https://www.framsticks.com/gecco-competition)
@@ -8,6 +16,7 @@ Instalation instructions: See [The competition page](https://www.framsticks.com/
 **NotebookLM** for generating diagrams for the pptx
 
 Baseline (adaptMut with default FramsticksEvolution): 286 MB (14.01% of RAM budget)
+
 With pandas data collection for each evaluation:      462 MB (22.56% of RAM budget) \[+8.55%\]
 
 [Competition website](https://www.framsticks.com/gecco-competition)
@@ -15,13 +24,18 @@ With pandas data collection for each evaluation:      462 MB (22.56% of RAM budg
 [Disertation presentation slides](https://docs.google.com/presentation/d/1LQFmr2H28BHL-tTbk1Y-5kiM2AudMlV4DHNNDb9gkyQ/edit?usp=sharing)
 
 **Notes**:
+
 GOMEA - de vazut, algo puternic, complicat de implementat
+
 de vazut AdaptMut
+
 CMA-ES algo
+
 Simulated Annealer
+
 Riisto Miikkulainen - hyena simulation complexifying, diversity search
 
-**TODO**:
+## TODO
 
 * [x] Simple EA (TODO: more details here)
 * [x] AdaptMut (Same as Simple EA, but stronger mutation)
@@ -31,12 +45,9 @@ Riisto Miikkulainen - hyena simulation complexifying, diversity search
 * [ ] That speciation algorithm (niching by similarity, and encouraging explotration)
 * [ ] Hyena for float tuning only?
 * [ ] Investigate Building Block algorithms
-* [ ] Try AdaptMut Convection without `simplest genotype insertion` mutation
-* [ ] Variate popsize (25, 50, 100)
+* [x] Try AdaptMut Convection without `simplest genotype insertion` mutation
+* [x] Variate popsize (25, 50, 100)
 * [ ] Use the distance metric somehow?
-
-**Improvements to be done**:
-
 * [ ] Smarter initialization (the first generation should already contain different individuals) - aka. don't evaluate the first generation (which is filled with the simplest genotype)
 * [ ] Add an additional test map (some heightfield + water, instead of superflat) (**Is this worth it for the paper/algorithm?**)
 
@@ -48,25 +59,49 @@ Riisto Miikkulainen - hyena simulation complexifying, diversity search
   * I could substitute the island migrations for the Convection Selection Scheme
 * [ ] What stats are interesting to compute? (average run fitness plot? average 'biggest fitness jump' generation? Plotting a GIF of the population over the run?)
 
-## Introduction
+## Competition
 
 The competition concerns the development of an efficient algorithm to optimize active 3D designs (i.e., simulated agents or robots). The simulation environment is Framsticks, and participants have a Python binding available to the native simulator library, so algorithms should be implemented entirely in Python.
 
-The goal of the competition is to propose an algorithm that will discover agents whose center of gravity moves in the desired way in different environments used during optimization. The properties of the desired movement are defined by the fitness function (unknown to participants); examples of such movements are: following a specific path in 3D, swinging or jumping. The set of parameters that define each environment (such as gravity, water level, terrain, and initial agent rotation) is published, but their values will be set during the evaluation phase. Each submitted algorithm will be tested to optimize agents in 10 different settings (environments and desired movements). These settings will be the same for all participants.
+The goal of the competition is to propose an algorithm that will discover agents whose center of gravity moves in the desired way in different environments used during optimization. The properties of the desired movement are defined by the fitness function (unknown to participants); examples of such movements are: following a specific path in 3D, swinging or jumping.
 
-### Experiments
+The set of parameters that define each environment (such as gravity, water level, terrain, and initial agent rotation) is published, but their values will be set during the evaluation phase. Each submitted algorithm will be tested to optimize agents in 10 different settings (environments and desired movements). These settings will be the same for all participants.
 
+ Environment parameters which are varied during the competition:
+- lifespan of a creature ("starting energy" and "idle metabolism")
+- world size and heightfield (map)
+- water level
+- gravity
+- creature stabilization period settings
+- creature body constraints (minimal and maximal joint length)
+- complexity (Genotype length, Neuron count, Joint count, etc.)
+The submitted algorithm should be single-process, single-threaded, no GPU. No more than one submission per participant is allowed.
+**Max time: 1h**
+**Memory: 2GB**
+**Max fitness evaluations: 100k**
+## Experiments
 #### Setup
 
 Unless specified otherwise, the default values are as follows:
 
 *`pmut`*: 0.9 (mutation)
+
 *`pxov`*: 0.2 (crossover)
+
 *`selection`*: tournament with only feasible solutions (tournament size = 5)
+
 *`crossover`*: ??? (handled by framsticks, probably single point crossover)
+
 *`mutation`*: ??? (handled by framsticks)
+
 *`popsize`*: 50
+
+*`nislands`*: 10
+
+*`reconvene_after`*: 10 (convection only)
+
 *`genformat`*: F1
+
 `when mutation or crossover is unable to perform its operation for the provided genotype(s), return the original genotype`
 
 #### Results
@@ -74,85 +109,106 @@ Unless specified otherwise, the default values are as follows:
 > Highlighted in red are the baseline and the competition winner of the last 2 years.
 
 ![Run_results_boxplot.png](Run_results_boxplot.png)
-![Run_results_violin.png](Run_results_violin.png)
 
-### Source Index
+## Source Index
 
 *Sorted by relevancy. Notes about each source in the footnotes.*
 
-**Drones**
-- Human-Computer Interaction/Practical Experiments[^robots-firefighter-perception] [^robots-rescuer-opinion] [^robots-evolve-behavior]
-- Algorithms [^robots-gradient-perception] [^robots-evolve-behavior] [^robots-abstract-map] [^robots-aco-routing] [^robots-enn]
-- Reviews/Surveys [^robots-swarm-review] [^robots-SLAM-review] [^robots-uav-sar-survey]
+**Framsticks specific**
+* Maciej Komosinski [^frams-convection] [^frams-dissimilarity-new] [^gomea-buildingblocks-varlength] [^frams-f-genotype-comparison] [^frams-dissimilarity-bio] [^frams-ski]
+* Other [^frams-comeptition-caspo]
+Algorithms:
+* QD [^qd-dissimilarity-crowding] [^qd-tensegrity-robots] [^qd-tensegrity-robots] [^qd-annealing]
+* Hyena [^hyena-flowshop]
+* GOMEA [^gomea-buildingblocks-varlength] [^gomea-buildingblock] [^gomea-romea] [^gomea-do-we-need] [^python-gomea] [^gomea]
+* Building Blocks [^xover-building-block] [^gomea-buildingblocks-varlength] [^gomea-buildingblock]
+* DE-NSGA [^qd-dissimilarity-crowding]
+* PPO/RL [^hexacopters] [^rl-chinup] [^rl-evo-comparison]
 
-**Games** [^npc-bachelor-sisyphus-neat] [^npc-behavior-tree-optimisation] [^npc-bachelor-variety-ga]
-
-**Offtopic** [^robots-morphology] [^npc-behavior-emotions]
-
-**General Algorithms** [^map-elites] [^rl-evo-comparison] [^quality-diversity]
-### Alternate Topics
-* Drone Swarm Strategies for Search and Rescue missions
-* Genetic evolution of monsters in video games
-	- Random Bachelor thesis[^NPC-bachelor-sisyphus-neat], looks like what I had in mind for this topic
-	- Maybe make a more complex game/controller as a thesis?
-* Thesis to run experiments for NPC behavior tree optimisation? [^npc-behavior-tree-optimisation]
-## Implementation:
-- Use [OpenAI gym](https://github.com/XHR-ZJU/rl-pybullet-drones) as physics simulator (alternative?: [Drone Watch And Rescue](https://github.com/vrodriguezf/dwr))
-- Use co-evolution for test environments/victim placement? Maybe VAE?
-	- If procedurally generating test scenarions, could maybe identify some parts which are easy/hard for drones to navigate (like having a certain room shape which confuses drones, which can be used as a building block in test scenarions)
-- To look into real life limitations/costs/available sensors for drones
-- Papers frequently use simulations with questionable applicability to real life[^robots-swarm-review], this[^robots-gradient-perception] used kinematic simulation + physics simulation + real life tests
-- Drones should create some kind of map to lead rescuers to victims, could maybe lead conscious victims to safety?
-	- A research direction could include a system to assign roles for human rescuers
-- Use messenger drones to communicate instructions from base of operations?
-- Establish ad hoc bases of operations/repeaters?
-	- In the disaster zone, hand picked locations probably
-	- Could be used as waypoints, stable databases, etc.
-### Features:
-- Maps for human rescuers:
-	- Abstract maps[^robots-abstract-map] (goto Big Tree 20° left-> goto Yellow Building enter -> goto 3rd door on the right -> VICTIM)
-	- SLAM - actual maps
-	- Map merging algorithms/How to transmit the map to operations base?
-- Hazards (for humans and/or for robots):
-	- no-signal zones
-	- no-go for humans/robots, limited-time spent in some zones
-	- dynamic updates (collapsing floors, fire spread, etc.)
-- Victim behavior:
-	- Unconscious/conscious, degrees of injury, Wandering behaviors, Cries of help
-	- Follow drones to rescue zone?
-- Simulate human rescuers
-- Meta:
-	- Simulation recordings
-	- Map debug view to follow a drone over a simulation
-	- Cost calculator (nr. drones, types, total energy consumed (cost of recharge), IoT: CPU/GPU cycles used, memory used)
-### Stretch goals:
-- Modular sensor configuration (could be used to set up real life available resources for rescue teams)
-- Measure data efficiency: generations/frames <-> fitness (should have alternative algorithms to compare)
-- Create maps of checked locations (who checked where, record paths of the humans)
-- Evolve robot morphologies[^robots-morphology]
-	- Would need a good simulator & a good selection of base components to combine & a good generator
-## Algorithms
-- GA, NEAT/EANT
-- Take into account sensor readings + speed/direction of neighbors for emergent communication[^robots-gradient-perception]
-- ACO for data routing[^robots-aco-routing]
-- Use behavior trees evolution?[^npc-behavior-tree-optimisation] Simple NN[^robots-evolve-behavior]?
-- Quality-Diversity for exploration?[^quality-diversity] Novelty search (need distance function)? MAP-Elites? [^map-elites] Bayesian optimisation (optuna)?
-- Evolutionary Reinforcement Learning? [^robots-enn]
-- For SLAM and map merging: Occupancy Grids? (determine density of sensor data points around obstacles)
-## Keywords:
-
-**SLAM**: Simultaneous Localization And Mapping
-
-**UAV**: Unmanned Air Vehicle
-
-**Swarm SLAM**: Many expendable robots
-
-**Multi-robot SLAM**: Many costly robots
-
+Not reviewed [^qd-annealing] [^hyena-flowshop] [^NEAT] [^feasible-infeasible] [^gomea] [^qd-annealing] 
+Other simulators [^qd-tensegrity-robots]
+Very interesting [^gomea-buildingblocks-varlength] [^qd-dissimilarity-crowding]
+Curiosities [^irl-robots] [^bullethell]
+Well of papers: https://nn.cs.utexas.edu/?evolution
 ## Sources
 
-[^xover-building-block]: [How Crossover Speeds Up Building-Block Assembly in Genetic Algorithms](https://arxiv.org/pdf/1403.6600v2) - Nov 2014
-	- #tosee
+[^frams-f-genotype-comparison]: [Comparison of Different Genotype Encodings for Simulated 3D Agents](http://www.framsticks.com/files/common/Komosinski_Encodings_ALifeJ2001.pdf) (Oct 2001, Artificial Life Journal)
+	- #meta **pentru disertatie:** Sa pun la finalul introducerii un cuprins (section 2 contains ..., section 3 contains ..., and conclusions & future work in section 6)
+	- genotype & phenotype impose different topologies on the search space - the more correlated they are, the better the results
+	- **DESCRIBES THE FRAMESTICKS ENVIRONMENT & AVAILABLE BODY PARTS IN MORE DETAIL**
+		- Neurons have slight variation to their inputs, to make them more robust & discourage reliance on specific patterns (aka. pay more attention to the environment)
+		- f0 operators:
+			- Mutation: alter properties, or (less frequently) add or remove a part
+			- Crossover: Split the phenotype in 2 sections (use a cutting plane) and graft the sections between the parents
+		- So the genetic operators really are already implemented, I COULD create my own representation, but I don't have to
+	- #advice #deeper-subject Developmental encodings shown better for neural networks
+		- #idea maybe implement modularity breakage for devel?
+			- if a # node is selected for mutation, have an equal chance to modify the n-th or all repeated structures (1/(n+1) chance)
+				- Would need a function to 'break' the repetition (shouldn't be too hard, he says)
+		- Introduce |* * \*| nodes (start cyclic joint, continue cyclic joint, end .. so you can have spherical/circular structures (trompa lui eustachio))
+	- #idea For simul: Maybe add a mutation operator to clone some part of the genotype, and append it recursively (like devel)
+	- #idea how to force the discovery of inverse kinematics?
+		- What would IK look like using framsticks neurons?
+	- #advice **Bias in the genotypes is good actually** - search is more directed, even if the search space is smaller
+	- #deeper-subject Genotype ideas: simul, recur, devel, cell-metabolysm, similarity-based
+	- Good read, inspiring!
+
+[^frams-dissimilarity-bio]:  [On Estimating Similarity of Artificial and Real Organisms](https://www.framsticks.com/files/common/Komosinski_Similarity_TheoryInBiosc2001.pdf) (Dec 2001, Theory in Biosciences)
+	- #advice #stub-article control systems (neurons) are sophisticated, often coupled with morphology and very strongly connected functionally
+	- #meta sections: overview, setup of concepts, meat, illustrative examples, discussion, future work
+	- #meta reassure the reader that the new concepts will be expanded upon (specify where) in very close proximity to the new concept mention
+		- So you don't go 2 paragraphs going `what the hell does Cnum mean?` confused
+		- aka. mentioned `defined below` or `discussed in section 5`
+	- #advice dissimilarity heuristic:
+		- sort by node degree in the graph (nr neighbors), and try to match the nodes based on their info (num neurons, neuron connections, etc.)
+			- compare starting with highest degree, so the most integral parts (read: thorax/main body) are more likely to be matched
+		- a missing part is treated as a maximally dissimilar part to the one being currently compared to
+	- A lot of biology terms to search up:
+		cladistic - method of classifying organisms based on their evolutionary relationships, grouping them into clades that share a common ancestor
+		phenetic - designating a system of classification of organisms based on analysis of a large number of quantifiable character traits, without consideration of evolutionary relationships.
+		homology - similarity in anatomical structures or genes between organisms of different taxa due to shared ancestry, regardless of current functional differences.
+		patristic - https://www.mun.ca/biology/scarr/Phenetic_Patristic_Cladistic.html
+		phylogenetic - the study of the evolutionary history of life using observable characteristics of organisms
+		epistasis - the phenomenon of gene interactions that affect the phenotype of an organism (example: bald gene supercedes the hair color gene)
+
+[^NEAT]: [Evolving Neural Networks through Augmenting Topologies](https://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) (Jun 2002, MIT Press)
+	- Risto Miikkulainen
+	#tosee
+
+[^feasible-infeasible]: [On a Feasible–Infeasible Two-Population (FI-2Pop) genetic algorithm for constrained optimization: Distance tracing and no free lunch](https://faculty.wharton.upenn.edu/wp-content/uploads/2013/03/genetic-algorithm-for-constrained-optimization_1.pdf) (Oct 2008, EJOR)
+	#tosee 
+
+[^frams-ski]: [Evolving free-form stick ski jumpers and their neural control systems](https://www.framsticks.com/files/common/Komosinski_Polak_EvolvedSkiJumping.pdf) (2009, Polish GECCO)
+	-  #advice **The crossing over operator was not used** in this experiment; it is not particularly efficient when morphologies and control systems that are strongly coupled are evolved
+	- the “creep” mutation was employed that adds a random number generated with the Gaussian distribution to the existing value.
+	- 5000 agents is sufficient to observe convergence
+
+[^irl-robots]: [Evolution of Adaptive Behaviour in Robots by Means of Darwinian Selection](https://journals.plos.org/plosbiology/article/file?id=10.1371/journal.pbio.1000292&type=printable) (Jan 2010, PLOS Biology)
+	- real life robots
+	- evolve neural net weights
+	- #idea Have different mutation rates for body & brain (continuous function of frequency of body in top solutions)
+	- small Neural Nets (~sensors x actions neurons)
+	- experiments with predator-prey, evolve physical body configuration, foraging
+	- #stub-article Possible future work: ontogenetic plasticity (evolve during lifetime)
+		- Urzelai J, Floreano D (2001) Evolution of adaptive synapses: robots with fast adaptive behavior in new environments. Evol Comput 9: 495-524. 
+		- Bongard J, Pfeifer R (2003) Evolving complete agents using artificial ontogeny. In: Hara F, Pfeifer R, eds. Morpho-functional Machines: The New Species: Designing Embodied Intelligence. Berlin: Springer-Verlag. pp 237–258.
+	ontogeny - The origin and development of an individual organism from embryo to adult.
+
+[^gomea-romea]: [Optimal Mixing Evolutionary Algorithms](https://dl.acm.org/doi/epdf/10.1145/2001576.2001661) (Jul 2011, GECCO)
+	- mixing in genetic algorithms (GAs) and estimation-of-distribution algorithms (EDAs)
+	- discuss the effect of the covariance build-up
+	- Adding biases over the GA (so GOMEA,ROMEA) might lead to falling into traps. While the biases do help on the training functions, others might suffer greatly
+	- #advice "EDA  thus converges about 20% faster than the GA"
+	- Nu inteleg mai nimic
+		- Pare prost facut: se repeta paragrafe, typos, ...
+	- Ce e ala ECGA?
+	- Use distance metric (for what?) = 1 − I(XF i ∪F j )/H(XF i∪F j ) = Scaled Variation of Information (VI/H)
+		- This measure was also used in  the ﬁrst GA that used the linkage tree structure to perform  variation, LTGA
+	- #deeper-subject The univariate structure is found in various discrete EDAs such as UMDA, cGA and PBIL.
+	- #advice Conclusion: **Use Linkage Tree GOMEA**
+
+[^xover-building-block]: [How Crossover Speeds Up Building-Block Assembly in Genetic Algorithms](https://arxiv.org/pdf/1403.6600v2) (Nov 2014, ?)
+	- **Mostly proofs**
 	- Using crossover increases the optimal value of p_mutation
 		- This is because introducing crossover makes neutral mutations more useful and larger mutation rates increase the chance of a neutral mutation.
 	- recombination favours individuals that are good “mixers”
@@ -177,111 +233,154 @@ Unless specified otherwise, the default values are as follows:
 	- (µ+λ) EAs or (µ+λ) GAs: What's the difference?
 	- the number of generations needed to optimize a fitness function can often be easily decreased by using offspring populations or parallel evolutionary algorithms
 
-[^robots-gradient-perception]: [Collective gradient perception with a flying robot swarm](https://link.springer.com/content/pdf/10.1007/s11721-022-00220-1.pdf) - Swarm Intelligence Journal (Oct 2022)
-	- Ordered and cohesive collective motion, while not exchanging information between the agents directly
-	- Boids with differing speed/distance to neighbors depending on local measurements
-	- Inspired by bees waiting X seconds depending on the local temperature or fish going X m/s depending on local light levels
-	- Speed Modulation and Desired Distance Modulation: modify speed and distance to neighbors proportionally to the local measurement
-	- No need to program alignment control, you can use on-board sensors to keep your distance from others
-	- Kinematic simulator + Physics-based simulator ([OpenAI gym](https://github.com/XHR-ZJU/rl-pybullet-drones)) + Real life nano-drone experiments
-	- Velocity commands -> instructions can be used for ground and air drones
-	- Possible extension to dynamic gradient, predator-prey situation
-	- Can be used to detect gas leaks
-
-[^robots-evolve-behavior]: [Evolution of Adaptive Behaviour in Robots by Means of Darwinian Selection](https://journals.plos.org/plosbiology/article/file?id=10.1371/journal.pbio.1000292&type=printable) - PLoS Biology (Jan 2010)
-	- Evolve neural net weights, small Neural Nets (~sensors x actions neurons)
-	- Experiments with real life robots. predator-prey, evolving physical body configuration, foraging
-
-[^robots-abstract-map]: [Robot Navigation in Unseen Spaces using an Abstract Map](https://arxiv.org/pdf/2001.11684) - IEEE Transactions on Cognitive and Developmental System (May 2020)
-	- Use landmarks, angles & distances to orient, not metric maps
-
-[^robots-aco-routing]: [AntHocNet: An Adaptive Nature-Inspired Algorithm for Routing in Mobile Ad Hoc Networks](https://cs.unibo.it/bison/publications/IDSIA-27-04.pdf) - European transactions on telecommunications (2005)
-
-[^rl-evo-comparison]: [Evolution Strategies as a Scalable Alternative to Reinforcement Learning](https://arxiv.org/pdf/1703.03864) - (Sep 2017)
-	- Centers on comparison between Reinforcement Learning and Evolutionary Strategies, comparing runtime and data used
-
-[^robots-swarm-review]: [A Systematic Review of Swarm Robots](https://www.researchgate.net/publication/342298390_A_Systematic_Review_of_Swarm_Robots) - Current Journal of Applied Science and Technology (Jun 2020)
-	- Swarm robots can be used for medical interventions (miniaturization, blood clots)
-	- Swarm/drone experiments research mostly through simulators
-	- Task distribution: centralized (bidding system) or threshold (more decentralized)
-
-[^robots-SLAM-review]: [Swarm SLAM: Challenges and Perspectives](https://pmc.ncbi.nlm.nih.gov/articles/PMC8010569/) - Frontiers in Robotics and AI (Mar 2021)
-	- Swarm SLAM is a recent field (2019 onwards)
-	- Cost is a real concern
-	- Path planning is often used, limited exploration
-	- Map-merging
-	- Swarm SLAM (many inexpensive and disposable robots) vs Multi-robot SLAM (you'd hate to lose a robot)
-	- Sensors are not perfect
-
-[^robots-enn]: [Towards Behavior Control for Evolutionary Robot Based on RL with ENN](https://journals.sagepub.com/doi/epub/10.5772/53992)
-	- Behavior-switching control strategy based on NN and GA
-	- NN sub-networks for different behaviors, evolved through GA
-	- Subnetworks are piped through each other (nr inputs = nr outputs) to get the output
-	- I don't understand it, NEAT-like?
-
-[^robots-rescuer-opinion]: [Case Study No.11: Simulation – Drones for Search and Rescue in Emergency Response](https://capacity4dev.europa.eu/discussions/case-study-no11-simulation-drones-search-and-rescue-emergency-response_en) -  EU Site (May 2023)
-	- Non-autonomous drones, they required a human operator
-	- Drone imaging preferred over satellite map, but it takes a long time to create (2h)
-	- Thermal camera less useful in hot environments
-	- eBee, albris (formerly called eXom) and one MD4-200 microdrone were used
-	- Most useful for live-video assessments of severity/required resources
-	- Live-feed is very costly, base of operations was 2km from the event site
-	- Drones cannot match the precision and ability of animals (dogs were still used)
-	- Scent, sound to consider
-
-[^robots-firefighter-perception]: [Firefighters' Perceptions on Collaboration and Interaction with Autonomous Drones: Results of a Field Trial](https://arxiv.org/abs/2405.10153) - In Proceedings CHI Conference (May 2024)
-	- Non-autonomous drones, they required a human operator
-	- Drones with infrared sensors for fire source detection, or for communication and time-saving, Water needs to consider
-	- Human-Drone communication & trust are essential
-	- "a virtual model capable of providing an overall situation and assigning roles to participants"
-	- "two-role drone system providing support for scouting, evacuation, and rescue": scout & solider/seeker
-	- Motor, reactive, and cognitive drone autonomy
-	- Human-Drone Interaction through light >> voice >>> (less useful) gesture/touch/brain-computer
-	- Distinction between commander (central decisionmaking point) and 'regular' firefighters (+ drone officer for experiment)
-	- Improvements requested: detect potential (flammable) hazards, smart helmets with HUD, reduce information overload (filter info by urgency, role)
-	- Drone models used: DJI Matrice 30 (location reporting via Flighthub 2), DJI Avata
-	- Important that humans have the final say
-
-[^robots-morphology]: [Unconventional Hexacopters via Evolution and Learning: Performance Gains and New Insights](https://arxiv.org/html/2505.14129v1) - (May 2025)
-	- GA represents morphologies > each morphology gets a controller through Reinforcement Learning > Compute fitness
-	- PPO (actor-critic) for RL
-	- Evolved morphologies were better on the tasks they were trained on than human designs
-
-[^npc-bachelor-sisyphus-neat]: [Evolving Enemy Behavior in Video Games](https://egrove.olemiss.edu/cgi/viewcontent.cgi?article=4501&context=hon_thesis) - (2025)
-	- NEAT
-[^npc-behavior-tree-optimisation]: [Boosting Cooperative NPC Effectiveness and Player Immersion through Behavior Tree Optimization in Gaming](https://www.ewadirect.com/proceedings/ace/article/view/20547)
-	- Combining Monte Carlo Tree Search (like minmax with simulated n steps ahead) with NN could create intelligent and adaptive game opponents
-	- No experiment done in the paper, only speculation. Maybe run this as a master thesis?
-
-[^npc-bachelor-variety-ga]: [Adding Variety in NPCs Behaviour Using Emotions and Genetic Algorithms: the GENIE Project](https://air.unimi.it/retrieve/dfa8b9a6-fb2d-748b-e053-3a05fe0a3a96/CoG-19_paper_71.pdf)
-	- Use genetic algorithms to spawn enemies which are challenging, but not too much
-	- Don't clone those who kill player, clone those which last long
-	- Shoddy procedure, no control group, subjective metric
-	- Emotions = states (Forgetful, Paranoid, Bold, Strategic)
-	- Applied to multiple game prototypes in multiple genres
-
-[^npc-dota-pso]: [Utilization of the Particle Swarm Optimization Algorithm in Game Dota 2] - (2024)
-	- PSO/GA run per frame to decide jungle/push/defend/farm
-	- Strong against low-mid MMR
-
-[^npc-behavior-emotions]: [Development of Non-Player Character with Believable Behavior: a systematic literature review](https://www.sbgames.org/proceedings2021/ComputacaoShort/217749.pdf)
-	- Engagement based on player perception (role, personality, emotions), challenge and predictablity
-
-[^npc-unreal-ga-finetuning]: [USING GENETIC ALGORITHMS TO EVOLVE CHARACTER BEHAVIOURS IN MODERN VIDEO GAMES](https://csd.uwo.ca/~mkatchab/pubs/gameonna2008_unreal.pdf)
-	- Evolve unreal tournament bots, just finetuning with AG, params like jumpiness(bhopping), attentiveness, etc already programmed in (?)
-	- Selection: drop those bots who killed the player and those who last the least time
-	- Didn't test for player enjoyability
-
-[^npc-golem]: [GOLEM: Generator Of Life Embedded into MMOs](https://direct.mit.edu/isal/proceedings/ecal2013/25/585/98928) - (Sep 2013)
-	- Basic AG applied to D&D beasts
-
-[^npc-bachelor-ga-game]: [Monsters of Darwin: a strategic game based on Artificial Intelligence and Genetic Algorithms](https://ceur-ws.org/Vol-1956/GHItaly17_paper_05.pdf) - (Apr 2017)
-	- Random bachelor thesis
-
-[^quality-diversity]: [Evaluating Human–Robot Interaction Algorithms in Shared Autonomy via Quality Diversity Scenario Generation](https://dl.acm.org/doi/pdf/10.1145/3476412)
-
-[^map-elites]: [Illuminating search spaces by mapping elites](https://arxiv.org/abs/1504.04909) - Early Draft (Apr 2015)
+[^map-elites]: [Illuminating search spaces by mapping elites](https://arxiv.org/abs/1504.04909) (Apr 2015, ?)
 	- Map out well performing solutions (defined in a high dimensional space) over some features of interest (cost, resource type used, etc.)
 	- GA which remembers the best for each cell in a grid (grid of 2-3d, to be visualizable)
 
-[^robots-uav-sar-survey]: [Unmanned Aerial Vehicles for Search and Rescue: A Survey](https://www.researchgate.net/publication/371899272_Unmanned_Aerial_Vehicles_for_Search_and_Rescue_A_Survey)
+[^gomea-buildingblock]: [Scalable Genetic Programming by Gene-Pool Optimal Mixing and Input-Space Entropy-Based Building-Block Learning](https://dl.acm.org/doi/epdf/10.1145/3071178.3071287) (Jul 2017, GECCO)
+	#toresee
+	- GP-GOMEA: Algorithm has no parameters
+	- Has a way to build library of best sub-solutions
+	- Input-space Entropy-based Building-block Learning (IEBL)
+		- Uses heuristics to identify BBs
+			- I didn't understand how BBs are identified (Section 3.1)
+		- #stub-article[Ramped half-and-half generation](https://www.researchgate.net/publication/220743001_Ramped_Half-n-Half_Initialisation_Bias_in_GP)
+	- Interleaved Multistart Scheme - every g generations of the main GOMEA, run a generation of a pop_size\*2 GOMEA (global_best is global between populations)
+	- GOMEA 1 + log10 (|pop_size|) = patience for improvement; afterwards introduce global_best into the donor pool
+	- #advice Keep repository of all evaluated genotypes, to reduce amount of fitness evaluation
+	- #advice Has a high-level GOMEA pseudocode
+
+[^rl-evo-comparison]: [Evolution Strategies as a Scalable Alternative to Reinforcement Learning](https://arxiv.org/pdf/1703.03864) - (Sep 2017, ?)
+	- Centers on comparison between Reinforcement Learning and Evolutionary Strategies, comparing runtime and data used
+	-  Trust Region Policy Optimization ([TRPO](https://arxiv.org/pdf/1502.05477)) - lots of math
+
+[^frams-convection]: [Tournament-Based Convection Selection in Evolutionary Algorithms](https://www.framsticks.com/files/common/TournamentBasedConvectionSelectionEvolutionary.pdf) (Mar 2018, LNCS)
+	- Islands (QD like) separated by fitness ranges
+	- #advice Diversity is very important
+	- #advice some of the most popular selection strategies being tournament selection, ranking selection, proportional selection and sigma scaling
+	-  a more complex, non-monotonic selection scheme can improve the performance of evolutionary algorithms
+	- #deeper-subject Increased exploration can also be achieved in sequential evolutionary optimization using methods such as sharing or restricted mating. *Such methods require however calculating of additional measures of similarity*
+	- Convection selection:
+		- determine which individual should be assigned to which sub-population, but subpopulations still use regular selection
+		- Every R generations: subpopulations > merge into one > perform operations > split into subpopulations
+		- Otherwise:  apply steady-state (select one > mutate > add into subpopulation > remove random genotype from the entire population)
+	-  https://www.framsticks.com/files/common/MultithreadedEvolutionaryDesign.pdf - original convection description (for multithreading)
+	- #stub-article file:///home/xwiki/Downloads/SteadyState.pdf
+		- Steady-state replaces only a few members in a generation (as opposed to replacing all members in a generation for Generational Reproduction)
+		- #advice (personal opinion of the author) Exponential ranking is better than deleting least-fit
+	- EqualNumber convection is best
+		- #advice it is overtaken by simpleEA in the first generations though, since diversity is still building up
+		- While the velocity criterion allows the algorithm to continuously improve the quality of solutions by **exploring new ideas** of “how to be fast” (i.e., more possibilities for exploration), the evolution of height quickly leads to a plateau, where the improvement can be achieved mostly by **fine-tuning of existing solutions** (“local optima”) that are easy to break
+		- But the comparison graph is a bit unusual
+	- #advice Future work: dynamic, adaptive strategies of splitting and merging subpopulations and recursion level
+
+[^bullethell]: [Talakat: Bullet Hell Generation through Constrained Map-Elites](https://arxiv.org/pdf/1806.04718) (Jun 2018, GECCO)
+	- MAP-Elites + Feasible-Infeasible Two-Population (FI-2Pop) genetic algorithm
+
+[^frams-dissimilarity-new]: [A flexible dissimilarity measure for active and passive 3D structures and its application in the fitness–distance analysis](https://www.framsticks.com/files/common/DissimilarityMeasure3DStructuresFitnessDistance.pdf) (Mar 2019, LNCS)
+	- like [^frams-dissimilarity-bio], but evolved
+	- slightly over the previous greedy method, but more costly (i'm not sure if it's strictly better, but they seem to imply so)
+	- Hungarian Algorithm for matching
+
+[^qd-tensegrity-robots]: [Seeking Quality Diversity in Evolutionary Co-design of Morphology and Control of Soft Tensegrity Modular Robots](https://arxiv.org/pdf/2104.12175) (Apr 2021, ?)
+	- Variants of MAP-Elites
+		- [^double-MAP-E_1] 	
+		- [^double-MAP-E_2]
+		- ViE-NEAT
+			- #deeper-subject ViE uses viability boundries
+			- ViE for bodies population, NEAT for brains population, they get randomly paired at eval time
+			- Brains are not dependent on body morphology, sensations are absolute (GPS position, angle from target)
+		- DM-ME (best performance)
+			- Automatic Feature detection: run PCA, automatically discretize the space; Update PCA when you get a phenotype outside of the previous generation's PCA boundary
+			- PCA needs to re-evaluate all solutions when it is updated. EXPENSIVE!!!
+			- PCA only for the NN, for bodies use user-defined metrics
+			- PCA is done on the trajectory of the robot
+			- Population of body-brain pairs
+		- Time : ViE < DM-ME < MAP-Elites
+
+[^gomea]: [Parameterless Gene-pool Optimal Mixing Evolutionary Algorithms](https://arxiv.org/pdf/2109.05259) (Sep 2021, ?)
+	#tosee 
+
+[^hyena-flowshop]: [Hybrid Genetic and Spotted Hyena Optimizer for Flow Shop Scheduling Problem](https://www.mdpi.com/1999-4893/16/6/265) (May 2023, ?)  [local file link](file:///home/xwiki/Downloads/algorithms-16-00265-v2.pdf)
+	#tosee
+
+[^python-gomea]: [A Joint Python/C++ Library for Efficient yet Accessible Black-Box and Gray-Box Optimization with GOMEA](https://arxiv.org/pdf/2305.06246) (May 2023, GECCO)
+	- Ok introduction to GOMEA
+	- Is only a Python wrapper on C++ GOMEA
+
+[^qd-annealing]: [Covariance Matrix Adaptation MAP-Annealing](https://arxiv.org/pdf/2205.10752) (Jun 2023, GECCO)
+	#tosee
+
+[^frams-comeptition-caspo]: [Automated Design Competition Technical Report: Cascaded Structure and Parameter Optimization Based on Prior Knowledge](https://dl.acm.org/doi/epdf/10.1145/3638530.3664054) (Jul 2024, GECCO)
+	- Steps: LLM init > Body + Brain EA > Brain EA > Parameter Tuning > goto EA
+
+[^hexacopters]: [Unconventional Hexacopters via Evolution and Learning: Performance Gains and New Insights](https://arxiv.org/html/2505.14129v1) (May 2025, ? EU Grant)
+	- GA represents morphologies > each morphology gets a controller through Reinforcement Learning > Compute fitness
+	- Proximal Policy Optimization (actor-critic) for RL
+	- Evolved morphologies were better on the tasks they were trained on than human designs
+	- #advice The metrics developed to characterize learning dynamics (burn-in time, learning speed, volatility, and maximum reward)
+
+[^gomea-do-we-need]: [A Better Multi-Objective GP-GOMEA - But do we Need it?](https://dl.acm.org/doi/epdf/10.1145/3712255.3734302) (Jul 2025, GECCO)
+	- Based on our findings, we recommend using SO optimization with an MO elitist archive in GP, particularly when using GP-GOMEA, as a first step for most scenario
+	- Explainable AI
+	- 👎
+
+[^gomea-buildingblocks-varlength]: [GOM-Based Compatible Substitutions Optimization for Variable-Length Representation Gray-Box Problems](https://dl.acm.org/doi/pdf/10.1145/3712255.3726717) (July 2025, GECCO)
+	- this is really good
+	- CoSO : Use GOM for var length genomes
+	- ?Store a library of elite solutions, to identify later the building blocks, rate how well they can be grafted into a solution
+	- Substitution Compatibility Function (SCF):
+		- The substitution should serve the same purpose (replace a leg with another type of leg)
+		- How much the substitution impacts the way the genotype is turned into phenotype (invalid links, etc)
+		- *One of the weaknesses of the proposed𝑆𝐶𝐹 function is its struggle to modify the distance between two substructures in a structure, and its inability to change the parity of the length of the genotype*
+		- Added term to prevent entirely replacing solutions (since a solution could also be considered a sub-solution)
+	- Once a generation is over (no substitutions are available anymore), the current generation is marked as elites library, and a new population is initialized randomly
+	- Matching subsolutions from the current population might be hindering the search
+	- best performance with popsize=1 (so it is a vessel, ripe for experimenting with already learned elite library subsolutions)
+	- Should have small size of the library
+	- CoSO(in1, in2) -> compatibility score of some subsolution
+	- Introduced random noise so angles aren't perfect -> more robust/realistic (90deg is actually 89.97~91.2deg, for example)
+	- Future Work:
+		- Train the SCF based on data obtained during the search
+		- Use elite sub-solution library instead of elite solution library
+
+[^qd-dissimilarity-crowding]: [Enhancing Quality-Diversity Optimization Through Domain-Specific Dissimilarity as Crowding Distance](https://dl.acm.org/doi/pdf/10.1145/3712256.3726459) (Jul 2025, GECCO)
+	- #deeper-subject NSGA-II
+		- sort by rank in population (when sorted by ???)
+		- use crowding distance to encourage outliers to reproduce
+	- DE-NSGA-II introduced here had better diversity, but lower fitness
+	- Other ways to address premature convergence:
+		- Niching (penalty for similar solutions)
+			- #stub-article Non-dominated Sorting Genetic Algorithm II
+		- Novelty search (fitness is novelty, not fitness function)
+		- QD variants: novelty search (NSLC) or MAP-elites
+			- #deeper-subject QD for Games content generation mentioned
+	- Something like [^frams-dissimilarity] is mentioned
+
+[^rl-chinup]: [Evolutionary Continuous Adaptive RL-Powered Co-Design for Humanoid Chin-Up Performance](https://arxiv.org/html/2509.26082v1) (Sep 2025, ?)
+	- #toresee
+	- CMA-ES for EA part
+	- RL in inner loop (Markov decision process, aka regular RL (state, action, probability, reward, discount))
+		- Proximal Policy Optimisation for RL
+
+
+### Disregard
+
+[^book]: [Artificial Life Models in Software](https://pdfs.semanticscholar.org/8676/268ac4320c8fb9baf5200fd86f9c26ab79b5.pdf) (2009, ?)
+	- Carte, nu prea am timp de ea
+	#toresee 
+
+[^double-map-e_2]: [Quality Diversity: A New Frontier for Evolutionary Computation](https://www.frontiersin.org/journals/robotics-and-ai/articles/10.3389/frobt.2016.00040/full) (Jul 2016, ?)
+	- #stub-article 
+
+[^double-map-e_1]: [Open-ended evolution with multi-containers QD](https://dl.acm.org/doi/10.1145/3205651.3205705) (Jul 2018, GECCO)
+	- #stub-article
+	- Generate MAP-E maps on the fly, based on behavior types (flying map for flying agents, etc)
+	- Novelty Search + local competition
+
+[^hyena-llm]: [HyenaDNA: Long-Range Genomic Sequence Modeling at Single Nucleotide Resolution](https://arxiv.org/pdf/2306.15794) (Nov 2023, ?)
+	- NN/LLM, DISREGARD
+
+[^maciej-physics]: [On the influence of design parameters on the performance of the dielectric elastomer actuator with a permanent magnet](https://www.nature.com/articles/s41598-025-21993-5?error=server_error) (Oct 2025, ?)
+	- Maciej
+	- Looks like more of a physiscs experiment, so ignore; no GA

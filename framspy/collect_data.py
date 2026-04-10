@@ -3,17 +3,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
-PATH = '/home/xwiki/Documents/fac/GECCO_Robot_Body/Disertatie/framspy/experiments/'
 HIGHLIGHT = {
     'eaSimpleF1': 'red',
-    'adaptMutF0Firstpmut08': 'red',
+    'AdaptMutF0pmut08': 'red',
 }
 COLORS = ['red','blue','green','black', 'orange','purple','brown', 'magenta']
 N_RUNS = 20
 MAX_STEPS = 100_001
 example_idx = 0
 DATA_PATH = '/home/xwiki/Documents/fac/GECCO_Robot_Body/Disertatie/'
-DATA_FILE = DATA_PATH + 'parsed_result_data.json'
+PATH = DATA_PATH + 'framspy/experiments/'
+DATA_FILE = DATA_PATH + 'parsed_result_data.pkl'
 
 def running_stat(arr, fn, radius=50):
     return [fn(arr[i-radius:i+radius]) for i in range(len(arr))]
@@ -27,7 +27,6 @@ def violins(rk):
         names[n[0]].append(n[1])
     ordered_names = list(names.keys())
     ordered_names.sort(key=lambda n: np.median(names[n]), reverse=True)
-    json.dump((ordered_names, names), open(DATA_PATH + 'd.txt', 'w'))
     for idx, n in enumerate(ordered_names):
         plt.scatter([idx+1] * 20, names[n], color=COLORS[idx % len(COLORS)], label=n)
     vp = plt.violinplot([names[n] for n in ordered_names], showmeans=True, showmedians=True)
@@ -57,34 +56,35 @@ def parse_data():
             mn_arr = []
             avg_arr = []
             with open(os.path.join(PATH, d, f'results_{i}.stdout'), 'r') as f:
-                print(d, i)
+                # print(d, i)
                 # First line tells us the arguments the run had.
                 argvalues = f.readline()
                 argvalues = argvalues[len('Argument values: '):]
                 arggs = re.findall('([^=]+)=([^, ]+),? ?', argvalues)
                 args = {a[0]: a[1] for a in arggs}
                 for l in f:
-                    rgx = r'([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?)\s+'
-                    m = re.match(f'^{rgx}{rgx}{rgx}{rgx}{rgx}{rgx}{rgx}{rgx}$', l)
+                    rgx = r'([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?)'
+                    sp = r'\s+'
+                    m = re.match(f'^{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}?{sp}?$', l)
                     if m:
-                        gen, nevals, avg, stdev, mn, mx, totalevals, nonevalTime = m.groups()
+                        gen, nevals, avg, stdev, mn, mx, totalevals, evalTime, nonevalTime = m.groups()
                         if int(totalevals) - len(mx_arr) != int(nevals):
                             if m.groups()[1] == args['popsize'] and int(totalevals) - len(mx_arr) == 0:
                                 # For convection selection, the global population counts twice for some reason
                                 continue
-                            print(m.groups(), int(totalevals), len(mx_arr), f"{int(totalevals) - len(mx_arr)} != {int(nevals)}")
+                            print("(Miscount)", d, i, m.groups(), int(totalevals), len(mx_arr), f"{int(totalevals) - len(mx_arr)} != {int(nevals)}")
                             exit(0)
                         mx_arr += [float(mx)] * (int(totalevals) - len(mx_arr))
                         mn_arr += [float(mn)] * (int(totalevals) - len(mn_arr))
                         avg_arr += [float(avg)] * (int(totalevals) - len(avg_arr))
                         if len(mx_arr) != int(totalevals):
-                            print(m.groups(), f"{len(mx_arr)} != {int(totalevals)}")
+                            print("(Miscount)", d, i, m.groups(), f"{len(mx_arr)} != {int(totalevals)}")
                             exit(0)
-            print(len(mx_arr))
+            if len(mx_arr) <= 100_000 - int(args['popsize']):
+                print("(Stopped too early) ", d, i, f"{len(mx_arr)} <= 99_950")
             mx_arr += [mx_arr[-1]] * (MAX_STEPS - len(mx_arr))
             mn_arr += [mn_arr[-1]] * (MAX_STEPS - len(mn_arr))
             avg_arr += [avg_arr[-1]] * (MAX_STEPS - len(avg_arr))
-            print(len(mx_arr))
             mx_arrs.append(mx_arr)
             mn_arrs.append(mn_arr)
             avg_arrs.append(avg_arr)
@@ -106,23 +106,24 @@ def boxplots(rk):
     ordered_names.sort(key=lambda n: np.median(names[n]), reverse=True)
     for idx, n in enumerate(ordered_names):
         plt.scatter([idx+1] * 20, names[n], color=COLORS[idx % len(COLORS)], label=n, alpha=0.2)
-    plt.boxplot([names[n] for n in ordered_names], showmeans=True)
+    plt.boxplot([names[n] for n in ordered_names], showmeans=False)
     plt.xticks(range(1, len(names)+1), names, rotation=45, ha='right')
     ax = plt.gca()
     for tick in ax.get_xticklabels():
         if tick.get_text() in HIGHLIGHT:
             tick.set_color(HIGHLIGHT[tick.get_text()])
 
+import pickle
 if not os.path.exists(DATA_FILE):
     print('Parsing results...')
     rs = parse_data()
     os.mknod(DATA_FILE)
-    json.dump(rs, open(DATA_FILE, 'w'))
+    pickle.dump(rs, open(DATA_FILE, 'wb'))
 else:
     print('Loding results...')
-    rs = json.load(open(DATA_FILE, 'r'))
+    rs = pickle.load(open(DATA_FILE, 'rb'))
 
-def show_runs(rs, example_idx, plot=False):
+def show_runs(rs, example_idx, plot=False, printout=False):
     y_vals = [i for i in range(MAX_STEPS)]
     if plot:
         plt.figure(figsize=(12,6))
@@ -138,11 +139,12 @@ def show_runs(rs, example_idx, plot=False):
             plt.fill_between(y_vals, rs[d]['mn_arrs'][example_idx], rs[d]['mx_arrs'][example_idx], color=color, alpha=0.06)
         res.append((d, max(rs[d]['avg_arrs'][example_idx])))
     res.sort(key=lambda x: x[1], reverse=True)
-    print(f"{'Rank':>4}  {'Name':<50} {'Score':<10}")
-    print('-' * 90)
-    for idx, r in enumerate(res):
-        print(f"{idx+1:>4}. {r[0]:<50} {r[1]:10.5f}")
-    print(f" run {example_idx:>2} ".center(90, '='))
+    if printout:
+        print(f" run {example_idx:>2} ".center(90, '='))
+        print(f"{'Rank':>4}  {'Name':<50} {'Score':<10}")
+        print('-' * 90)
+        for idx, r in enumerate(res):
+            print(f"{idx+1:>4}. {r[0]:<50} {r[1]:10.5f}")
     if plot:
         plt.legend()
         plt.show()
@@ -208,10 +210,10 @@ def plot_rank_gaussians(data, sigma_min=0.2, x_pad=0.5, figsize=(8,4)):
 
 # plot_rank_gaussians(rk)
 # plt.show()
-violins(global_clasament)
-plt.tight_layout(pad=0.2)
-# plt.show()
-plt.savefig(DATA_PATH + 'Run_results_violin.png')
+# violins(global_clasament)
+# plt.tight_layout(pad=0.2)
+# # plt.show()
+# plt.savefig(DATA_PATH + 'Run_results_violin.png')
 boxplots(global_clasament)
 plt.tight_layout(pad=0.2)
 # plt.show()

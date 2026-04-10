@@ -4,3 +4,5 @@ __pycache__
 framspy/experiments/*
 Framsticks
 .vscode
+*.results
+*.pkl
