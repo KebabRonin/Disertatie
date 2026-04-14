@@ -3,7 +3,7 @@ import os
 import sys
 import numpy as np
 from deap import creator, base, tools, algorithms
-from FramsticksLib import FramsticksLib
+from FramsticksLib import FramsticksLib, DissimMethod
 from FramsticksLibCompetition import FramsticksLibCompetition
 
 # Note: this may be less efficient than running the evolution directly in Framsticks, so if performance is key, compare both options.
@@ -49,20 +49,24 @@ def frams_evaluate(frams_lib, individual):
 	return fitness
 
 
-def frams_crossover(frams_lib, individual1, individual2):
+def frams_crossover(frams_lib: FramsticksLib, individual1, individual2):
 	geno1 = individual1[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	geno2 = individual2[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	individual1[0] = frams_lib.crossOver(geno1, geno2)
 	individual2[0] = frams_lib.crossOver(geno1, geno2)
 	return individual1, individual2
 
+def frams_dissim(frams_lib: FramsticksLib, individuals: list, dissim_method:DissimMethod):
+	print(individuals)
+	return frams_lib.dissimilarity(individuals, method=dissim_method)
 
-def frams_mutate(frams_lib, individual):
+
+def frams_mutate(frams_lib: FramsticksLib, individual):
 	individual[0] = frams_lib.mutate([individual[0]])[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	return individual,
 
 
-def frams_getsimplest(frams_lib, genetic_format, initial_genotype):
+def frams_getsimplest(frams_lib: FramsticksLib, genetic_format, initial_genotype):
 	return initial_genotype if initial_genotype is not None else frams_lib.getSimplest(genetic_format)
 
 
@@ -104,7 +108,7 @@ def selNSGA2_only_feasible(individuals, k, toolboxclone):
 	return tools.selNSGA2(feasible, k)
 
 
-def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_format, initial_genotype):
+def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_format, initial_genotype) -> base.Toolbox:
 	creator.create("FitnessMax", base.Fitness, weights=[1.0] * len(OPTIMIZATION_CRITERIA))
 	creator.create("Individual", list, fitness=creator.FitnessMax)  # would be nice to have "str" instead of unnecessary "list of str"
 
@@ -121,6 +125,7 @@ def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_fo
 	toolbox.register("evaluate", frams_evaluate, frams_lib)
 	toolbox.register("mate", frams_crossover, frams_lib)
 	toolbox.register("mutate", frams_mutate, frams_lib)
+	toolbox.register("dissimilarity", frams_dissim, frams_lib) # Open the door to dissimilarity-based methods. FIXME: Does this count as an evaluation? I hope not...
 	if len(OPTIMIZATION_CRITERIA) <= 1:
 		# toolbox.register("select", tools.selTournament, tournsize=tournament_size) # without explicitly filtering out infeasible solutions - eliminating/discriminating infeasible solutions during selection would only rely on their relatively poor fitness value
 		toolbox.register("select", selTournament_only_feasible, tournsize=tournament_size)
@@ -135,6 +140,7 @@ def parseArguments():
 	parser.add_argument('-path', type=ensureDir, required=True, help='Path to Framsticks library without trailing slash.')
 	parser.add_argument('-lib', required=False, help='Library name. If not given, "frams-objects.dll" (or .so or .dylib) is assumed depending on the platform.')
 	parser.add_argument('-sim', required=False, default="eval-allcriteria.sim", help="The name of the .sim file with settings for evaluation, mutation, crossover, and similarity estimation. If not given, \"eval-allcriteria.sim\" is assumed by default. Must be compatible with the \"standard-eval\" expdef. If you want to provide more files, separate them with a semicolon ';'.")
+	parser.add_argument('-evalfn', default=3, help="The fitness function to use. Values: 3 (default), 4, or 5")
 
 	parser.add_argument('-genformat', required=False, help='Genetic format for the simplest initial genotype, for example 4, 9, or B. If not given, f1 is assumed.')
 	parser.add_argument('-initialgenotype', required=False, help='The genotype used to seed the initial population. If given, the -genformat argument is ignored.')
@@ -142,7 +148,10 @@ def parseArguments():
 	parser.add_argument('-algorithm', required=True, help='The genotype used to seed the initial population. If given, the -genformat argument is ignored.')
 	parser.add_argument('-nislands', type=int, default=10, help="Number of islands (only for convection), default: 10.")
 	parser.add_argument('-migrate_after', type=int, default=10, help="Number of generations to execute for each island before migrating all islands (only for convection), default: 10.")
-	parser.add_argument('-xmut_enabled', type=int, default=1, help="0/1 If to enable mutation = replace with simple individual (only for AdaptMut), default: 1.")
+	parser.add_argument('-xmut_enabled', type=bool, default=1, help="0/1 If to enable mutation = replace with simple individual (only for AdaptMut), default: 1.")
+	parser.add_argument('-lbda', type=int, default=100, help="lambda - how many children to produce (only used for eaMuLambda), default: 100.") # Suggested: 7 * popsize (=350, but that seems like a bit much)
+	parser.add_argument('-dissim', type=DissimMethod, default=DissimMethod.FITNESS, help="dissimilarity method  (only used for ???), default: FITNESS.") # Suggested: 7 * popsize (=350, but that seems like a bit much)
+	parser.add_argument('-initpop_zero', type=bool, default=DissimMethod.FITNESS, help="dissimilarity method  (only used for ???), default: FITNESS.") # Suggested: 7 * popsize (=350, but that seems like a bit much)
 
 	parser.add_argument('-opt', required=True, help='optimization criteria: vertpos, velocity, distance, vertvel, lifespan, numjoints, numparts, numneurons, numconnections (or other as long as it is provided by the .sim file and its .expdef). For multiple criteria optimization, separate the names by the comma.')
 	parser.add_argument('-popsize', type=int, default=50, help="Population size, default: 50.")
@@ -185,6 +194,7 @@ def main():
 
 	# random.seed(123)  # see FramsticksLib.DETERMINISTIC below, set to True if you want full determinism
 	FramsticksLib.DETERMINISTIC = False  # must be set before the FramsticksLib() constructor call
+	FramsticksLibCompetition.TEST_FUNCTION = parsed_args.evalfn
 	parsed_args = parseArguments()
 	print("Argument values:", ", ".join(['%s=%s' % (arg, getattr(parsed_args, arg)) for arg in vars(parsed_args)]))
 	OPTIMIZATION_CRITERIA = parsed_args.opt.split(",")
@@ -211,6 +221,18 @@ def main():
 				pop, log = adaptMut(
 							pop, toolbox, 
 							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations, xmut_enabled=parsed_args.xmut_enabled,
+							stats=stats, halloffame=hof, verbose=True)
+			case "eaMuPlusLambda":
+				print('eaMu+Lambda')
+				pop, log = algorithms.eaMuPlusLambda(
+							pop, toolbox, mu=len(pop), lambda_=parsed_args.lbda,
+							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations, 
+							stats=stats, halloffame=hof, verbose=True)
+			case "eaMuCommaLambda":
+				print('eaMu,Lambda')
+				pop, log = algorithms.eaMuCommaLambda(
+							pop, toolbox, mu=len(pop), lambda_=parsed_args.lbda,
+							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations, 
 							stats=stats, halloffame=hof, verbose=True)
 			case "eaSimple":
 				print('ea')

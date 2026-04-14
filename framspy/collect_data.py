@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
+ARR_TO_PLOT = 'mx_arrs'
+SHOW_CLASAMENT = False
 HIGHLIGHT = {
     'eaSimpleF1': 'red',
     'AdaptMutF0pmut08': 'red',
@@ -18,32 +20,31 @@ DATA_FILE = DATA_PATH + 'parsed_result_data.pkl'
 def running_stat(arr, fn, radius=50):
     return [fn(arr[i-radius:i+radius]) for i in range(len(arr))]
 
-def violins(rk):
-    plt.figure(figsize=(10,7))
+def order_fn_median(names):
+    ordered_names = list(names.keys())
+    ordered_names.sort(key=lambda n: np.median(names[n]), reverse=True)
+    return ordered_names
+
+def order_fn_mean(names):
+    ordered_names = list(names.keys())
+    ordered_names.sort(key=lambda n: np.mean(names[n]), reverse=True)
+    return ordered_names
+
+def order_fn_max(names):
+    ordered_names = list(names.keys())
+    ordered_names.sort(key=lambda n: max(names[n]), reverse=True)
+    return ordered_names
+
+def get_algo_dict(rk):
+    """
+    Get all experiment runs, grouped by algorithm.
+    """
     names = {}
     for n in rk:
         if n[0] not in names:
             names[n[0]] = []
         names[n[0]].append(n[1])
-    ordered_names = list(names.keys())
-    ordered_names.sort(key=lambda n: np.median(names[n]), reverse=True)
-    for idx, n in enumerate(ordered_names):
-        plt.scatter([idx+1] * 20, names[n], color=COLORS[idx % len(COLORS)], label=n)
-    vp = plt.violinplot([names[n] for n in ordered_names], showmeans=True, showmedians=True)
-    for i, body in enumerate(vp['bodies']):
-        body.set_facecolor(COLORS[i % len(COLORS)])
-        body.set_edgecolor('blue')
-    vp['cmeans'].set_color('black')
-    vp['cmeans'].set_linewidth(1.5)
-    vp['cmedians'].set_color('white')
-    vp['cmedians'].set_linestyle(':')
-    vp['cmedians'].set_linewidth(1.5)
-    plt.xticks(range(1, len(names)+1), names, rotation=45, ha='right')
-    plt.legend(handles = [vp['cmeans'], vp['cmedians']],labels=['mean', 'median'])
-    ax = plt.gca()
-    for tick in ax.get_xticklabels():
-        if tick.get_text() in HIGHLIGHT:
-            tick.set_color(HIGHLIGHT[tick.get_text()])
+    return names
 
 def parse_data():
     rs = {}
@@ -80,7 +81,7 @@ def parse_data():
                         if len(mx_arr) != int(totalevals):
                             print("(Miscount)", d, i, m.groups(), f"{len(mx_arr)} != {int(totalevals)}")
                             exit(0)
-            if len(mx_arr) <= 100_000 - int(args['popsize']):
+            if len(mx_arr) <= 100_000 - max(int(args['popsize']), int(args['lbda'] if 'lbda' in args else 0)):
                 print("(Stopped too early) ", d, i, f"{len(mx_arr)} <= 99_950")
             mx_arr += [mx_arr[-1]] * (MAX_STEPS - len(mx_arr))
             mn_arr += [mn_arr[-1]] * (MAX_STEPS - len(mn_arr))
@@ -95,23 +96,53 @@ def parse_data():
         }
     return rs
 
-def boxplots(rk):
+def violins(names, order_fn=order_fn_median):
     plt.figure(figsize=(10,7))
-    names = {}
-    for n in rk:
-        if n[0] not in names:
-            names[n[0]] = []
-        names[n[0]].append(n[1])
-    ordered_names = list(names.keys())
-    ordered_names.sort(key=lambda n: np.median(names[n]), reverse=True)
+    ordered_names = order_fn(names)
     for idx, n in enumerate(ordered_names):
-        plt.scatter([idx+1] * 20, names[n], color=COLORS[idx % len(COLORS)], label=n, alpha=0.2)
-    plt.boxplot([names[n] for n in ordered_names], showmeans=False)
+        plt.scatter([idx+1] * 20, names[n], color=COLORS[idx % len(COLORS)], label=n)
+    vp = plt.violinplot([names[n] for n in ordered_names], showmeans=True, showmedians=True)
+    for i, body in enumerate(vp['bodies']):
+        body.set_facecolor(COLORS[i % len(COLORS)])
+        body.set_edgecolor('blue')
+    vp['cmeans'].set_color('black')
+    vp['cmeans'].set_linewidth(1.5)
+    vp['cmedians'].set_color('white')
+    vp['cmedians'].set_linestyle(':')
+    vp['cmedians'].set_linewidth(1.5)
     plt.xticks(range(1, len(names)+1), names, rotation=45, ha='right')
+    plt.legend(handles = [vp['cmeans'], vp['cmedians']],labels=['mean', 'median'])
     ax = plt.gca()
     for tick in ax.get_xticklabels():
         if tick.get_text() in HIGHLIGHT:
             tick.set_color(HIGHLIGHT[tick.get_text()])
+
+def boxplots(names, order_fn=order_fn_median):
+    plt.figure(figsize=(10,7))
+    ordered_names = order_fn(names)
+    for idx, n in enumerate(ordered_names):
+        plt.scatter([idx+1] * 20, names[n], color=COLORS[idx % len(COLORS)], label=n, alpha=0.2)
+    plt.boxplot([names[n] for n in ordered_names], showmeans=True)
+    plt.xticks(range(1, len(names)+1), ordered_names, rotation=45, ha='right')
+    ax = plt.gca()
+    for tick in ax.get_xticklabels():
+        if tick.get_text() in HIGHLIGHT:
+            tick.set_color(HIGHLIGHT[tick.get_text()])
+    # t-test to see if better solutions are statistically significant
+    from scipy.stats import ttest_ind
+    BASELINE = 'AdaptMutF0pmut08'
+    SIGLVL = 0.05
+    idx_baseline = ordered_names.index(BASELINE)
+    print(f"Performing T-test between {BASELINE} and :", ordered_names[:idx_baseline])
+    for on in ordered_names[:idx_baseline]:
+        # Perform two-sample t-test
+        t_statistic, p_value = ttest_ind(names[BASELINE], names[on])
+
+        # Output the results
+        if p_value < SIGLVL:
+            print(f" {BASELINE} vs {on} ".center(90, '='))
+            print(f"t-statistic: {t_statistic}")
+            print(f"P-value: {p_value} ({'significant change' if p_value < SIGLVL else 'insignificant change'} for {SIGLVL} significance level)")
 
 import pickle
 if not os.path.exists(DATA_FILE):
@@ -123,21 +154,18 @@ else:
     print('Loding results...')
     rs = pickle.load(open(DATA_FILE, 'rb'))
 
-def show_runs(rs, example_idx, plot=False, printout=False):
+def show_runs(rs, example_idx, plot=False, printout=False, arr_to_plot=ARR_TO_PLOT):
     y_vals = [i for i in range(MAX_STEPS)]
     if plot:
         plt.figure(figsize=(12,6))
     res = []
-    # print(rs.keys())
-    # ordered_names = list(rs.keys())
-    # ordered_names.sort(key=lambda n: np.mean(rs[n]['avg_arrs'][example_idx]), reverse=True)
     for idx, d in enumerate(rs):
         if plot:
             color = COLORS[idx % len(COLORS)]
             # Plot run means as a thinner line on same axes
-            plt.plot(y_vals, rs[d]['avg_arrs'][example_idx], label=f'{d} avg', color=color, linewidth=1.5)
+            plt.plot(y_vals, rs[d][arr_to_plot][example_idx], label=f'{d} avg', color=color, linewidth=1.5)
             plt.fill_between(y_vals, rs[d]['mn_arrs'][example_idx], rs[d]['mx_arrs'][example_idx], color=color, alpha=0.06)
-        res.append((d, max(rs[d]['avg_arrs'][example_idx])))
+        res.append((d, max(rs[d][arr_to_plot][example_idx])))
     res.sort(key=lambda x: x[1], reverse=True)
     if printout:
         print(f" run {example_idx:>2} ".center(90, '='))
@@ -155,23 +183,30 @@ def show_runs(rs, example_idx, plot=False, printout=False):
 # exit(0)
 ress = []
 for example_idx in range(N_RUNS):
-    ress.append(show_runs(rs, example_idx))
+    ress.append(show_runs(rs, example_idx, arr_to_plot=ARR_TO_PLOT))
 global_clasament = []
 for i, r in enumerate(ress):
     for f in r:
         global_clasament.append((f[0], f[1], i))
 global_clasament.sort(key=lambda x: x[1], reverse=True)
 
-print()
-print()
-print()
-print('=' * 90)
-print(' Global Ranking '.center(90, '='))
-print('=' * 90)
-print(f"{'Rank':>4}. {'Name':<50} {'Score':<10} | {'Run idx':>2}")
-print("-" * 100)
-for idx, r in enumerate(global_clasament):
-    print(f"{idx+1:>4}. {r[0]:<50} {r[1]:10.5f} | {r[2]:>2}")
+# ress.sort(key=lambda r: max([np.mean(f) for f in r]))
+# print(ress[0])
+# for d in rs:
+#     rs[d]['mean_arr']
+
+
+if SHOW_CLASAMENT:
+    print()
+    print()
+    print()
+    print('=' * 90)
+    print(' Global Ranking '.center(90, '='))
+    print('=' * 90)
+    print(f"{'Rank':>4}. {'Name':<50} {'Score':<10} | {'Run idx':>2}")
+    print("-" * 100)
+    for idx, r in enumerate(global_clasament):
+        print(f"{idx+1:>4}. {r[0]:<50} {r[1]:10.5f} | {r[2]:>2}")
 
 def gaussian(x, mu, sigma):
     return np.exp(-0.5*((x-mu)/sigma)**2) / (sigma*np.sqrt(2*np.pi))
@@ -208,17 +243,39 @@ def plot_rank_gaussians(data, sigma_min=0.2, x_pad=0.5, figsize=(8,4)):
     plt.tight_layout()
     return plt.gcf(), plt.gca()
 
-# plot_rank_gaussians(rk)
+# ## This is useless and doesn't tell me much.
+# plot_rank_gaussians(global_clasament)
 # plt.show()
 # violins(global_clasament)
 # plt.tight_layout(pad=0.2)
 # # plt.show()
 # plt.savefig(DATA_PATH + 'Run_results_violin.png')
-boxplots(global_clasament)
-plt.tight_layout(pad=0.2)
-# plt.show()
-plt.savefig(DATA_PATH + 'Run_results_boxplot.png')
 
+names = get_algo_dict(global_clasament)
+
+print('=' * 120)
+print(f' Global clasament of {ARR_TO_PLOT} '.center(120, '='))
+print('=' * 120)
+for idx, n in enumerate(names):
+    print(f'{idx+1:>3}{n:<90}\t{max(names[n]):10.5f}')
+
+print(' By median '.center(90, '*'))
+boxplots(names, order_fn=order_fn_median)
+plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by median value')
+plt.tight_layout(pad=0.2)
+plt.savefig(DATA_PATH + f'Run_results_boxplot_{ARR_TO_PLOT}_ordermedian.png')
+
+print(' By mean '.center(90, '*'))
+boxplots(names, order_fn=order_fn_mean)
+plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by mean value')
+plt.tight_layout(pad=0.2)
+plt.savefig(DATA_PATH + f'Run_results_boxplot_{ARR_TO_PLOT}_ordermean.png')
+
+print(' By max '.center(90, '*'))
+boxplots(names, order_fn=order_fn_max)
+plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by maximum value')
+plt.tight_layout(pad=0.2)
+plt.savefig(DATA_PATH + f'Run_results_boxplot_{ARR_TO_PLOT}_ordermax.png')
 exit()
 for i in range(0):
     # running max

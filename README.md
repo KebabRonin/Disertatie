@@ -33,31 +33,70 @@ CMA-ES algo
 
 Simulated Annealer
 
-Riisto Miikkulainen - hyena simulation complexifying, diversity search
+Risto Miikkulainen - hyena simulation complexifying, diversity search
 
 ## TODO
 
-* [x] Simple EA (TODO: more details here)
-* [x] AdaptMut (Same as Simple EA, but stronger mutation)
-* [x] Convection Selection (Island-based, split by fitness score)
+_Roughly ordered by difficulty/impact_
+
+* [ ] Do some runs with determinism turned off
+* [ ] Different initializations:
+	* [ ] Random init: The first generation should already contain different individuals
+		- Don't evaluate the first generation, which is filled with identical genotypes, clones of the simplest genotype - since all individuals are identical, fitness isn't a good measure for selection (since it is equivalent to a random selection)
+		- Option 1: Use the built-in `get_random_individual()` function in Framsticks
+		- Option 2: Init with initial genotype, and run a round of mutation/crossover before starting
+	* [ ] Have the initial genotype be 'XX' instead of 'X'
+		* Two parts and a Joint
+		* This is the simplest genotype which is potentially capable of movement (if neurons are properly added)
+		* Could also try to have one of the parts contain all possible neuron types, so evolution can only focus on adding some connections at first
+			* ! Highest performing solutions already contain all possible neuron types (even if they aren't used), so this might speed things up
+* [ ] Implement NEAT Speciation/Clustering
+	* [ ] Test the Framsticks dissimilarity metric to get more familiar with it
+	* [ ] Touch the neuron/body mutation probabilities once a population matures/plateaus
+* [ ] Add Mutation scheme: Duplicate some part of the genotype (for f0 and f1)
+	* Use the swap mutation as inspiration
+* [ ] Implement NEAT complexification/ gene alignment
+	* Need to find a way to define 'dimensions' in Framsticks: (in NEAT dimension = nr. hidden layers)
+		* Genotype length (needs to be robust to possibly hard-coded parameters in the evaluation phase)?
+		* (f1) Available gene modifiers?
 * [ ] GOMEA ([2025 competition entry description here](https://www.framsticks.com/filebrowser/download/341) - it relies on f1)
-* [ ] More EA variants: [(μ/ρ +, λ), (1+(λ, λ)), (μ, λ), (μ+λ), (μ+1), (1+1)](https://algorithmafternoon.com/strategies/mu_slash_rho_plus_lambda_evolution_strategy/), ...
 * [ ] That speciation algorithm (niching by similarity, and encouraging explotration)
-* [ ] Hyena for float tuning only?
 * [ ] Investigate Building Block algorithms
+* [ ] Alter selection (something other than tournament)
+* [ ] Use the dissimilarity metric somehow?
+	* [ ] Compute some `aux_fitness` score which rewards distance from other solutions, to increase exploration?
+	* [ ] First option: Convection?
+	* [ ] NEAT speciation
+	* [ ] CMA-ES
+	> PyEMD: If you use this code, please cite the papers listed at the end of the README
+* [ ] Hyena for float tuning only?
+* [ ] Add an additional test map (some heightfield + water, instead of superflat) (**Is this worth it for the paper/algorithm?**)
+		* Even better, the example comes with 3 evaluation functions
+
+* [x] More EA variants: [(μ/ρ +, λ), (1+(λ, λ)), (μ, λ), (μ+λ), (μ+1), (1+1)](https://algorithmafternoon.com/strategies/mu_slash_rho_plus_lambda_evolution_strategy/), ...
 * [x] Try AdaptMut Convection without `simplest genotype insertion` mutation
 * [x] Variate popsize (25, 50, 100)
-* [ ] Use the distance metric somehow?
-* [ ] Smarter initialization (the first generation should already contain different individuals) - aka. don't evaluate the first generation (which is filled with the simplest genotype)
-* [ ] Add an additional test map (some heightfield + water, instead of superflat) (**Is this worth it for the paper/algorithm?**)
+* [x] Convection Selection (Island-based, split by fitness score)
+* [x] AdaptMut (Same as Simple EA, but stronger mutation)
+* [x] Simple EA (TODO: more details here)
+
+For competition:
+* [ ] Create standalone Python file (containing all the code, and which creates the necessary dependencies (.sim files, etc), also include a TOC and file sections as comments)
+* [ ] Write email
+
+For disertation:
+* [ ] Write the paper [overleaf link](https://www.overleaf.com/read/rghmrhnrdqdd#cce283)
 
 **Questions**:
 
-* [ ] Can I touch the **mutation operator**? It might have some `p_mutate_neurons` or `p_mutate_body` to fine-tune.
-* [ ] Since the example experiment setup has randomness turned off, can I rely on that to be the case at evaluation time? Can I 'cheat' by **not re-evaluating genotypes which were seen before**?
+* [x] Can I touch the **mutation operator**? It might have some `p_mutate_neurons` or `p_mutate_body` to fine-tune.
+	* `If needed, parameter values and probabilities of mutation and crossover may be modified and adjusted by participants.` - so **YES**
+* [x] Since the example experiment setup has randomness turned off, can I rely on that to be the case at evaluation time? Can I 'cheat' by **not re-evaluating genotypes which were seen before**?
+	* I'd say that I can't rely on randomness being turned off, so **NO**
 * [ ] What could I change from the [2025 GOMEA entry](https://www.framsticks.com/filebrowser/download/341) to improve it?
   * I could substitute the island migrations for the Convection Selection Scheme
 * [ ] What stats are interesting to compute? (average run fitness plot? average 'biggest fitness jump' generation? Plotting a GIF of the population over the run?)
+	* **I need help, idk what to interpret about the results**
 
 ## Competition
 
@@ -79,6 +118,86 @@ The submitted algorithm should be single-process, single-threaded, no GPU. No mo
 **Max time: 1h**
 **Memory: 2GB**
 **Max fitness evaluations: 100k**
+
+### Simulation Parameters
+
+```
+// f1 only: Available gene modifiers
+f1_smModifiers:LlRrCcQqFfMm
+// f1 only: weights?
+f1_xo_propor:1 // point crossover will cut so the same amount of neurons is in both cut parts
+f1_smX:0.05
+f1_smJunct:0.02
+f1_smComma:0.02
+f1_smModif:0.1
+f1_nmNeu:0.05
+f1_nmConn:0.1
+f1_nmProp:0.1
+f1_nmWei:1.0
+f1_nmVal:0.05
+// ??? Idk how to add tags
+f0_nodel_tag:1
+f0_nomod_tag:1
+// Mutation weights pertaining to body parts/joints
+f0_p_new:5.0
+f0_p_del:5.0
+f0_p_swp:10.0
+f0_p_pos:10.0
+f0_p_den:0.0
+f0_p_frc:10.0
+f0_p_ing:10.0
+f0_p_asm:0.0
+f0_p_color:0.0
+f0_j_new:5.0
+f0_j_del:5.0
+f0_j_stm:0.0
+f0_j_stf:10.0
+f0_j_rsf:10.0
+f0_j_color:0.0
+// Mutation weights pertaining to neurons/neuron connections
+f0_n_new:5.0
+f0_n_del:5.0
+f0_n_prp:10.0
+f0_c_new:5.0
+f0_c_del:5.0
+f0_c_wei:10.0
+// Available neuron types and their weights
+neuadd_N:1
+neuadd_Nu:0
+neuadd_G:1
+neuadd_Gpart:1
+neuadd_T:1
+neuadd_Tcontact:0
+neuadd_Tproximity:0
+neuadd_S:1
+neuadd_Constant:1
+neuadd_Bend_muscle:1
+neuadd_Rotation_muscle:1
+neuadd_M:1
+neuadd_D:0
+neuadd_Fuzzy:0
+neuadd_VEye:0
+neuadd_VMotor:0
+neuadd_Sti:0
+neuadd_LMu:0
+neuadd_Water:0
+neuadd_Energy:0
+neuadd_Ch:0
+neuadd_ChMux:0
+neuadd_ChSel:0
+neuadd_Rnd:0
+neuadd_Sin:0
+neuadd_Delay:0
+neuadd_Light:0
+neuadd_Nn:0
+neuadd_PIDP:0
+neuadd_PIDV:0
+neuadd_SeeLight:0
+neuadd_SeeLight2:0
+neuadd_S0:0
+neuadd_S1:0
+neuadd_Thr:0
+```
 ## Experiments
 #### Setup
 
@@ -106,30 +225,59 @@ Unless specified otherwise, the default values are as follows:
 
 #### Results
 
-> Highlighted in red are the baseline and the competition winner of the last 2 years.
+Fitness functions examples (included in the Competition example):
+* 3: distance between COG locations of birth and death.
+	```python
+	np.linalg.norm(path[0] - path[-1])
+	```
+* 4: run far and have COG high above ground!
+	```python
+	np.linalg.norm(path[0] - path[-1]) * np.mean(np.maximum(0, path[:, 2]))
+	```
+* 5: z coordinate of the COG should grow linearly from 0 to 1 during lifespan. Returns RMSE as a deviation measure (negated because we are maximizing, and offset to ensure positive outcomes so there is no clash with other optimization code that may assume that negative fitness indicates an invalid genotype).
+	```python
+	1000 - np.linalg.norm(np.linspace(0, 10, len(path), endpoint=True) - path[:, 2]) / np.sqrt(len(path))
+	```
 
-![Run_results_boxplot.png](Run_results_boxplot.png)
+> Highlighted in red are the baseline and the competition winner of the last 2 years. Orange line is median, green triangle is mean.
+
+![Run_results_boxplot_mx_arrs_ordermedian.png](Run_results_boxplot_mx_arrs_ordermedian.png)
+
+![Run_results_boxplot_mx_arrs_ordermean.png](Run_results_boxplot_mx_arrs_ordermean.png)
+
+![Run_results_boxplot_mx_arrs_ordermax.png](Run_results_boxplot_mx_arrs_ordermax.png)
 
 ## Source Index
 
 *Sorted by relevancy. Notes about each source in the footnotes.*
 
 **Framsticks specific**
-* Maciej Komosinski [^frams-convection] [^frams-dissimilarity-new] [^gomea-buildingblocks-varlength] [^frams-f-genotype-comparison] [^frams-dissimilarity-bio] [^frams-ski]
+* Maciej Komosinski [^frams-convection-new] [^frams-genetic-mappings] [^frams-convection] [^frams-dissimilarity-new] [^gomea-building-block-varlength] [^frams-f-genotype-comparison] [^frams-dissimilarity-bio] [^frams-ski]
 * Other [^frams-comeptition-caspo]
+
 Algorithms:
-* QD [^qd-dissimilarity-crowding] [^qd-tensegrity-robots] [^qd-tensegrity-robots] [^qd-annealing]
+
+* QD [^qd-tensegrity-robots]
+	* DE-NSGA [^qd-dissimilarity-crowding]
+	* CMA-ME [^qd-annealing]
+* NEAT [^risto-neat] [^risto-complexification]
 * Hyena [^hyena-flowshop]
-* GOMEA [^gomea-buildingblocks-varlength] [^gomea-buildingblock] [^gomea-romea] [^gomea-do-we-need] [^python-gomea] [^gomea]
-* Building Blocks [^xover-building-block] [^gomea-buildingblocks-varlength] [^gomea-buildingblock]
-* DE-NSGA [^qd-dissimilarity-crowding]
+* GOMEA [^gomea-building-block-varlength] [^gomea-building-block] [^gomea-romea] [^gomea-do-we-need] [^python-gomea] [^gomea]
+* Building Blocks [^xover-building-block] [^gomea-building-block-varlength] [^gomea-building-block]
 * PPO/RL [^hexacopters] [^rl-chinup] [^rl-evo-comparison]
 
-Not reviewed [^qd-annealing] [^hyena-flowshop] [^NEAT] [^feasible-infeasible] [^gomea] [^qd-annealing] 
+Not reviewed [^qd-annealing] [^hyena-flowshop] [^risto-neat] [^feasible-infeasible] [^gomea] [^frams-convection-new] [^frams-genetic-mappings]
+
 Other simulators [^qd-tensegrity-robots]
-Very interesting [^gomea-buildingblocks-varlength] [^qd-dissimilarity-crowding]
+
+Distance metric [^frams-dissimilarity-new] [^node2vec] [^frams-dissimilarity-bio]
+
+Very interesting [^risto-complexification] [^gomea-building-block-varlength] [^qd-dissimilarity-crowding]
+
 Curiosities [^irl-robots] [^bullethell]
+
 Well of papers: https://nn.cs.utexas.edu/?evolution
+
 ## Sources
 
 [^frams-f-genotype-comparison]: [Comparison of Different Genotype Encodings for Simulated 3D Agents](http://www.framsticks.com/files/common/Komosinski_Encodings_ALifeJ2001.pdf) (Oct 2001, Artificial Life Journal)
@@ -171,8 +319,38 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 		phylogenetic - the study of the evolutionary history of life using observable characteristics of organisms
 		epistasis - the phenomenon of gene interactions that affect the phenotype of an organism (example: bald gene supercedes the hair color gene)
 
-[^NEAT]: [Evolving Neural Networks through Augmenting Topologies](https://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) (Jun 2002, MIT Press)
-	- Risto Miikkulainen
+[^risto-neat]: [Evolving Neural Networks through Augmenting Topologies](https://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) (Jun 2002, MIT Press)
+	#tosee
+
+[^risto-complexification]: [Competitive Coevolution through Evolutionary Complexification](https://arxiv.org/pdf/1107.0037) (Apr? 2004, Journal of Artificial Intelligence Research)
+	- Start with simple genome, add genes as time goes on
+		- Could use f0_p_del, f0_p_swp, f0_p_new, etc. simulator settings
+	- #advice Expanding the length of the size of the genome has been found effective in previous work
+	- Main pillars: #TODO Implement the details described in this paper
+		- Start small
+		- Speciation (local competition + mating between species is prohibited)
+		- Keep track of innovations across topologies & generations
+	- Kinds of complexification:
+		- #advice **Gene duplication** is a special kind of mutation in which one or more parental genes are copied into an offspring's genome more than once. The offspring then has redundant genes expressing the same proteins.
+			- Base pair mutations in the generations following duplication **partition** the initially redundant regulatory roles of genes into separate lasses. The genes that determine the overall body-plan are confined to more specific roles, since there are more of them.
+			- After partitioning, mutations within the duplicated cluster of genes affect different steps in development than mutations within the original cluster. In other words, duplication **creates more points at which mutations can occur**. In this manner, developmental processes complexify.
+			- This may be possible in `f0`, and for `f1` maybe just for neurons (but duplicate neurons get removed at phenotype creation)
+		- **Challenges with Gene Duplication**:
+			- Crossover for **misaligned** genes (synapsis)
+			- Innovations have lower fitness at first, so use *speciation* to protect and nurture them
+	- Competitive coevolution: Fitness as individual rank in population, as opposed to absolute (objective) fitness metric -> zero sum game
+	- #deeper-subject Pareto coevolution (selecting best learner and best teacher of a population)
+	- #idea Start with 10-50 individuals, and let them speciate until global_pop = 300, then you can start pruning. Still have some kind of selection, but less eager to kill developing species. Maybe only prune very large populations, or those populations which have stagnated.
+	- #advice Have an enable bit for each gene, so recessive genes are a thing
+	- **The ablation study demonstrated that all three components are interdependent and necessary to make NEAT work.**  - so no half-measures
+	- Evaluation is done competitively: Host population vs Parasite population (sampled by QD principles)
+	- Technical details:
+		- interspecies mating: 0.05
+		- In order to prevent stagnation, the lowest performing species over 30 generations old was not allowed to reproduce.
+		- The champion of each species with more than five networks was copied into the next generation unchanged
+		- Both mutation/crossover methods were used, with differing probabilities (random perturbation vs random value/average parents vs copy parent part)
+
+[^frams-genetic-mappings]: [Genetic mappings in artificial genomes](https://www.framsticks.com/files/common/GeneticMappingsInArtificialGenomes.pdf) (? 2004, Theory in Biosciences)
 	#tosee
 
 [^feasible-infeasible]: [On a Feasible–Infeasible Two-Population (FI-2Pop) genetic algorithm for constrained optimization: Distance tracing and no free lunch](https://faculty.wharton.upenn.edu/wp-content/uploads/2013/03/genetic-algorithm-for-constrained-optimization_1.pdf) (Oct 2008, EJOR)
@@ -233,11 +411,21 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 	- (µ+λ) EAs or (µ+λ) GAs: What's the difference?
 	- the number of generations needed to optimize a fitness function can often be easily decreased by using offspring populations or parallel evolutionary algorithms
 
-[^map-elites]: [Illuminating search spaces by mapping elites](https://arxiv.org/abs/1504.04909) (Apr 2015, ?)
+[^map-elites]: [Illuminating search spaces by mapping elites](https://arxiv.org/pdf/1504.04909) (Apr 2015, ?)
 	- Map out well performing solutions (defined in a high dimensional space) over some features of interest (cost, resource type used, etc.)
 	- GA which remembers the best for each cell in a grid (grid of 2-3d, to be visualizable)
 
-[^gomea-buildingblock]: [Scalable Genetic Programming by Gene-Pool Optimal Mixing and Input-Space Entropy-Based Building-Block Learning](https://dl.acm.org/doi/epdf/10.1145/3071178.3071287) (Jul 2017, GECCO)
+[^node2vec]: [node2vec: Scalable Feature Learning for Networks](https://arxiv.org/pdf/1607.00653) (Jul 2016)
+	- Use BFS + DFS to generate different kinds of neighborhoods
+	- Created an embedding which seemingly outperforms other methods (i.e. it better captures different kinds of neighborhoods)
+	- #idea Could be used to translate graphs into vector space for CMA-ES (GPT suggestion)
+	- Tested on multi-label classification and link prediction task (autocomplete-adjacent)
+	- Uses Stochastic Gradient Descent (SGD)
+	- They assume Conditional independence (!! might be broken here), and Symmetry in feature space
+	- #deeper-subject Alternative: IsoMap for feature reduction (they claim it's worse than node2vec)
+	- Implementations: [PecanPy](https://github.com/krishnanlab/PecanPy) [node2vec](https://github.com/eliorc/node2vec)
+
+[^gomea-building-block]: [Scalable Genetic Programming by Gene-Pool Optimal Mixing and Input-Space Entropy-Based Building-Block Learning](https://dl.acm.org/doi/epdf/10.1145/3071178.3071287) (Jul 2017, GECCO)
 	#toresee
 	- GP-GOMEA: Algorithm has no parameters
 	- Has a way to build library of best sub-solutions
@@ -311,6 +499,9 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 [^qd-annealing]: [Covariance Matrix Adaptation MAP-Annealing](https://arxiv.org/pdf/2205.10752) (Jun 2023, GECCO)
 	#tosee
 
+[^frams-convection-new]: [Revealing the Inner Dynamics of Evolutionary Algorithms with Convection Selection](https://www.framsticks.com/files/common/InnerDynamicsOfConvectionSelection.pdf) (Jul 2023, GECCO)
+	#tosee 
+
 [^frams-comeptition-caspo]: [Automated Design Competition Technical Report: Cascaded Structure and Parameter Optimization Based on Prior Knowledge](https://dl.acm.org/doi/epdf/10.1145/3638530.3664054) (Jul 2024, GECCO)
 	- Steps: LLM init > Body + Brain EA > Brain EA > Parameter Tuning > goto EA
 
@@ -320,12 +511,15 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 	- Evolved morphologies were better on the tasks they were trained on than human designs
 	- #advice The metrics developed to characterize learning dynamics (burn-in time, learning speed, volatility, and maximum reward)
 
+[^frams-late-bloomers]: [Late Bloomers, First Glances, Second Chances:Exploration of the Mechanisms Behind Fitness Diversity](https://www.framsticks.com/files/common/FitnessDiversityMechanismsInHFCAndConvectionSel.pdf) (Jul 2024, GECCO)
+	#tosee 
+
 [^gomea-do-we-need]: [A Better Multi-Objective GP-GOMEA - But do we Need it?](https://dl.acm.org/doi/epdf/10.1145/3712255.3734302) (Jul 2025, GECCO)
 	- Based on our findings, we recommend using SO optimization with an MO elitist archive in GP, particularly when using GP-GOMEA, as a first step for most scenario
 	- Explainable AI
 	- 👎
 
-[^gomea-buildingblocks-varlength]: [GOM-Based Compatible Substitutions Optimization for Variable-Length Representation Gray-Box Problems](https://dl.acm.org/doi/pdf/10.1145/3712255.3726717) (July 2025, GECCO)
+[^gomea-building-block-varlength]: [GOM-Based Compatible Substitutions Optimization for Variable-Length Representation Gray-Box Problems](https://dl.acm.org/doi/pdf/10.1145/3712255.3726717) (July 2025, GECCO)
 	- this is really good
 	- CoSO : Use GOM for var length genomes
 	- ?Store a library of elite solutions, to identify later the building blocks, rate how well they can be grafted into a solution
@@ -364,7 +558,7 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 		- Proximal Policy Optimisation for RL
 
 
-### Disregard
+<!-- Disregard -->
 
 [^book]: [Artificial Life Models in Software](https://pdfs.semanticscholar.org/8676/268ac4320c8fb9baf5200fd86f9c26ab79b5.pdf) (2009, ?)
 	- Carte, nu prea am timp de ea

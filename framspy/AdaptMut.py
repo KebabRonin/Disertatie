@@ -117,30 +117,3 @@ def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, stats=None,
             print(logbook.stream)
 
     return population, logbook
-
-
-def eaGenerateUpdate(toolbox, ngen, halloffame=None, stats=None,
-                     verbose=__debug__):
-    logbook = tools.Logbook()
-    logbook.header = ['gen', 'nevals'] + (stats.fields if stats else [])
-
-    for gen in range(ngen):
-        # Generate a new population
-        population = toolbox.generate()
-        # Evaluate the individuals
-        fitnesses = toolbox.map(toolbox.evaluate, population)
-        for ind, fit in zip(population, fitnesses):
-            ind.fitness.values = fit
-
-        if halloffame is not None:
-            halloffame.update(population)
-
-        # Update the strategy with the evaluated individuals
-        toolbox.update(population)
-
-        record = stats.compile(population) if stats is not None else {}
-        logbook.record(gen=gen, nevals=len(population), **record)
-        if verbose:
-            print(logbook.stream)
-
-    return population, logbook
