@@ -6,3 +6,4 @@ Framsticks
 .vscode
 *.results
 *.pkl
+runplots

@@ -2,9 +2,15 @@ import re, os, sys, json
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
+import pickle
+from PIL import Image
+import concurrent.futures, tqdm
+import matplotlib
+matplotlib.use('agg')
+# /\/\/\ Non-interactive plt
 
 ARR_TO_PLOT = 'mx_arrs'
-SHOW_CLASAMENT = False
+
 HIGHLIGHT = {
     'eaSimpleF1': 'red',
     'AdaptMutF0pmut08': 'red',
@@ -15,7 +21,11 @@ MAX_STEPS = 100_001
 example_idx = 0
 DATA_PATH = '/home/xwiki/Documents/fac/GECCO_Robot_Body/Disertatie/'
 PATH = DATA_PATH + 'framspy/experiments/'
+SHOW_CLASAMENT = False
+IMG_SAVE_PATH = DATA_PATH + 'framspy/runplots/images/'
+GIF_SAVE_PATH = DATA_PATH + 'framspy/runplots/gifs/'
 DATA_FILE = DATA_PATH + 'parsed_result_data.pkl'
+STATS_FILE = DATA_PATH + 'algo_run_dict.json'
 
 def running_stat(arr, fn, radius=50):
     return [fn(arr[i-radius:i+radius]) for i in range(len(arr))]
@@ -49,6 +59,10 @@ def get_algo_dict(rk):
 def parse_data():
     rs = {}
     for idx, d in enumerate(sorted(os.listdir(PATH))):
+        nfiles = len(os.listdir(os.path.join(PATH, d)))
+        if nfiles < N_RUNS * 2:
+            print(f"Skipping {d} because the run is not complete ({nfiles}/{N_RUNS * 2} expected files)")
+            continue
         mx_arrs = []
         mn_arrs = []
         avg_arrs = []
@@ -63,6 +77,8 @@ def parse_data():
                 argvalues = argvalues[len('Argument values: '):]
                 arggs = re.findall('([^=]+)=([^, ]+),? ?', argvalues)
                 args = {a[0]: a[1] for a in arggs}
+                if 'popsize' not in args:
+                    args['popsize'] = 50
                 for l in f:
                     rgx = r'([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?)'
                     sp = r'\s+'
@@ -81,8 +97,8 @@ def parse_data():
                         if len(mx_arr) != int(totalevals):
                             print("(Miscount)", d, i, m.groups(), f"{len(mx_arr)} != {int(totalevals)}")
                             exit(0)
-            if len(mx_arr) <= 100_000 - max(int(args['popsize']), int(args['lbda'] if 'lbda' in args else 0)):
-                print("(Stopped too early) ", d, i, f"{len(mx_arr)} <= 99_950")
+                if len(mx_arr) <= 100_000 - max(int(args['popsize']), int(args['lbda'] if 'lbda' in args else 0)):
+                    print("(Stopped too early) ", d, i, f"{len(mx_arr)} <= 99_950")
             mx_arr += [mx_arr[-1]] * (MAX_STEPS - len(mx_arr))
             mn_arr += [mn_arr[-1]] * (MAX_STEPS - len(mn_arr))
             avg_arr += [avg_arr[-1]] * (MAX_STEPS - len(avg_arr))
@@ -144,27 +160,22 @@ def boxplots(names, order_fn=order_fn_median):
             print(f"t-statistic: {t_statistic}")
             print(f"P-value: {p_value} ({'significant change' if p_value < SIGLVL else 'insignificant change'} for {SIGLVL} significance level)")
 
-import pickle
-if not os.path.exists(DATA_FILE):
-    print('Parsing results...')
-    rs = parse_data()
-    os.mknod(DATA_FILE)
-    pickle.dump(rs, open(DATA_FILE, 'wb'))
-else:
-    print('Loding results...')
-    rs = pickle.load(open(DATA_FILE, 'rb'))
-
-def show_runs(rs, example_idx, plot=False, printout=False, arr_to_plot=ARR_TO_PLOT):
+def show_runs(rs, example_idx, plot=True, printout=False, arr_to_plot=ARR_TO_PLOT, replaceplot=False):
     y_vals = [i for i in range(MAX_STEPS)]
-    if plot:
-        plt.figure(figsize=(12,6))
     res = []
     for idx, d in enumerate(rs):
         if plot:
-            color = COLORS[idx % len(COLORS)]
-            # Plot run means as a thinner line on same axes
-            plt.plot(y_vals, rs[d][arr_to_plot][example_idx], label=f'{d} avg', color=color, linewidth=1.5)
-            plt.fill_between(y_vals, rs[d]['mn_arrs'][example_idx], rs[d]['mx_arrs'][example_idx], color=color, alpha=0.06)
+            plotname = IMG_SAVE_PATH + f'{d}_{arr_to_plot}_run_{example_idx}.png'
+            if replaceplot or not os.path.exists(plotname):
+                color = COLORS[idx % len(COLORS)]
+                # Plot run means as a thinner line on same axes
+                plt.figure(figsize=(12,6))
+                plt.title(f'Evolution of {d} at run {example_idx:>3}')
+                plt.plot(y_vals, rs[d][arr_to_plot][example_idx], label=f'{d} avg', color=color, linewidth=1.5)
+                plt.fill_between(y_vals, rs[d]['mn_arrs'][example_idx], rs[d]['mx_arrs'][example_idx], color=color, alpha=0.06)
+                plt.ylim(0, 800)
+                plt.savefig(plotname)
+                plt.close()
         res.append((d, max(rs[d][arr_to_plot][example_idx])))
     res.sort(key=lambda x: x[1], reverse=True)
     if printout:
@@ -173,40 +184,39 @@ def show_runs(rs, example_idx, plot=False, printout=False, arr_to_plot=ARR_TO_PL
         print('-' * 90)
         for idx, r in enumerate(res):
             print(f"{idx+1:>4}. {r[0]:<50} {r[1]:10.5f}")
-    if plot:
-        plt.legend()
-        plt.show()
     return res
 
-# for example_idx in range(N_RUNS):
-#     show_runs(rs, example_idx, plot=True)
-# exit(0)
-ress = []
-for example_idx in range(N_RUNS):
-    ress.append(show_runs(rs, example_idx, arr_to_plot=ARR_TO_PLOT))
-global_clasament = []
-for i, r in enumerate(ress):
-    for f in r:
-        global_clasament.append((f[0], f[1], i))
-global_clasament.sort(key=lambda x: x[1], reverse=True)
+def run_ths(run_th, runs, title='', numworkers=20):
+    datas = []
+    if numworkers == 1:
+        for i in tqdm.trange(runs, desc=title + '_main_thread'):
+            datas.append(run_th(i))
+        return datas
+    with concurrent.futures.ThreadPoolExecutor(max_workers=numworkers) as executor:
+        future_fns = {executor.submit(run_th, i): i for i in range(runs)}
+        for future in tqdm.tqdm(concurrent.futures.as_completed(future_fns), total=len(future_fns), desc=title):
+            url = future_fns[future]
+            try:
+                data = future.result()
+                datas.append(data)
+            except Exception as exc:
+                print('%r generated an exception: %s' % (url, exc))
+            else:
+                # print('%r finished' % (url))
+                pass
+    return datas
 
-# ress.sort(key=lambda r: max([np.mean(f) for f in r]))
-# print(ress[0])
-# for d in rs:
-#     rs[d]['mean_arr']
+def showruns_th(idx):
+    return show_runs(rs, idx, arr_to_plot=ARR_TO_PLOT)
 
+def make_gif(images, gif_name):
+    frames = [Image.open(image) for image in images]
+    frame_one = frames[0]
+    frame_one.save(gif_name, format="GIF", append_images=frames, save_all=True, duration=150, loop=0)
 
-if SHOW_CLASAMENT:
-    print()
-    print()
-    print()
-    print('=' * 90)
-    print(' Global Ranking '.center(90, '='))
-    print('=' * 90)
-    print(f"{'Rank':>4}. {'Name':<50} {'Score':<10} | {'Run idx':>2}")
-    print("-" * 100)
-    for idx, r in enumerate(global_clasament):
-        print(f"{idx+1:>4}. {r[0]:<50} {r[1]:10.5f} | {r[2]:>2}")
+def make_gif_th(th_idx):
+    d = list(rs.keys())[th_idx]
+    make_gif([IMG_SAVE_PATH + f'{d}_{ARR_TO_PLOT}_run_{idx}.png' for idx in range(N_RUNS)], GIF_SAVE_PATH + f'{d}_{ARR_TO_PLOT}_anim.gif')
 
 def gaussian(x, mu, sigma):
     return np.exp(-0.5*((x-mu)/sigma)**2) / (sigma*np.sqrt(2*np.pi))
@@ -250,14 +260,61 @@ def plot_rank_gaussians(data, sigma_min=0.2, x_pad=0.5, figsize=(8,4)):
 # plt.tight_layout(pad=0.2)
 # # plt.show()
 # plt.savefig(DATA_PATH + 'Run_results_violin.png')
+print(os.path.exists(STATS_FILE))
+if not os.path.exists(STATS_FILE):
+    if not os.path.exists(DATA_FILE):
+        print('Parsing results...')
+        rs = parse_data()
+        os.mknod(DATA_FILE)
+        pickle.dump(rs, open(DATA_FILE, 'wb'))
+    else:
+        print('Loding results...')
+        rs = pickle.load(open(DATA_FILE, 'rb'))
+    print('Results finished loading/parsing...')
+    ress = []
+    ress = run_ths(showruns_th, N_RUNS, numworkers=1, title='show_runs making plots or parsing')
+    run_ths(make_gif_th, len(rs.keys()), title='Making gifs...')
+    # for d in rs:
+    #     print('Making gif for ', d)
+    #     make_gif([IMG_SAVE_PATH + f'{d}_run{idx}.png' for idx in range(N_RUNS)], GIF_SAVE_PATH + f'{d}_anim.gif')
+    global_clasament = []
+    for i, r in enumerate(ress):
+        for f in r:
+            global_clasament.append((f[0], f[1], i))
+    global_clasament.sort(key=lambda x: x[1], reverse=True)
 
-names = get_algo_dict(global_clasament)
+    if SHOW_CLASAMENT:
+        print()
+        print()
+        print()
+        print('=' * 90)
+        print(' Global Ranking '.center(90, '='))
+        print('=' * 90)
+        print(f"{'Rank':>4}. {'Name':<50} {'Score':<10} | {'Run idx':>2}")
+        print("-" * 100)
+        for idx, r in enumerate(global_clasament):
+            print(f"{idx+1:>4}. {r[0]:<50} {r[1]:10.5f} | {r[2]:>2}")
+
+    # ress.sort(key=lambda r: max([np.mean(f) for f in r]))
+    # print(ress[0])
+    # for d in rs:
+    #     rs[d]['mean_arr']
+
+    names = get_algo_dict(global_clasament)
+    with open(STATS_FILE, 'w', encoding='UTF8') as f:
+        a = json.dumps(names)
+        a = re.sub(r'"([a-zA-Z0-9_\-]*)":', '\n\t"\\1":', a)
+        f.write(a)
+else:
+    with open(STATS_FILE, 'r', encoding='UTF8') as f:
+        names = json.load(f)
+
 
 print('=' * 120)
 print(f' Global clasament of {ARR_TO_PLOT} '.center(120, '='))
 print('=' * 120)
 for idx, n in enumerate(names):
-    print(f'{idx+1:>3}{n:<90}\t{max(names[n]):10.5f}')
+    print(f'{idx+1:>3}. {n:<90}\t{max(names[n]):10.5f}')
 
 print(' By median '.center(90, '*'))
 boxplots(names, order_fn=order_fn_median)
@@ -277,6 +334,7 @@ plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for ea
 plt.tight_layout(pad=0.2)
 plt.savefig(DATA_PATH + f'Run_results_boxplot_{ARR_TO_PLOT}_ordermax.png')
 exit()
+"""
 for i in range(0):
     # running max
     # Build x-axis values: per-step median totalevals across runs (robust)
@@ -417,3 +475,4 @@ plt.legend(loc='best', fontsize='small')
 plt.grid(alpha=0.3)
 plt.tight_layout()
 plt.show()
+"""

@@ -29,6 +29,22 @@ import random
 import numpy as np
 import math
 from deap import tools
+from enum import Enum, auto, unique
+
+@unique
+
+# This change would only really affect the last generation, when we run out of evaluations.
+# This way, if we run out of evaluations, we get a better chance of having a better solution
+# And we skip out on the lowest performing population
+class ConvectionSelectionPopulationEvalOrder(Enum):
+    WORST_TO_BEST = lambda l: range(l)
+    # Run the populations in reverse, so pop 0 (the best) is evaluated first.
+    BEST_TO_WORST = lambda l: reversed(range(l))
+    # The order could be 0, n-1, 1, n-2, ... since Komosinski evaluated that most best performing
+    # solutions (for the mathematical functions only) have ancestors in the extremes, and less in the
+    # middle populations.
+    # Paper: https://www.framsticks.com/files/common/FitnessDiversityMechanismsInHFCAndConvectionSel.pdf
+    INTERLEAVED = lambda l: [n//2 if n % 2 == 0 else l - (n//2) - 1 for n in range(l)]
 
 
 def chunks(xs, split_count):
@@ -37,7 +53,7 @@ def chunks(xs, split_count):
     return [xs[i:i+n+(1 if i < rest else 0)] for i in range(0, len(xs), n)]
 
 def convectionSelection(population, toolbox, ngen, algo,
-            reconvene_gen_interval=10, n_islands=10, stats=None,
+            reconvene_gen_interval=10, n_islands=10, stats=None, island_eval_order=ConvectionSelectionPopulationEvalOrder.WORST_TO_BEST,
             halloffame=None, verbose=__debug__):
     logbook = tools.Logbook()
     logbook.header = ['gen', 'nevals'] + (stats.fields if stats else [])
@@ -61,7 +77,7 @@ def convectionSelection(population, toolbox, ngen, algo,
         populations = chunks(population, n_islands)
         print('pops split')
         # Perform R generations for each island
-        for p in range(len(populations)):
+        for p in island_eval_order(len(populations)):
             print('starting island ', p)
             new_pop, _logbook = algo(populations[p], toolbox, generations=reconvene_gen_interval,
                     halloffame=halloffame, verbose=verbose,)

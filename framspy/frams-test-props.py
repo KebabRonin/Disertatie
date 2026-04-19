@@ -36,7 +36,37 @@ def printFramsProperties(v):
 				printSingleProperty(v, p)
 	print('\n\n')
 
-
+printFramsProperties(frams.Simulator)
+printFramsProperties(frams.GenMan)
 printFramsProperties(frams.World)
+printFramsProperties(frams.ExpProperties)
+exit(0)
+printFramsProperties(frams.Simulator)
+print(dir(frams.Simulator))
 
-printFramsProperties(frams.GenePools[0].add('X'))  # add('X') returns a Genotype object
+frams.Simulator.ximport("eval-allcriteria.sim", 4 + 8 + 0)
+print(frams.GenMan.f0_p_swp)
+frams.GenMan.f0_p_swp = 1.0
+print(frams.GenMan.f0_p_swp)
+# printFramsProperties(frams.World)", frams_evaluate, frams_lib
+
+# printFramsProperties(frams.GenePools[0].add('X'))  # add('X') returns a Genotype object
+from deap import creator, base, tools, algorithms
+
+creator.create("FitnessMax", base.Fitness, weights=[1.0] * 1)
+creator.create("Individual", list, fitness=creator.FitnessMax)  # would be nice to have "str" instead of unnecessary "list of str"
+
+def frams_getsimplest(initial_genotype):
+	return initial_genotype
+
+initial_genotype = 'X'
+toolbox = base.Toolbox()
+toolbox.register("attr_simplest_genotype", frams_getsimplest, initial_genotype)  # "Attribute generator"
+
+toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_simplest_genotype, 1)
+print(toolbox.individual())
+print(type(toolbox.individual().fitness))
+print(type(toolbox.individual().fitness.values))
+# toolbox.individual().fitness.values = 1.0
+# toolbox.register("evaluate", frams_evaluate, frams_lib)
+

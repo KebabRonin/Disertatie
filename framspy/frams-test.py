@@ -58,7 +58,7 @@ print("Now water level is", frams.World.wrldwat)
 frams.World.wrldwat = frams.World.wrldwat._value() + 0.7
 print("Now water level is", frams.World.wrldwat)
 
-initial_genotype = 'X(X,RX(X[T],X[G]))'  # simple body with touch and gyroscope sensors
+initial_genotype = 'X'  # simple body with touch and gyroscope sensors
 print("Let's perform a few simulation steps of the initial genotype:", initial_genotype)
 frams.ExpProperties.initialgen = initial_genotype
 frams.ExpProperties.p_mut = 0  # no mutation (the selection procedure will clone our initial genotype)
@@ -69,19 +69,87 @@ frams.World.wrldg = 5  # gravity=5x default, let it fall quickly
 frams.Simulator.init()  # adds initial_genotype to gene pool (calls onInit() from standard.expdef)
 frams.Simulator.start()  # this does not actually start the simulation, just sets the "Simulator.running" status variable
 step = frams.Simulator.step  # cache reference to avoid repeated lookup in the loop (just for performance)
+# frams.Simulator.eval("while(Simulator.running) Simulator.step();")  # loop in FramScript much faster than loop in python
+frams.GenMan.f1_smX = 0.5
+frams.GenMan.f1_smJunct = 0.0
+frams.GenMan.f1_smComma = 0.0
+frams.GenMan.f1_smModif = 0.0
+frams.GenMan.f1_nmNeu = 0.0
+frams.GenMan.f1_nmConn = 0.0
+frams.GenMan.f1_nmProp = 0.0
+frams.GenMan.f1_nmWei = 0.0
+frams.GenMan.f1_nmVal = 0.0
+print(len(frams.Populations[0]))
 for s in range(15):
 	step()  # first step performs selection and revives one genotype according to standard.expdef rules
 	creature = frams.Populations[0][0]  # FramScript Creature object
-	mechpart0 = creature.getMechPart(0)
-	print('Step# = %d' % frams.Simulator.stepNumber._value(),
-	      '\tSimulated_creatures =', frams.Populations[0].size._value(),
-	      "\tpart0_xyz = (% .2f,% .2f,% .2f)" % (mechpart0.x._value(), mechpart0.y._value(), mechpart0.z._value()),
-	      "\ttouch = % .3f\tgyro = % .3f" % (creature.getNeuro(0).state._value(), creature.getNeuro(1).state._value()))
-frams.Simulator.stop()
+	offspring = frams.GenMan.mutate(frams.Geno.newFromString(creature.genotype))
+	print(offspring.genotype)
+frams.GenMan.f1_nmNeu = 0.5
+print('oops')
+creature_orig = str((frams.Populations[0][0]).genotype)
+print('=', creature_orig)
+import copy, random
+def getrandcreature(creature_orig):
+	creature_latest2 = copy.deepcopy(creature_orig)
+	for s in range(random.randrange(3,40)):
+		creature = frams.Geno.newFromString(creature_latest2)
+		# step()  # first step performs selection and revives one genotype according to standard.expdef rules
+		offspring = frams.GenMan.mutate(frams.Geno.newFromString(creature.genotype))
+		# print(offspring.genotype)
+		creature_latest2 = str(offspring.genotype) # Replace
+	return creature_latest2
 
+creatures = [creature_orig] + [getrandcreature(creature_orig) for i in range(5)]
+
+from FramsticksLib import FramsticksLib, DissimMethod
+
+print(f"Comparing {creatures}")
+
+def frams_dissim(frams_lib: FramsticksLib, individuals: list, dissim_method:DissimMethod):
+	# print(individuals)
+	return frams_lib.dissimilarity(individuals, method=dissim_method)
+FramsticksLib.DETERMINISTIC = False
+fsl = FramsticksLib('/home/xwiki/Documents/fac/GECCO_Robot_Body/Framsticks54', None, 'eval-allcriteria.sim;deterministic.sim;recording-body-coords.sim;')
+violations={dm: {'triangle': 0, 'sim': 0, 'time': 0} for dm in DissimMethod}
+import numpy as np, time
+
+def test_distances(violations):
+	creatures = [creature_orig] + [getrandcreature(creature_orig) for i in range(5)]
+	for dm in DissimMethod:
+		if dm == DissimMethod.FITNESS:
+			continue
+		try:
+			t0 = time.perf_counter()
+			l = frams_dissim(fsl, creatures, dm)
+			violations[dm]['time'] += time.perf_counter() - t0
+			# print(dm,'\n', l)
+			non_symmetric_diff = l - l.T
+			non_symmetric_count = np.any(non_symmetric_diff > DELTA)
+			if non_symmetric_count is True:
+				violations[dm]['sim'] += 1
+			for i in range(5):
+				for j in range(i+1, 5):
+					for k in range(j+1, 5):
+						if l[i][j] - (l[i][k] + l[k][j]) > DELTA: # 1e-15
+							violations[dm]['triangle'] += 1
+							print("[WARN] DOESN'T RESPECT: ", l[i][j], l[i][k] + l[k][j])
+							raise Exception("ha")
+		except Exception as e:
+			print(e)
+			pass
+import tqdm
+evals = 100
+DELTA = 1e-15
+[test_distances(violations) for i in tqdm.trange(evals)]
+for v in violations:
+	print(f"{v:<60} {violations[v]['sim'] / evals:.3f} {violations[v]['triangle'] / evals:.3f}, {violations[v]['time'] / evals}")
+
+exit(0)
+frams.Simulator.stop()
 # changing expdef
 testgenotype = "XrrX[G][-1:80][|,-1:0.9]X[|,-2:-21]"
-evaluations = 100
+evaluations = 1
 print("\nLet's change the experiment definition (expdef) and evaluate genotype '%s' %d times." % (testgenotype, evaluations))
 frams.Simulator.expdef = "standard-eval"
 frams.ExpProperties.evalcount = evaluations

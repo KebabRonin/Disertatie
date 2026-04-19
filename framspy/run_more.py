@@ -17,16 +17,15 @@ def parseArgs():
     parser.add_argument('-nodet', type=int, default=0, help='1 if determinism.sim should be disabled')
     return parser.parse_args()
 parsedargs = parseArgs()
-parsedargs.numworkers = 10 # Hardcode for now
 print(parsedargs)
 N_RUNS = parsedargs.nruns
 RUN_FOLDER_NAME = parsedargs.runname
 DET = bool(parsedargs.nodet)
 if DET:
     RUN_FOLDER_NAME = 'no_det_' + RUN_FOLDER_NAME
-if os.path.exists(f'{DATA_PATH}framspy/experiments/{RUN_FOLDER_NAME}'):
-    print("[STOPPING] Experiment already exists: " + f'{DATA_PATH}framspy/experiments/{RUN_FOLDER_NAME}')
-    exit(0)
+# if os.path.exists(f'{DATA_PATH}framspy/experiments/{RUN_FOLDER_NAME}'):
+#     print("[STOPPING] Experiment already exists: " + f'{DATA_PATH}framspy/experiments/{RUN_FOLDER_NAME}')
+#     exit(0)
 
 RUN_FOLDER_NAME = RUN_FOLDER_NAME if not os.path.exists(f'{DATA_PATH}framspy/experiments/{RUN_FOLDER_NAME}') else f"{RUN_FOLDER_NAME}_{time.time()}"
 dirname = f'{DATA_PATH}framspy/experiments/{RUN_FOLDER_NAME}'
@@ -64,9 +63,10 @@ def run_runs():
 
 
 run_runs()
-PARSED_RESULT_FILE = DATA_PATH + 'parsed_result_data.pkl'
-if os.path.exists(PARSED_RESULT_FILE):
-    os.remove(PARSED_RESULT_FILE)
+if os.path.exists(DATA_PATH + 'algo_run_dict.json'):
+    os.remove(DATA_PATH + 'algo_run_dict.json')
+if os.path.exists(DATA_PATH + 'parsed_result_data.pkl'):
+    os.remove(DATA_PATH + 'parsed_result_data.pkl')
 
 os.system("python collect_data.py")
 print()

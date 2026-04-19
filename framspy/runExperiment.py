@@ -5,6 +5,7 @@ import numpy as np
 from deap import creator, base, tools, algorithms
 from FramsticksLib import FramsticksLib, DissimMethod
 from FramsticksLibCompetition import FramsticksLibCompetition
+import traceback
 
 # Note: this may be less efficient than running the evolution directly in Framsticks, so if performance is key, compare both options.
 
@@ -22,7 +23,6 @@ def genotype_within_constraint(genotype, dict_criteria_values, criterion_name, c
 			return False
 	return True
 
-
 def frams_evaluate(frams_lib, individual):
 	FITNESS_CRITERIA_INFEASIBLE_SOLUTION = [FITNESS_VALUE_INFEASIBLE_SOLUTION] * len(OPTIMIZATION_CRITERIA)  # this special fitness value indicates that the solution should not be propagated via selection ("that genotype is invalid"). The floating point value is only used for compatibility with DEAP. If you implement your own optimization algorithm, instead of a negative value in this constant, use a special value like None to properly distinguish between feasible and infeasible solutions.
 	genotype = individual[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
@@ -36,6 +36,7 @@ def frams_evaluate(frams_lib, individual):
 		fitness = [default_evaluation_data[crit] for crit in OPTIMIZATION_CRITERIA]
 	except (KeyError, TypeError) as e:  # the evaluation may have failed for an invalid genotype (such as X[@][@] with "Don't simulate genotypes with warnings" option), or because the creature failed to stabilize, or for some other reason
 		valid = False
+		# print(traceback.format_exc())
 		print('Problem "%s" so could not evaluate genotype "%s", hence assigned it a special ("infeasible solution") fitness value: %s' % (str(e), genotype, FITNESS_CRITERIA_INFEASIBLE_SOLUTION))
 	if valid:
 		default_evaluation_data['numgenocharacters'] = len(genotype)  # add one new key to the dictionary for consistent constraint checking below
@@ -57,8 +58,9 @@ def frams_crossover(frams_lib: FramsticksLib, individual1, individual2):
 	return individual1, individual2
 
 def frams_dissim(frams_lib: FramsticksLib, individuals: list, dissim_method:DissimMethod):
-	print(individuals)
-	return frams_lib.dissimilarity(individuals, method=dissim_method)
+	# FramsLib expect list of strings, not list of deap.creator.Individual
+	ind_genos = [g[0] for g in individuals]
+	return frams_lib.dissimilarity(ind_genos, method=dissim_method)
 
 
 def frams_mutate(frams_lib: FramsticksLib, individual):
@@ -121,6 +123,10 @@ def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_fo
 	# https://gitlab.com/santiagoandre/deap-customize-population-example/-/blob/master/AGbasic.py
 	# https://groups.google.com/forum/#!topic/deap-users/22g1kyrpKy8
 	toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_simplest_genotype, 1)
+	# print(toolbox.individual())
+	# print(toolbox.individual().fitness) ()
+	# print(toolbox.individual().fitness.values) ()
+	# exit(0)
 	toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 	toolbox.register("evaluate", frams_evaluate, frams_lib)
 	toolbox.register("mate", frams_crossover, frams_lib)
@@ -144,14 +150,16 @@ def parseArguments():
 
 	parser.add_argument('-genformat', required=False, help='Genetic format for the simplest initial genotype, for example 4, 9, or B. If not given, f1 is assumed.')
 	parser.add_argument('-initialgenotype', required=False, help='The genotype used to seed the initial population. If given, the -genformat argument is ignored.')
+	parser.add_argument('-skipinitialgenotype', type=int, default=0, help='If 1, set the fitness of the simplest genotype to 0.0, without evaluating it. Should slightly increase the amount of evaluated genotypes')
 
 	parser.add_argument('-algorithm', required=True, help='The genotype used to seed the initial population. If given, the -genformat argument is ignored.')
 	parser.add_argument('-nislands', type=int, default=10, help="Number of islands (only for convection), default: 10.")
+	parser.add_argument('-island_eval_order', type=str, default='worstToBest', help="Order in which to evaluate islands (only for convection), could lead to minor performance boost for the last generation only, default: worstToBest")
 	parser.add_argument('-migrate_after', type=int, default=10, help="Number of generations to execute for each island before migrating all islands (only for convection), default: 10.")
 	parser.add_argument('-xmut_enabled', type=bool, default=1, help="0/1 If to enable mutation = replace with simple individual (only for AdaptMut), default: 1.")
 	parser.add_argument('-lbda', type=int, default=100, help="lambda - how many children to produce (only used for eaMuLambda), default: 100.") # Suggested: 7 * popsize (=350, but that seems like a bit much)
-	parser.add_argument('-dissim', type=DissimMethod, default=DissimMethod.FITNESS, help="dissimilarity method  (only used for ???), default: FITNESS.") # Suggested: 7 * popsize (=350, but that seems like a bit much)
-	parser.add_argument('-initpop_zero', type=bool, default=DissimMethod.FITNESS, help="dissimilarity method  (only used for ???), default: FITNESS.") # Suggested: 7 * popsize (=350, but that seems like a bit much)
+	parser.add_argument('-delta', type=float, default=3.0, help="delta (speciation) - Distance threshold for NEAT speciation.")
+	parser.add_argument('-dissim', type=DissimMethod, default=DissimMethod.PHENE_STRUCT_OPTIM, help="dissimilarity method  (only used for ???), default: FITNESS.")
 
 	parser.add_argument('-opt', required=True, help='optimization criteria: vertpos, velocity, distance, vertvel, lifespan, numjoints, numparts, numneurons, numconnections (or other as long as it is provided by the .sim file and its .expdef). For multiple criteria optimization, separate the names by the comma.')
 	parser.add_argument('-popsize', type=int, default=50, help="Population size, default: 50.")
@@ -191,14 +199,16 @@ def save_genotypes(filename, OPTIMIZATION_CRITERIA, hof):
 
 def main():
 	global parsed_args, OPTIMIZATION_CRITERIA  # needed in frams_evaluate(), so made global to avoid passing as arguments
+	parsed_args = parseArguments()
 
 	# random.seed(123)  # see FramsticksLib.DETERMINISTIC below, set to True if you want full determinism
 	FramsticksLib.DETERMINISTIC = False  # must be set before the FramsticksLib() constructor call
 	FramsticksLibCompetition.TEST_FUNCTION = parsed_args.evalfn
-	parsed_args = parseArguments()
 	print("Argument values:", ", ".join(['%s=%s' % (arg, getattr(parsed_args, arg)) for arg in vars(parsed_args)]))
 	OPTIMIZATION_CRITERIA = parsed_args.opt.split(",")
 	framsLib = FramsticksLibCompetition(parsed_args.path, parsed_args.lib, parsed_args.sim)
+	# if parsed_args.initialgenotype and parsed_args.skipinitialgenotype:
+	# 	parsed_args.initialgenotype.fitness = DeapFitness()
 	toolbox = prepareToolbox(framsLib, OPTIMIZATION_CRITERIA, parsed_args.tournament, '1' if parsed_args.genformat is None else parsed_args.genformat, parsed_args.initialgenotype)
 	pop = toolbox.population(n=parsed_args.popsize)
 	hof = tools.HallOfFame(parsed_args.hof_size)
@@ -212,7 +222,7 @@ def main():
 	stats.register("totalevals", lambda _: framsLib._evaluation_count)
 	stats.register("evalTime", lambda _: framsLib._evaluation_time)
 	stats.register("noneval_Time", lambda _: time.perf_counter() - framsLib._time0 - framsLib._evaluation_time)
-	
+
 	try:
 		match parsed_args.algorithm:
 			case "AdaptMut":
@@ -248,9 +258,19 @@ def main():
 						cxpb=parsed_args.pxov, mutpb=parsed_args.pmut,
 						stats=stats, halloffame=hof, verbose=True)
 
-				from ConvectionSelection import convectionSelection
+				from ConvectionSelection import convectionSelection, ConvectionSelectionPopulationEvalOrder
+				match parsed_args.island_eval_order:
+					case 'worstToBest':
+						parsed_args.island_eval_order = ConvectionSelectionPopulationEvalOrder.WORST_TO_BEST
+					case 'bestToWorst':
+						parsed_args.island_eval_order = ConvectionSelectionPopulationEvalOrder.WORST_TO_BEST
+					case 'interleaved':
+						parsed_args.island_eval_order = ConvectionSelectionPopulationEvalOrder.INTERLEAVED
+					case _:
+						print("Unknown island evaluation order: ", parsed_args.island_eval_order)
+						exit(0)
 				pop, log = convectionSelection(pop, toolbox, ngen=parsed_args.generations,
-								n_islands=parsed_args.nislands, reconvene_gen_interval=parsed_args.migrate_after, algo=algo_ea,
+								n_islands=parsed_args.nislands, reconvene_gen_interval=parsed_args.migrate_after, algo=algo_ea, island_eval_order=parsed_args.island_eval_order,
 								stats=stats, halloffame=hof, verbose=True)
 			case "convection_AdaptMut":
 				print('cv_am')
@@ -261,10 +281,27 @@ def main():
 						cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, xmut_enabled=parsed_args.xmut_enabled,
 						stats=stats, halloffame=hof, verbose=True)
 
-				from ConvectionSelection import convectionSelection
+				from ConvectionSelection import convectionSelection, ConvectionSelectionPopulationEvalOrder
+				match parsed_args.island_eval_order:
+					case 'worstToBest':
+						parsed_args.island_eval_order = ConvectionSelectionPopulationEvalOrder.WORST_TO_BEST
+					case 'bestToWorst':
+						parsed_args.island_eval_order = ConvectionSelectionPopulationEvalOrder.WORST_TO_BEST
+					case 'interleaved':
+						parsed_args.island_eval_order = ConvectionSelectionPopulationEvalOrder.INTERLEAVED
+					case _:
+						print("Unknown island evaluation order: ", parsed_args.island_eval_order)
+						exit(0)
 				pop, log = convectionSelection(pop, toolbox, ngen=parsed_args.generations,
-								n_islands=parsed_args.nislands, reconvene_gen_interval=parsed_args.migrate_after, algo=algo_am,
+								n_islands=parsed_args.nislands, reconvene_gen_interval=parsed_args.migrate_after, algo=algo_am, island_eval_order=parsed_args.island_eval_order,
 								stats=stats, halloffame=hof, verbose=True)
+			case "NEAT_speciation":
+				print("NEATsp")
+				from NEAT_speciation import speciation
+				pop, log = speciation(pop, toolbox, ngen=parsed_args.generations,
+						n_species=parsed_args.nislands, admission_delta=parsed_args.delta,
+						cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, dissimilarity_metric=parsed_args.dissim,
+						stats=stats, halloffame=hof, verbose=True)
 			case _:
 				raise "Unknown algorithm"
 	except EOFError:

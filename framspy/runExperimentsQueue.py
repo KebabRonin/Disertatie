@@ -2,6 +2,34 @@ import sys, os, re
 
 P_SIZE = 500
 
+SIMPLEST_GENOTYPE = {
+    'f1_basic2':'XX',
+    # In order: @rotation muscle, |bending muscle, Gyroscope, Gpart (Tilt), Muscle, Touch, Smell, Neuron(sigmoid), *constant
+    # See https://www.framsticks.com/neurons_summary
+    'f1_neurons':'XX[@][|][G][Gpart][T][S][N][*]',
+    # https://www.framsticks.com/files/apps/js/creature-editor/index.html
+    'f0_basic2':"""//0
+p:
+p:1.0
+p:2.0
+j:0, 1, dx=1.0, 0.0, 0.0
+j:1, 2, dx=1.0, 0.0, 0.0""",
+    'f0_neurons':"""//0
+p:
+p:1.0
+p:2.0
+j:0, 1, dx=1.0, 0.0, 0.0
+j:1, 2, dx=1.0, 0.0, 0.0
+n:j=1, d=@:p=0.25
+n:j=1, d=|
+n:j=1, d=G
+n:p=2, d=Gpart
+n:p=2, d=T
+n:p=2, d=S
+n:p=2
+n:p=2, d=*""",
+}
+
 def getExperimentData(rconfig):
     convection = rconfig['convection']
     algorithm = rconfig['algorithm']
@@ -17,8 +45,8 @@ def getExperimentData(rconfig):
         + f'{("pmut" + str(pmut).replace(".", "")) if pmut != None else ""}'\
         + f'{("lbda" + str(lbda)) if lbda != None else ""}'\
         + f'{("pop" + str(pop)) if pop != None else ""}'
-    for ec in re.findall(r'-([a-zA-Z_]+) ([^\s]*)', extra_cargs):
-        name += ec[0] + ec[1].replace('.','')
+    for ec in re.findall(r'-([a-zA-Z_]+)\s(\"[\s\S]*\"|[^\s]*)', extra_cargs):
+        name += ec[0] + re.sub(r'[^a-zA-Z0-9]', '', ec[1])
     name += nameSuffix
     run_str = 'python run_more.py -runname ' \
         + name \
@@ -60,64 +88,76 @@ def getUnrunExperiments():
 runs_cfgs = [
     {
         'convection': None, #[None, 'convection_'],
-        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda'],
-        'genformat': 0, # [0, 1],
-        'pmut': 0.8, # [None, 0.8, 0.5],
+        'algorithm': 'NEAT_speciation', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+        'genformat': 1, # [0, 1],
+        'pmut': None, # [None, 0.8, 0.5],
         'pop': None, # [None, 100, 500],
         'lbda': None, # [100, 350]
-        'extra': ' -nodet 1 -numworkers 20 ',
-        'extra_cargs': ' ',
+        'extra': ' ', # -nodet 1
+        'extra_cargs': '', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
         'nameSuffix': '',
-        'namePrefix': 'nodet_',
-    }, # 08:00
+        'namePrefix': '',
+    },
     {
-        'convection': 'convection_', #[None, 'convection_'],
-        'algorithm': 'eaSimple', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda'],
+        'convection': None, #[None, 'convection_'],
+        'algorithm': 'NEAT_speciation', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+        'genformat': 1, # [0, 1],
+        'pmut': None, # [None, 0.8, 0.5],
+        'pop': None, # [None, 100, 500],
+        'lbda': None, # [100, 350]
+        'extra': ' ', # -nodet 1
+        'extra_cargs': ' -nislands 5', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+        'nameSuffix': '',
+        'namePrefix': '',
+    },
+    {
+        'convection': None, #[None, 'convection_'],
+        'algorithm': 'NEAT_speciation', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
         'genformat': 1, # [0, 1],
         'pmut': None, # [None, 0.8, 0.5],
         'pop': 100, # [None, 100, 500],
         'lbda': None, # [100, 350]
-        'extra': ' -nodet 1 ',
-        'extra_cargs': ' ',
+        'extra': ' ', # -nodet 1
+        'extra_cargs': ' -nislands 5', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
         'nameSuffix': '',
-        'namePrefix': 'nodet_',
-    }, # 15:30
+        'namePrefix': '',
+    },
     {
         'convection': None, #[None, 'convection_'],
-        'algorithm': 'eaSimple', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda'],
-        'genformat': 1, # [0, 1],
-        'pmut': None, # [None, 0.8, 0.5],
-        'pop': None, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' -nodet 1 ',
-        'extra_cargs': ' ',
-        'nameSuffix': '',
-        'namePrefix': 'nodet_',
-    }, # 24:00
-    {
-        'convection': 'convection_', #[None, 'convection_'],
-        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda'],
-        'genformat': 0, # [0, 1],
-        'pmut': None, # [None, 0.8, 0.5],
-        'pop': 500, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' -nodet 1 -numworkers 20 ',
-        'extra_cargs': ' ',
-        'nameSuffix': '',
-        'namePrefix': 'nodet_',
-    }, # 5:30
-    {
-        'convection': None, #[None, 'convection_'],
-        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda'],
+        'algorithm': 'NEAT_speciation', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
         'genformat': 0, # [0, 1],
         'pmut': None, # [None, 0.8, 0.5],
         'pop': None, # [None, 100, 500],
         'lbda': None, # [100, 350]
-        'extra': ' -nodet 1 -numworkers 20 ',
-        'extra_cargs': ' ',
+        'extra': ' ', # -nodet 1
+        'extra_cargs': '', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
         'nameSuffix': '',
-        'namePrefix': 'nodet_',
-    }, # 11:00
+        'namePrefix': '',
+    },
+    {
+        'convection': None, #[None, 'convection_'],
+        'algorithm': 'NEAT_speciation', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+        'genformat': 0, # [0, 1],
+        'pmut': None, # [None, 0.8, 0.5],
+        'pop': None, # [None, 100, 500],
+        'lbda': None, # [100, 350]
+        'extra': ' ', # -nodet 1
+        'extra_cargs': ' -nislands 5', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+        'nameSuffix': '',
+        'namePrefix': '',
+    },
+    {
+        'convection': None, #[None, 'convection_'],
+        'algorithm': 'NEAT_speciation', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+        'genformat': 0, # [0, 1],
+        'pmut': None, # [None, 0.8, 0.5],
+        'pop': 100, # [None, 100, 500],
+        'lbda': None, # [100, 350]
+        'extra': ' ', # -nodet 1
+        'extra_cargs': ' -nislands 5', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+        'nameSuffix': '',
+        'namePrefix': '',
+    },
 ]
 runs = []
 print('Running the following commands:')
