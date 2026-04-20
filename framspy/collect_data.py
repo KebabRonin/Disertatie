@@ -82,7 +82,7 @@ def parse_data():
                 for l in f:
                     rgx = r'([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?)'
                     sp = r'\s+'
-                    m = re.match(f'^{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}?{sp}?$', l)
+                    m = re.match(f'^([0-9]+){sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}?{sp}?$', l)
                     if m:
                         gen, nevals, avg, stdev, mn, mx, totalevals, evalTime, nonevalTime = m.groups()
                         if int(totalevals) - len(mx_arr) != int(nevals):
@@ -98,7 +98,10 @@ def parse_data():
                             print("(Miscount)", d, i, m.groups(), f"{len(mx_arr)} != {int(totalevals)}")
                             exit(0)
                 if len(mx_arr) <= 100_000 - max(int(args['popsize']), int(args['lbda'] if 'lbda' in args else 0)):
-                    print("(Stopped too early) ", d, i, f"{len(mx_arr)} <= 99_950")
+                    if float(nonevalTime) > 3600:
+                        print("(Hit time limit)", d, i, f"{float(nonevalTime)} > 3600")
+                    else:
+                        print("(Stopped too early) ", d, i, f"{len(mx_arr)} <= 99_950")
             mx_arr += [mx_arr[-1]] * (MAX_STEPS - len(mx_arr))
             mn_arr += [mn_arr[-1]] * (MAX_STEPS - len(mn_arr))
             avg_arr += [avg_arr[-1]] * (MAX_STEPS - len(avg_arr))
@@ -311,10 +314,14 @@ else:
 
 
 print('=' * 120)
-print(f' Global clasament of {ARR_TO_PLOT} '.center(120, '='))
+print(f' Global clasament of {ARR_TO_PLOT}) '.center(120, '='))
 print('=' * 120)
-for idx, n in enumerate(names):
-    print(f'{idx+1:>3}. {n:<90}\t{max(names[n]):10.5f}')
+print(f'{"idx":>3}. {"name":<50}\t{"std":<15}\t{"mean":<15}\t{"median":<15}\t{"max":<15}')
+
+names_sorted = list(names.keys())
+names_sorted.sort(key=lambda x: np.mean(names[x]), reverse=True)
+for idx, n in enumerate(names_sorted):
+    print(f'{idx+1:>3}. {n:<50}\t{np.std(names[n]):10.5f}\t{np.mean(names[n]):10.5f}\t{np.median(names[n]):10.5f}\t{np.max(names[n]):10.5f}')
 
 print(' By median '.center(90, '*'))
 boxplots(names, order_fn=order_fn_median)

@@ -6,6 +6,7 @@ from deap import tools
 from runExperiment import FITNESS_VALUE_INFEASIBLE_SOLUTION
 
 UID_P10 = 10**6
+TEST = True
 
 def s_int(x):
     """Stochastic rounding"""
@@ -18,6 +19,10 @@ class Species:
         self.pop = pop
         self.past_fitnesses = []
         self.uid = id(self) % UID_P10
+
+    @property
+    def age(self):
+        return len(self.past_fitnesses)
 
     def is_stagnant(self, horizon):
         if len(self.past_fitnesses) < horizon:
@@ -41,6 +46,7 @@ class Species:
             ind._fitness = [
                 (ind.fitness.values[j] / norm) if ind.fitness.values[j] 
                 else FITNESS_VALUE_INFEASIBLE_SOLUTION for j in range(len(ind.fitness.values))]
+        self.past_fitnesses.append(max([ind.fitness.values[0] for ind in self.pop]))
 
 def assert_nonempty_species(species, name):
     for s in species:
@@ -55,14 +61,15 @@ def assert_unique(pop, name):
             print(f"{id(p)} appears {pp.count(id(p))} times <{name}>")
             exit(5)
 
-def remove_empty_species(new_species):
+def remove_empty_species(new_species, name=''):
     to_remove = []
     for i, species in enumerate(new_species):
         if len(species.pop) == 0:
             to_remove.append(i)
     for i in reversed(to_remove):
+        # if TEST:
+        print(f'Removed species {new_species[i].uid} since it was empty. <{name}>')
         new_species.pop(i)
-        print(f'Removed species {i} since it was empty.')
     return new_species
 
 def split_in_species(previous_species: list[Species], distance_matrix, admission_delta):
@@ -82,7 +89,6 @@ def split_in_species(previous_species: list[Species], distance_matrix, admission
     for sp in previous_species:
         pop += sp.pop
     assert_unique(pop, 'start of split')
-    print('rrer', representants)
 
     for idx_ind, ind in enumerate(pop):
         found_a_home = False
@@ -100,14 +106,14 @@ def split_in_species(previous_species: list[Species], distance_matrix, admission
                 found_a_home = True
                 break
         if not found_a_home:
-            print(f'++++++++++++ Adding species for {ind} ({mindist}) - I compared with {representants}')
+            # print(f'++++++++++++ Adding species for {ind} ({mindist}) - I compared with {representants}')
             new_species.append(Species([ind]))
             representants.append(ind)
-    new_species = remove_empty_species(new_species)
-    print('New species: (repr)')
-    print(representants)
-    print('New species: (sp)')
-    print(*[sp.pop for sp in new_species], sep='\n')
+    new_species = remove_empty_species(new_species, name='split_in_species')
+    # print('New species: (repr)')
+    # print(representants)
+    # print('New species: (sp)')
+    # print(*[sp.pop for sp in new_species], sep='\n')
     npop = []
     for sp in new_species:
         npop += sp.pop
@@ -129,9 +135,30 @@ def get_distance_matrix(toolbox, population, dissimilarity_metric):
     distance_matrix = toolbox.dissimilarity(population, dissimilarity_metric)
     return distance_matrix
 
+PRINT_SP_PER_LINE = 4
+def print_species_dashboard(new_species, delta):
+    print_width = 58 * PRINT_SP_PER_LINE
+    print(f"< {len(new_species)} species, delta {delta:.10f} >".center(print_width, '-'))
+    print('-' * print_width)
+    print(f"| <  uid - age > (popsize) speciesFit    representative  |" * PRINT_SP_PER_LINE)
+    print('-' * print_width)
+    pr_str = ''
+    pr_post = []
+    for i, sp in enumerate(new_species):
+        repr = str(sp.get_representative()[0])
+        ellipsize_repr = repr if len(repr) <= 15 else f"{repr[:12]}..."
+        pr_str += f"| <{sp.uid:>8}-{sp.age:>3}> ({len(sp.pop):>3} ind) {sp.species_fitness:10.5f}    {ellipsize_repr:<15} |"
+        pr_post.append(repr)
+        if i % PRINT_SP_PER_LINE == PRINT_SP_PER_LINE - 1:
+            pr_str += f'\t\t{pr_post}\n'
+            pr_post = []
+    print(pr_str + (' ' * (print_width - pr_str.find('\n', -print_width) - 1)) + f"\t\t{pr_post}")
+    print('-' * print_width)
+    print()
+
 def speciation(population, toolbox,
                cxpb, mutpb, ngen, dissimilarity_metric, admission_delta,
-               n_species=10, interspecies_cxpb=0.001, dynamic_delta_under=1.05, dynamic_delta_over=0.98,
+               n_species=10, interspecies_cxpb=0.001, dynamic_delta_under=0.96, dynamic_delta_over=1.33,
                stagnant_horizon=15,
                min_species_size_for_champion_clone=5,
                stats=None, halloffame=None, verbose=__debug__):
@@ -164,8 +191,7 @@ def speciation(population, toolbox,
     logbook.record(gen=0, nevals=len(invalid_ind), **record)
     for sp in new_species:
         record = stats.compile(sp.pop) if stats else {}
-        print(record)
-        logbook.record(gen=0 + sp.uid / UID_P10, nevals=len(sp.pop), **record)
+        logbook.record(gen=f"0.{sp.uid}", nevals=len(sp.pop), **record)
     if verbose:
         print(logbook.stream)
 
@@ -196,9 +222,9 @@ def speciation(population, toolbox,
             # Delete species if necessary
             if sp.is_stagnant(stagnant_horizon):
                 new_species.remove(sp)
+                print(f'Removed species {sp.uid} because it was stagnant. Max fitness:', max(sp.past_fitnesses))
 
         total_species_fitness = sum([max(0, sp.species_fitness) for sp in new_species])
-        print(total_species_fitness, len(new_species), popsize)
         if total_species_fitness == 0.0:
             # Equal weights
             offspring_counts = np.array_split(np.arange(popsize), len(new_species))
@@ -209,7 +235,8 @@ def speciation(population, toolbox,
             ocdif = [int(math.floor(i)) for i in offspring_counts]
             ocd = [offspring_counts[i] - ocdif[i] for i in range(len(offspring_counts))] # float part only
             if sum(ocd) > 0:
-                ocd = [o / sum(ocd) for o in ocd] # Normalized weights
+                # Add a small delta, to allow species with 0 fitness some wiggle room.
+                ocd = [(o + 1e-7) / sum(ocd) for o in ocd] # Normalized weights
                 offspring_counts = random.choices(list(range(len(offspring_counts))), ocd, k=popsize - int(sum(ocdif)))
                 for i in offspring_counts:
                     ocdif[i] += 1
@@ -219,7 +246,6 @@ def speciation(population, toolbox,
 
         # offspring_counts = [s_int(popsize / len(new_species)) for _ in new_species]
         # offspring_counts[offspring_counts.index(max(offspring_counts))] += popsize - sum(offspring_counts)
-        print('offcount:', offspring_counts)
         assert_nonempty_species(new_species, 'before sel')
         # to_delete = []
         # for i, oc in enumerate(offspring_counts):
@@ -300,7 +326,7 @@ def speciation(population, toolbox,
             sp.pop = sp.offspring
             del sp.offspring
             new_pop += sp.pop
-        new_species = remove_empty_species(new_species)
+        new_species = remove_empty_species(new_species, 'speciation end')
         assert_unique(new_pop, 'speciation enddd')
         assert_nonempty_species(new_species, 'after gen')
         # Eval population (maybe not needed, unless the distance is fitness)
@@ -322,7 +348,8 @@ def speciation(population, toolbox,
         elif len(new_species) > n_species:
             delta *= dynamic_delta_over
 
-        print(f"post eval {len(new_species)} species: {[(len(sp.pop), sp.species_fitness) for sp in new_species]}")
+        print_species_dashboard(new_species, delta)
+        
         # print('total inds:', sum([len(sp.pop) for sp in new_species]))
         if sum([len(sp.pop) for sp in new_species]) != popsize:
             exit(0)
@@ -330,11 +357,12 @@ def speciation(population, toolbox,
         if halloffame is not None:
             halloffame.update(new_pop)
 
+        assert_nonempty_species(new_species, 'logbook')
         record = stats.compile(new_pop) if stats else {}
         logbook.record(gen=gen, nevals=len(invalid_ind), **record)
         for sp in new_species:
             record = stats.compile(sp.pop) if stats else {}
-            logbook.record(gen=gen + sp.uid / UID_P10, nevals=len(sp.pop), **record)
+            logbook.record(gen=f"{gen}.{sp.uid}", nevals=len(sp.pop), **record)
         if verbose:
             print(logbook.stream)
 

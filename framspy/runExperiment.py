@@ -96,7 +96,11 @@ def select_feasible(individuals):
 
 
 def selTournament_only_feasible(individuals, k, tournsize):
-	return tools.selTournament(select_feasible(individuals), k, tournsize=tournsize)
+	feasible_individuals = select_feasible(individuals)
+	if len(feasible_individuals) == 0:
+		print("Selection: no feasible solution in the population of size %d, so selecting from all individuals (including infeasible solutions with special fitness value %s)" % (len(individuals), FITNESS_VALUE_INFEASIBLE_SOLUTION))
+		return tools.selTournament(individuals, k, tournsize=tournsize)
+	return tools.selTournament(feasible_individuals, k, tournsize=tournsize)
 
 
 def selNSGA2_only_feasible(individuals, k, toolboxclone):
@@ -159,7 +163,7 @@ def parseArguments():
 	parser.add_argument('-xmut_enabled', type=bool, default=1, help="0/1 If to enable mutation = replace with simple individual (only for AdaptMut), default: 1.")
 	parser.add_argument('-lbda', type=int, default=100, help="lambda - how many children to produce (only used for eaMuLambda), default: 100.") # Suggested: 7 * popsize (=350, but that seems like a bit much)
 	parser.add_argument('-delta', type=float, default=3.0, help="delta (speciation) - Distance threshold for NEAT speciation.")
-	parser.add_argument('-dissim', type=DissimMethod, default=DissimMethod.PHENE_STRUCT_OPTIM, help="dissimilarity method  (only used for ???), default: FITNESS.")
+	parser.add_argument('-dissim', type=str, default="PHENE_STRUCT_OPTIM", help="dissimilarity method  (only used for ???), default: FITNESS.")
 
 	parser.add_argument('-opt', required=True, help='optimization criteria: vertpos, velocity, distance, vertvel, lifespan, numjoints, numparts, numneurons, numconnections (or other as long as it is provided by the .sim file and its .expdef). For multiple criteria optimization, separate the names by the comma.')
 	parser.add_argument('-popsize', type=int, default=50, help="Population size, default: 50.")
@@ -175,7 +179,9 @@ def parseArguments():
 	parser.add_argument('-max_numneurons', type=int, default=None, help="Maximum number of Neurons. Default: no limit")
 	parser.add_argument('-max_numconnections', type=int, default=None, help="Maximum number of Neural connections. Default: no limit")
 	parser.add_argument('-max_numgenochars', type=int, default=None, help="Maximum number of characters in genotype (including the format prefix, if any). Default: no limit")
-	return parser.parse_args()
+	parsed_args = parser.parse_args()
+	exec(f"parsed_args.dissim = DissimMethod.{parsed_args.dissim}")
+	return parsed_args
 
 
 def ensureDir(string):
@@ -214,7 +220,11 @@ def main():
 	hof = tools.HallOfFame(parsed_args.hof_size)
 	stats = tools.Statistics(lambda ind: ind.fitness.values)
 	# calculate statistics excluding infeasible solutions (by filtering out those with fitness containing FITNESS_VALUE_INFEASIBLE_SOLUTION)
-	filter_feasible_for_function = lambda function, fitness_criteria: function(list(filter(is_feasible_fitness_criteria, fitness_criteria)))
+	filter_feasible_for_function = lambda function, fitness_criteria: (
+		function(list(filter(is_feasible_fitness_criteria, fitness_criteria)))
+		if any(is_feasible_fitness_criteria(fc) for fc in fitness_criteria)
+		else float('nan')
+	)
 	stats.register("avg", lambda fitness_criteria: filter_feasible_for_function(np.mean, fitness_criteria))
 	stats.register("stddev", lambda fitness_criteria: filter_feasible_for_function(np.std, fitness_criteria))
 	stats.register("min", lambda fitness_criteria: filter_feasible_for_function(np.min, fitness_criteria))

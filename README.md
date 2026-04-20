@@ -2,6 +2,10 @@
 
 [Working Area](#working-area)
 
+[TODO](#todo)
+
+[Questions for prof](#questions-for-prof)
+
 [Competition](#competition)
 
 [Results](#results)
@@ -126,7 +130,7 @@ For competition:
 For disertation:
 * [ ] Write the paper [overleaf link](https://www.overleaf.com/read/rghmrhnrdqdd#cce283)
 
-**Questions**:
+## Questions for prof
 
 * [x] Can I touch the **mutation operator**? It might have some `p_mutate_neurons` or `p_mutate_body` to fine-tune.
 	* `If needed, parameter values and probabilities of mutation and crossover may be modified and adjusted by participants.` - so **YES**
@@ -134,7 +138,7 @@ For disertation:
 	* I'd say that I can't rely on randomness being turned off, so **NO**
 * [ ] How many pages for thesis? 100? 40?
 * [ ] Do I use the GECCO template for the paper? The UAIC template?
-* [ ] Are dissimilarity metric computations counted as evaluations?
+* [ ] Are dissimilarity metric computations counted as evaluations? (I hope not)
 * [ ] Should I focus more on finding and applying other methods, or should I try to create an ensemble method (eg. NEAT + AdaptMut + end with annealing step + finetuned probabilities)?
 * [ ] What stats are interesting to compute? (average run fitness plot? average 'biggest fitness jump' generation? Plotting a GIF of the population over the run?)
 	* **I need help, idk what to interpret about the results**
@@ -160,13 +164,17 @@ The set of parameters that define each environment (such as gravity, water level
 
 The submitted algorithm should be single-process, single-threaded, no GPU. No more than one submission per participant is allowed.
 
-**Max time: 1h**
+**Max time: 1h** (not including simulation time)
 
 **Memory: 2GB**
 
 **Max fitness evaluations: 100k**
 
-### Simulation Parameters
+
+<details>
+
+<summary>Simulation Parameters</summary>
+
 
 > These can be accessed in python like this: `frams.GenMan.f1_smModifiers` (so they can be changed before evaluating a certain individual, like setting custom mutation probabilities based on genotype age)
 > For a full list of simulation parameters, run `frams-test-props.py` and add `printFramsProperties(frams.GenMan)` at the end
@@ -248,6 +256,9 @@ neuadd_S0:0
 neuadd_S1:0
 neuadd_Thr:0
 ```
+
+</details>
+
 ## Experiments
 #### Setup
 
@@ -313,7 +324,7 @@ Algorithms:
 * NEAT [^risto-neat] [^risto-complexification]
 * Hyena [^hyena-flowshop]
 * GOMEA [^frams-gomea-building-block-varlength] [^gomea-building-block] [^gomea-romea] [^gomea-do-we-need] [^python-gomea] [^gomea]
-* Building Blocks [^xover-building-block] [^gomea-building-block-varlength] [^gomea-building-block]
+* Building Blocks [^xover-building-block] [^frams-gomea-building-block-varlength] [^gomea-building-block]
 * PPO/RL [^hexacopters] [^rl-chinup] [^rl-evo-comparison]
 
 Not reviewed [^qd-annealing] [^hyena-flowshop] [^risto-neat] [^feasible-infeasible] [^gomea]
@@ -323,6 +334,8 @@ Distance metric [^frams-dissimilarity-new] [^node2vec] [^frams-dissimilarity-bio
 Very interesting [^risto-complexification] [^frams-gomea-building-block-varlength] [^qd-dissimilarity-crowding]
 
 Curiosities [^irl-robots] [^bullethell] [^qd-tensegrity-robots]
+
+Surveys, State of the Art [^optuna-hyperopt]
 
 Well of papers: https://nn.cs.utexas.edu/?evolution
 
@@ -414,6 +427,8 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 
 [^feasible-infeasible]: [On a Feasible–Infeasible Two-Population (FI-2Pop) genetic algorithm for constrained optimization: Distance tracing and no free lunch](https://faculty.wharton.upenn.edu/wp-content/uploads/2013/03/genetic-algorithm-for-constrained-optimization_1.pdf) (Oct 2008, EJOR)
 	- #tosee 
+	- For Constraint Satisfaction Problems (ILP, etc)
+	- The key to our approach is the following. Conventionally, we select feasible individuals with the goal of increasing payoff, while disregarding potential constraint violations. Unconventionally, we select infeasible individuals with the goal of repairing them, while disregarding potential payoffs.
 
 [^frams-ski]: [Evolving free-form stick ski jumpers and their neural control systems](https://www.framsticks.com/files/common/Komosinski_Polak_EvolvedSkiJumping.pdf) (2009, Polish GECCO)
 	-  #advice **The crossing over operator was not used** in this experiment; it is not particularly efficient when morphologies and control systems that are strongly coupled are evolved
@@ -548,6 +563,9 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 [^gomea]: [Parameterless Gene-pool Optimal Mixing Evolutionary Algorithms](https://arxiv.org/pdf/2109.05259) (Sep 2021, ?)
 	#tosee 
 
+[^optuna-hyperopt]: [A Comparative study of Hyper-Parameter Optimization Tools](https://arxiv.org/pdf/2201.06433) (Jan 2022, IEEE 2021)
+	- Says that Optuna is better on algorithm + parameter tuning problem
+	
 [^hyena-flowshop]: [Hybrid Genetic and Spotted Hyena Optimizer for Flow Shop Scheduling Problem](https://www.mdpi.com/1999-4893/16/6/265) (May 2023, ?)  [local file link](file:///home/xwiki/Downloads/algorithms-16-00265-v2.pdf)
 	#tosee
 
@@ -646,3 +664,4 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 [^maciej-physics]: [On the influence of design parameters on the performance of the dielectric elastomer actuator with a permanent magnet](https://www.nature.com/articles/s41598-025-21993-5?error=server_error) (Oct 2025, ?)
 	- Maciej
 	- Looks like more of a physiscs experiment, so ignore; no GA
+

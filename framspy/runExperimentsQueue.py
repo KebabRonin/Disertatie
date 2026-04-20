@@ -50,13 +50,13 @@ def getExperimentData(rconfig):
     name += nameSuffix
     run_str = 'python run_more.py -runname ' \
         + name \
-        + extra + ' -commandargs "' \
+        + f" {extra} " + ' -commandargs "' \
             + ((f' -genformat {genformat}') if genformat != None else '') \
             + ((f' -algorithm {"convection_" if convection != None else ""}{algorithm}') if genformat != None else '') \
             + ((f' -pmut {pmut}') if pmut != None else '') \
             + ((f' -lbda {lbda}') if lbda != None else '') \
             + ((f' -popsize {pop}') if pop != None else '') \
-            + extra_cargs \
+            + f" {extra_cargs} " \
         + '"'
     return name, run_str
 
@@ -86,6 +86,30 @@ def getUnrunExperiments():
     print (f"{alr_run}/{runns} ({alr_run/runns:.3f})")
 
 runs_cfgs = [
+    # {
+    #     'convection': None, #[None, 'convection_'],
+    #     'algorithm': 'NEAT_speciation', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+    #     'genformat': 1, # [0, 1],
+    #     'pmut': None, # [None, 0.8, 0.5],
+    #     'pop': None, # [None, 100, 500],
+    #     'lbda': None, # [100, 350]
+    #     'extra': ' ', # -nodet 1
+    #     'extra_cargs': '', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+    #     'nameSuffix': '',
+    #     'namePrefix': '',
+    # },
+    # {
+    #     'convection': None, #[None, 'convection_'],
+    #     'algorithm': 'NEAT_speciation', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+    #     'genformat': 0, # [0, 1],
+    #     'pmut': None, # [None, 0.8, 0.5],
+    #     'pop': None, # [None, 100, 500],
+    #     'lbda': None, # [100, 350]
+    #     'extra': ' ', # -nodet 1
+    #     'extra_cargs': '', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+    #     'nameSuffix': '',
+    #     'namePrefix': '',
+    # },
     {
         'convection': None, #[None, 'convection_'],
         'algorithm': 'NEAT_speciation', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
@@ -94,7 +118,55 @@ runs_cfgs = [
         'pop': None, # [None, 100, 500],
         'lbda': None, # [100, 350]
         'extra': ' ', # -nodet 1
-        'extra_cargs': '', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+        'extra_cargs': '-dissim GENE_LEVENSHTEIN', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+        'nameSuffix': '',
+        'namePrefix': '',
+    },
+    {
+        'convection': None, #[None, 'convection_'],
+        'algorithm': 'NEAT_speciation', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+        'genformat': 1, # [0, 1],
+        'pmut': None, # [None, 0.8, 0.5],
+        'pop': None, # [None, 100, 500],
+        'lbda': None, # [100, 350]
+        'extra': ' ', # -nodet 1
+        'extra_cargs': '-dissim PHENE_STRUCT_GREEDY', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+        'nameSuffix': '',
+        'namePrefix': '',
+    },
+    {
+        'convection': None, #[None, 'convection_'],
+        'algorithm': 'NEAT_speciation', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+        'genformat': 1, # [0, 1],
+        'pmut': None, # [None, 0.8, 0.5],
+        'pop': None, # [None, 100, 500],
+        'lbda': None, # [100, 350]
+        'extra': ' ', # -nodet 1
+        'extra_cargs': '-dissim PHENE_DESCRIPTORS', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+        'nameSuffix': '',
+        'namePrefix': '',
+    },
+    {
+        'convection': None, #[None, 'convection_'],
+        'algorithm': 'NEAT_speciation', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+        'genformat': 1, # [0, 1],
+        'pmut': None, # [None, 0.8, 0.5],
+        'pop': None, # [None, 100, 500],
+        'lbda': None, # [100, 350]
+        'extra': ' ', # -nodet 1
+        'extra_cargs': '-dissim PHENE_DENSITY_COUNT', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+        'nameSuffix': '',
+        'namePrefix': '',
+    },
+    {
+        'convection': None, #[None, 'convection_'],
+        'algorithm': 'NEAT_speciation', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+        'genformat': 1, # [0, 1],
+        'pmut': None, # [None, 0.8, 0.5],
+        'pop': None, # [None, 100, 500],
+        'lbda': None, # [100, 350]
+        'extra': ' ', # -nodet 1
+        'extra_cargs': '-dissim PHENE_DENSITY_FREQ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
         'nameSuffix': '',
         'namePrefix': '',
     },
@@ -119,18 +191,6 @@ runs_cfgs = [
         'lbda': None, # [100, 350]
         'extra': ' ', # -nodet 1
         'extra_cargs': ' -nislands 5', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-        'nameSuffix': '',
-        'namePrefix': '',
-    },
-    {
-        'convection': None, #[None, 'convection_'],
-        'algorithm': 'NEAT_speciation', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-        'genformat': 0, # [0, 1],
-        'pmut': None, # [None, 0.8, 0.5],
-        'pop': None, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' ', # -nodet 1
-        'extra_cargs': '', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
         'nameSuffix': '',
         'namePrefix': '',
     },
