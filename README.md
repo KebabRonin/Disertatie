@@ -2,10 +2,6 @@
 
 [Working Area](#working-area)
 
-[TODO](#todo)
-
-[Questions for prof](#questions-for-prof)
-
 [Competition](#competition)
 
 [Results](#results)
@@ -53,7 +49,9 @@ DissimMethod.FITNESS                                         0.000 0.000, 0.0
 [GECCO competition link](https://gecco-2026.sigevo.org/Competition?itemId=8259)
 [Disertation presentation slides](https://docs.google.com/presentation/d/1LQFmr2H28BHL-tTbk1Y-5kiM2AudMlV4DHNNDb9gkyQ/edit?usp=sharing)
 
-**Notes**:
+### Notes
+
+#### Prima
 
 GOMEA - de vazut, algo puternic, complicat de implementat
 
@@ -65,11 +63,22 @@ Simulated Annealer
 
 Risto Miikkulainen - hyena simulation complexifying, diversity search
 
+### Doua
+
+NOVELTY
+
+Hyena + NEAT novelty ce a folosit autorul, cum a lucrat
+
+NU hillclimbing, ci CMA, novelty, sim annealing
+
+Novelty stage > Evolution stage > Annealing stage
+
 ## TODO
 
 _Roughly ordered by difficulty/impact_
 
-* [ ] Alter tournament size
+* [x] Alter tournament size
+* [x] Use optuna for the hyperparameters
 * [ ] Add an annealing step at the end, where only neurons are modified (weights with p=0.9, add/remove with p=0.1)
 * [ ] Compute % of time spent in stagnation, for each algorithm
 * [ ] Alter the mutation/selection:
@@ -102,8 +111,9 @@ _Roughly ordered by difficulty/impact_
 		* Genotype length (needs to be robust to possibly hard-coded parameters in the evaluation phase)?
 		* (f1) Available gene modifiers?
 * [ ] GOMEA ([2025 competition entry description here](https://www.framsticks.com/filebrowser/download/341) - it relies on f1)
-* [ ] That speciation algorithm (niching by similarity, and encouraging exploration)
-* [ ] Investigate Building Block algorithms
+* [ ] That speciation algorithm (niching by similarity, and encouraging exploration) - this is Novelty Search
+* [x] Investigate Building Block algorithms
+	* Don't, speciation already kinda does this
 * [ ] Alter selection (something other than tournament)
 * [ ] Use the dissimilarity metric somehow?
 	* [ ] Compute some `aux_fitness` score which rewards distance from other solutions, to increase exploration?
@@ -130,14 +140,16 @@ For competition:
 For disertation:
 * [ ] Write the paper [overleaf link](https://www.overleaf.com/read/rghmrhnrdqdd#cce283)
 
-## Questions for prof
+**Questions**:
 
 * [x] Can I touch the **mutation operator**? It might have some `p_mutate_neurons` or `p_mutate_body` to fine-tune.
 	* `If needed, parameter values and probabilities of mutation and crossover may be modified and adjusted by participants.` - so **YES**
 * [x] Since the example experiment setup has randomness turned off, can I rely on that to be the case at evaluation time? Can I 'cheat' by **not re-evaluating genotypes which were seen before**?
 	* I'd say that I can't rely on randomness being turned off, so **NO**
-* [ ] How many pages for thesis? 100? 40?
-* [ ] Do I use the GECCO template for the paper? The UAIC template?
+* [x] How many pages for thesis? 100? 40?
+	* Aim for ~50
+* [x] Do I use the GECCO template for the paper? The UAIC template?
+	* **GECCO**
 * [ ] Are dissimilarity metric computations counted as evaluations? (I hope not)
 * [ ] Should I focus more on finding and applying other methods, or should I try to create an ensemble method (eg. NEAT + AdaptMut + end with annealing step + finetuned probabilities)?
 * [ ] What stats are interesting to compute? (average run fitness plot? average 'biggest fitness jump' generation? Plotting a GIF of the population over the run?)

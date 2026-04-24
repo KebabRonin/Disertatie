@@ -162,7 +162,9 @@ def parseArguments():
 	parser.add_argument('-migrate_after', type=int, default=10, help="Number of generations to execute for each island before migrating all islands (only for convection), default: 10.")
 	parser.add_argument('-xmut_enabled', type=bool, default=1, help="0/1 If to enable mutation = replace with simple individual (only for AdaptMut), default: 1.")
 	parser.add_argument('-lbda', type=int, default=100, help="lambda - how many children to produce (only used for eaMuLambda), default: 100.") # Suggested: 7 * popsize (=350, but that seems like a bit much)
-	parser.add_argument('-delta', type=float, default=3.0, help="delta (speciation) - Distance threshold for NEAT speciation.")
+	parser.add_argument('-delta', type=float, default=3.0, help="delta (speciation) - Distance threshold for determining species.")
+	parser.add_argument('-delta_under_mult', type=float, default=0.96, help="delta (speciation) - By how much to reduce the Distance threshold if the amount of species is too low.")
+	parser.add_argument('-delta_over_mult', type=float, default=1.33, help="delta (speciation) - By how much to reduce the Distance threshold if the amount of species is too high.")
 	parser.add_argument('-dissim', type=str, default="PHENE_STRUCT_OPTIM", help="dissimilarity method  (only used for ???), default: FITNESS.")
 
 	parser.add_argument('-opt', required=True, help='optimization criteria: vertpos, velocity, distance, vertvel, lifespan, numjoints, numparts, numneurons, numconnections (or other as long as it is provided by the .sim file and its .expdef). For multiple criteria optimization, separate the names by the comma.')
@@ -209,7 +211,7 @@ def main():
 
 	# random.seed(123)  # see FramsticksLib.DETERMINISTIC below, set to True if you want full determinism
 	FramsticksLib.DETERMINISTIC = False  # must be set before the FramsticksLib() constructor call
-	FramsticksLibCompetition.TEST_FUNCTION = parsed_args.evalfn
+	FramsticksLibCompetition.TEST_FUNCTION = int(parsed_args.evalfn)
 	print("Argument values:", ", ".join(['%s=%s' % (arg, getattr(parsed_args, arg)) for arg in vars(parsed_args)]))
 	OPTIMIZATION_CRITERIA = parsed_args.opt.split(",")
 	framsLib = FramsticksLibCompetition(parsed_args.path, parsed_args.lib, parsed_args.sim)
@@ -296,7 +298,7 @@ def main():
 					case 'worstToBest':
 						parsed_args.island_eval_order = ConvectionSelectionPopulationEvalOrder.WORST_TO_BEST
 					case 'bestToWorst':
-						parsed_args.island_eval_order = ConvectionSelectionPopulationEvalOrder.WORST_TO_BEST
+						parsed_args.island_eval_order = ConvectionSelectionPopulationEvalOrder.BEST_TO_WORST
 					case 'interleaved':
 						parsed_args.island_eval_order = ConvectionSelectionPopulationEvalOrder.INTERLEAVED
 					case _:
@@ -310,6 +312,8 @@ def main():
 				from NEAT_speciation import speciation
 				pop, log = speciation(pop, toolbox, ngen=parsed_args.generations,
 						n_species=parsed_args.nislands, admission_delta=parsed_args.delta,
+						dynamic_delta_under=parsed_args.delta_under_mult,
+						dynamic_delta_over=parsed_args.delta_over_mult,
 						cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, dissimilarity_metric=parsed_args.dissim,
 						stats=stats, halloffame=hof, verbose=True)
 			case _:

@@ -7,3 +7,5 @@ Framsticks
 *.results
 *.pkl
 runplots
+trash
+*.db
