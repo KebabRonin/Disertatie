@@ -1,7 +1,7 @@
 .svn
 __pycache__
 *.gen
-framspy/experiments/*
+experiments/*
 Framsticks
 .vscode
 *.results
@@ -11,3 +11,4 @@ trash
 *.db
 parquet_data
 *.parquet
+.*

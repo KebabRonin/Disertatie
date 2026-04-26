@@ -3,9 +3,8 @@ import os
 import sys
 import numpy as np
 from deap import creator, base, tools, algorithms
-from FramsticksLib import FramsticksLib, DissimMethod
-from FramsticksLibCompetition import FramsticksLibCompetition
-import traceback
+from framspy.FramsticksLib import FramsticksLib, DissimMethod
+from framspy.FramsticksLibCompetition import FramsticksLibCompetition
 
 # Note: this may be less efficient than running the evolution directly in Framsticks, so if performance is key, compare both options.
 
@@ -156,7 +155,10 @@ def parseArguments():
 	parser.add_argument('-initialgenotype', required=False, help='The genotype used to seed the initial population. If given, the -genformat argument is ignored.')
 	parser.add_argument('-skipinitialgenotype', type=int, default=0, help='If 1, set the fitness of the simplest genotype to 0.0, without evaluating it. Should slightly increase the amount of evaluated genotypes')
 
-	parser.add_argument('-algorithm', required=True, help='The genotype used to seed the initial population. If given, the -genformat argument is ignored.')
+	parser.add_argument('-algorithm', required=True, choices=[
+		'eaSimple', 'eaOnePlusLambdaLambda', 'eaMuPlusLambda', 'eaMuCommaLambda',
+		'AdaptMut', 'convection_AdaptMut', 'convection_eaSimple',
+		'NEAT_speciation'], help='The algorithm used in the run.')
 	parser.add_argument('-nislands', type=int, default=10, help="Number of islands (only for convection), default: 10.")
 	parser.add_argument('-island_eval_order', type=str, default='worstToBest', help="Order in which to evaluate islands (only for convection), could lead to minor performance boost for the last generation only, default: worstToBest")
 	parser.add_argument('-migrate_after', type=int, default=10, help="Number of generations to execute for each island before migrating all islands (only for convection), default: 10.")
@@ -183,6 +185,9 @@ def parseArguments():
 	parser.add_argument('-max_numgenochars', type=int, default=None, help="Maximum number of characters in genotype (including the format prefix, if any). Default: no limit")
 	parsed_args = parser.parse_args()
 	exec(f"parsed_args.dissim = DissimMethod.{parsed_args.dissim}")
+	if parsed_args.algorithm == 'eaOnePlusLambdaLambda' and parsed_args.popsize != 1:
+		print(f"Error: You used the eaOnePlusLambdaLambda algorithm, but popsize is not 1 (it's {parsed_args.popsize})")
+		exit(0)
 	return parsed_args
 
 
@@ -194,7 +199,7 @@ def ensureDir(string):
 
 
 def save_genotypes(filename, OPTIMIZATION_CRITERIA, hof):
-	from framsfiles import writer as framswriter
+	from ..framspy.framsfiles import writer as framswriter
 	with open(filename, "w") as outfile:
 		for ind in hof:
 			keyval = {}
@@ -240,28 +245,34 @@ def main():
 		match parsed_args.algorithm:
 			case "AdaptMut":
 				print('am')
-				from AdaptMut import adaptMut
+				from .dalgorithm.AdaptMut import adaptMut
 				pop, log = adaptMut(
-							pop, toolbox, 
+							pop, toolbox,
 							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations, xmut_enabled=parsed_args.xmut_enabled,
 							stats=stats, halloffame=hof, verbose=True)
 			case "eaMuPlusLambda":
 				print('eaMu+Lambda')
 				pop, log = algorithms.eaMuPlusLambda(
 							pop, toolbox, mu=len(pop), lambda_=parsed_args.lbda,
-							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations, 
+							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations,
 							stats=stats, halloffame=hof, verbose=True)
 			case "eaMuCommaLambda":
 				print('eaMu,Lambda')
 				pop, log = algorithms.eaMuCommaLambda(
 							pop, toolbox, mu=len(pop), lambda_=parsed_args.lbda,
-							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations, 
+							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations,
+							stats=stats, halloffame=hof, verbose=True)
+			case "eaOnePlusLambdaLambda":
+				print('ea1+(Lambda,Lambda)')
+				from .dalgorithm.eaOnePlusLambdaLambda import eaOnePlusLambdaLambda
+				pop, log = eaOnePlusLambdaLambda(
+							pop, toolbox, lbda=parsed_args.lbda, ngen=parsed_args.generations,
 							stats=stats, halloffame=hof, verbose=True)
 			case "eaSimple":
 				print('ea')
 				pop, log = algorithms.eaSimple(
-							pop, toolbox, 
-							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations, 
+							pop, toolbox,
+							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations,
 							stats=stats, halloffame=hof, verbose=True)
 			case "convection_eaSimple":
 				print('cv_ea')
@@ -271,7 +282,7 @@ def main():
 						cxpb=parsed_args.pxov, mutpb=parsed_args.pmut,
 						stats=stats, halloffame=hof, verbose=True)
 
-				from ConvectionSelection import convectionSelection, ConvectionSelectionPopulationEvalOrder
+				from .dalgorithm.ConvectionSelection import convectionSelection, ConvectionSelectionPopulationEvalOrder
 				match parsed_args.island_eval_order:
 					case 'worstToBest':
 						parsed_args.island_eval_order = ConvectionSelectionPopulationEvalOrder.WORST_TO_BEST
@@ -287,14 +298,14 @@ def main():
 								stats=stats, halloffame=hof, verbose=True)
 			case "convection_AdaptMut":
 				print('cv_am')
-				from AdaptMut import adaptMut
+				from .dalgorithm.AdaptMut import adaptMut
 				def algo_am(population, toolbox, **params):
 					return adaptMut(
 						population, toolbox, ngen=params['generations'],
 						cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, xmut_enabled=parsed_args.xmut_enabled,
 						stats=stats, halloffame=hof, verbose=True)
 
-				from ConvectionSelection import convectionSelection, ConvectionSelectionPopulationEvalOrder
+				from .dalgorithm.ConvectionSelection import convectionSelection, ConvectionSelectionPopulationEvalOrder
 				match parsed_args.island_eval_order:
 					case 'worstToBest':
 						parsed_args.island_eval_order = ConvectionSelectionPopulationEvalOrder.WORST_TO_BEST
@@ -310,7 +321,7 @@ def main():
 								stats=stats, halloffame=hof, verbose=True)
 			case "NEAT_speciation":
 				print("NEATsp")
-				from NEAT_speciation import speciation
+				from .dalgorithm.NEAT_speciation import speciation
 				pop, log = speciation(pop, toolbox, ngen=parsed_args.generations,
 						n_species=parsed_args.nislands, admission_delta=parsed_args.delta,
 						dynamic_delta_under=parsed_args.delta_under_mult,

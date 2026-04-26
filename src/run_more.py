@@ -2,7 +2,14 @@ import os, time, tqdm, sys
 import concurrent.futures
 import argparse, math
 
-DATA_PATH = '/home/xwiki/Documents/fac/GECCO_Robot_Body/Disertatie/'
+from .config_loader import get_disertatie_root, get_framsticks_path, load_config, get_simfiles_path
+
+BASE_PATH = get_disertatie_root()
+# Should be pointing to the Disertatie folder
+assert BASE_PATH.endswith('Disertatie'), 'BASE_PATH points to the wrong folder'
+
+# Load configuration
+CONFIG = load_config()
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='This script will run multiple experiments in parallel, and save the results.')
@@ -18,23 +25,33 @@ def parseArgs():
     parser.add_argument('-nodet', type=int, default=0, help='1 if determinism.sim should be disabled')
     return parser.parse_args()
 
-def get_command(nodet, commandargs):
+def get_command(nodet, commandargs, framsticks_path=None):
+    if framsticks_path is None:
+        # Load from config
+        framsticks_path = get_framsticks_path(CONFIG)
+    simfiles = ';'.join([
+        os.path.join(get_simfiles_path(), 'eval-allcriteria.sim'),
+        os.path.join(get_simfiles_path(), 'deterministic.sim') if not nodet else '',
+        os.path.join(get_simfiles_path(), 'recording-body-coords.sim'),
+    ])
     return ' '.join([
-        'python runExperiment.py',
-        '-path /home/xwiki/Documents/fac/GECCO_Robot_Body/Framsticks54',
-        f'-sim "eval-allcriteria.sim;{"deterministic.sim;" if not nodet else ""}recording-body-coords.sim;"',
+        'python -m src.runExperiment',
+        f'-path {framsticks_path}',
+        f'-sim "{simfiles}"',
         '-opt COGpath -generations 100000000 ']
-        + [commandargs]
+        + [commandargs.replace('|','^|')] ## FIXME: THIS IS A FIX FOR WINDOWS ONLY!!!
         + [' -hof_savefile ']
     )
 # '-genformat 1',
 # '-algorithm convection_eaSimple -pmut 0.8', #'-migrate_after 10 -nislands 10',
 
 def run_th(run_id, dirname, command):
-    os.system(command + f' {dirname}/hof_{run_id}.txt > {dirname}/results_{run_id}.stdout')# 2> {dirname}/results_{run_id}.stderr')
+    hof_file = os.path.join(dirname, f'hof_{run_id}.txt')
+    stdout_file = os.path.join(dirname, f'results_{run_id}.stdout')
+    os.system(command + f' {hof_file} > {stdout_file}')# 2> {os.path.join(dirname, f'results_{run_id}.stderr')}
 
 def run_runs(params):
-    dirname = f'{DATA_PATH}framspy/experiments/{params['runname']}'
+    dirname = os.path.join(BASE_PATH, 'experiments', params['runname'])
     if not os.path.exists(dirname):
         os.mkdir(dirname)
     elif not params['continuerun']:
@@ -59,13 +76,17 @@ def run_runs(params):
     print("Ended at " + time.ctime())
 
 def main(params):
+    experiments_dir = os.path.join(BASE_PATH, 'experiments')
+    if not os.path.exists(experiments_dir):
+        os.mkdir(experiments_dir)
     if params['nodet']:
         params['runname'] = 'no_det_' + params['runname']
-    if os.path.exists(f'{DATA_PATH}framspy/experiments/{params['runname']}'):
+    run_dir = os.path.join(experiments_dir, params['runname'])
+    if os.path.exists(run_dir):
         if not params['continuerun']:
             params['runname'] += f"_{time.time()}"
         else:
-            import collect_data
+            from . import collect_data
             params['commandargs'] = collect_data.parse_algo_params(params['runname'])
             params_str = ''
             for pname in params['commandargs']:
@@ -78,7 +99,9 @@ def main(params):
             i = -1
             while len(params['runindexes']) < params['nruns']:
                 i += 1
-                if os.path.exists(collect_data.PATH + params['runname'] + f'/hof_{i}.txt') or os.path.exists(collect_data.PATH + params['runname'] + f'/results_{i}.stdout'):
+                hof_path = os.path.join(collect_data.EXPERIMENTS_PATH, params['runname'], f'hof_{i}.txt')
+                results_path = os.path.join(collect_data.EXPERIMENTS_PATH, params['runname'], f'results_{i}.stdout')
+                if os.path.exists(hof_path) or os.path.exists(results_path):
                     continue
                 else:
                     params['runindexes'].append(i)
@@ -87,13 +110,10 @@ def main(params):
     # if os.path.exists(f'{DATA_PATH}framspy/experiments/{RUN_FOLDER_NAME}'):
     #     print("[STOPPING] Experiment already exists: " + f'{DATA_PATH}framspy/experiments/{RUN_FOLDER_NAME}')
     #     exit(0)
+    os.chdir(get_disertatie_root())
     run_runs(params)
-    if os.path.exists(DATA_PATH + 'algo_run_dict.json'):
-        os.remove(DATA_PATH + 'algo_run_dict.json')
-    # if os.path.exists(DATA_PATH + 'parsed_result_data.pkl'):
-    #     os.remove(DATA_PATH + 'parsed_result_data.pkl')
-
-    os.system("python collect_data.py --redo")
+    exit()
+    os.system("python -m src.collect_data --redo")
     print()
     print(' * '.center(100, '='))
     print()

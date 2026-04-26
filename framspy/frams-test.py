@@ -110,7 +110,7 @@ def frams_dissim(frams_lib: FramsticksLib, individuals: list, dissim_method:Diss
 	# print(individuals)
 	return frams_lib.dissimilarity(individuals, method=dissim_method)
 FramsticksLib.DETERMINISTIC = False
-fsl = FramsticksLib('/home/xwiki/Documents/fac/GECCO_Robot_Body/Framsticks54', None, 'eval-allcriteria.sim;deterministic.sim;recording-body-coords.sim;')
+fsl = FramsticksLib('I:\Disertatie\Framsticks', None, 'eval-allcriteria.sim;deterministic.sim;recording-body-coords.sim')
 violations={dm: {'triangle': 0, 'sim': 0, 'time': 0} for dm in DissimMethod}
 import numpy as np, time
 

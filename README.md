@@ -90,6 +90,14 @@ Instalation instructions: See [The competition page](https://www.framsticks.com/
 
 _Development was done primarily on linux mint, so you might have some issues if running on another OS_
 
+[Wikipedia :- Neoevolutionism](https://en.wikipedia.org/wiki/Sociocultural_evolution#Neoevolutionism)
+
+Talcott Parsons, author of _Societies: Evolutionary and Comparative Perspectives_ (1966) and _The System of Modern Societies_ (1971) divided evolution into four subprocesses:
+1. **division**, which creates functional subsystems from the main system; 
+2. **adaptation**, where those systems evolve into more efficient versions;
+3. **inclusion of elements previously excluded** from the given systems;
+4. **generalization** of values, increasing the legitimization of the ever more complex system.
+
 **NotebookLM** for generating diagrams for the pptx
 
 Baseline (adaptMut with default FramsticksEvolution): 286 MB (14.01% of RAM budget)
@@ -138,7 +146,7 @@ Simulated Annealer
 
 Risto Miikkulainen - hyena simulation complexifying, diversity search
 
-### Doua
+#### Doua
 
 NOVELTY
 
@@ -148,14 +156,21 @@ NU hillclimbing, ci CMA, novelty, sim annealing
 
 Novelty stage > Evolution stage > Annealing stage
 
-## TODO
+#### Libraries
+
+https://github.com/CodeReclaimers/neat-python
+https://github.com/marcovirgolin/GP-GOMEA
+
+#### TODO
 
 _Roughly ordered by difficulty/impact_
 
 * [ ] Add an annealing step at the end, where only neurons are modified (weights with p=0.9, add/remove with p=0.1)
+* [ ] Self-adaptive EA (aka. store the strategy parameters, such as the mutation step sizes, as part of individuals)
+* [ ] Implement Self-adaptive (1 + (λ, λ))
 * [ ] Compute % of time spent in stagnation, for each algorithm
 * [ ] Alter the mutation/selection:
-	* [ ] Mutation: Adding a part is 0.1, removing is 0.15, modifying is rest (overall body mutation=0.3, neuromutation=0.7) 
+	* [ ] Mutation: Adding a part is 0.1, removing is 0.15, modifying is rest (overall body mutation=0.3, neuromutation=0.7)
 	* [ ] Selection: Tournament size, selection method
 * [ ] Different initializations:
 	* [ ] Random init: The first generation should already contain different individuals
@@ -418,11 +433,11 @@ Algorithms:
 * NEAT [^risto-neat] [^risto-complexification]
 * Hyena [^hyena-flowshop]
 * GOMEA [^frams-gomea-building-block-varlength] [^gomea-building-block] [^gomea-romea] [^gomea-do-we-need] [^python-gomea] [^gomea]
-* Building Blocks [^xover-building-block] [^frams-gomea-building-block-varlength] [^gomea-building-block]
+* Building Blocks [^xover-building-block] [^frams-gomea-building-block-varlength] [^building-block-modular-evo] [^gomea-building-block]
 * PPO/RL [^hexacopters] [^rl-chinup] [^rl-evo-comparison]
 * CMA-ES [^cma-es-margin] [^rl-chinup]
 
-Not reviewed [^qd-annealing] [^hyena-flowshop] [^risto-neat] [^feasible-infeasible] [^gomea]
+Not reviewed [^qd-annealing] [^hyena-flowshop] [^feasible-infeasible] [^gomea] [^ga-crossover] [^building-block-modular-evo]
 
 Distance metric [^frams-dissimilarity-new] [^node2vec] [^frams-dissimilarity-bio]
 
@@ -521,7 +536,7 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 	- This doesn't help me
 
 [^feasible-infeasible]: [On a Feasible–Infeasible Two-Population (FI-2Pop) genetic algorithm for constrained optimization: Distance tracing and no free lunch](https://faculty.wharton.upenn.edu/wp-content/uploads/2013/03/genetic-algorithm-for-constrained-optimization_1.pdf) (Oct 2008, EJOR)
-	- #tosee 
+	- #tosee
 	- For Constraint Satisfaction Problems (ILP, etc)
 	- The key to our approach is the following. Conventionally, we select feasible individuals with the goal of increasing payoff, while disregarding potential constraint violations. Unconventionally, we select infeasible individuals with the goal of repairing them, while disregarding potential payoffs.
 
@@ -537,7 +552,7 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 	- small Neural Nets (~sensors x actions neurons)
 	- experiments with predator-prey, evolve physical body configuration, foraging
 	- #stub-article Possible future work: ontogenetic plasticity (evolve during lifetime)
-		- Urzelai J, Floreano D (2001) Evolution of adaptive synapses: robots with fast adaptive behavior in new environments. Evol Comput 9: 495-524. 
+		- Urzelai J, Floreano D (2001) Evolution of adaptive synapses: robots with fast adaptive behavior in new environments. Evol Comput 9: 495-524.
 		- Bongard J, Pfeifer R (2003) Evolving complete agents using artificial ontogeny. In: Hara F, Pfeifer R, eds. Morpho-functional Machines: The New Species: Designing Embodied Intelligence. Berlin: Springer-Verlag. pp 237–258.
 	ontogeny - The origin and development of an individual organism from embryo to adult.
 
@@ -554,6 +569,26 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 	- #deeper-subject The univariate structure is found in various discrete EDAs such as UMDA, cGA and PBIL.
 	- #advice Conclusion: **Use Linkage Tree GOMEA**
 
+[^ga-parallel-upper-bound]: [General Upper Bounds on the Running Time of Parallel Evolutionary Algorithms](https://arxiv.org/pdf/1206.3522) (Jun 2012, ?)
+	- #tosee
+
+[^ga-crossover]: [Lessons From the Black-Box: Fast Crossover-Based Genetic Algorithms](http://www.cmap.polytechnique.fr/~nikolaus.hansen/proceedings/2013/GECCO/proceedings/p781.pdf) (Jul 2013, GECCO)
+	- `The best possible black-box optimization algorithm is significantly faster than all known evolutionary approaches`
+	- It's the (1 + (λ, λ)) algorithm
+		- popsize = 1
+		- parent has lambda mutation children
+		- the best child is xovered with the parent lambda times
+		- get best offspring
+		- It has a psudocode, so all good for implementation
+	- #advice Self-adaptive lambda variant
+		- start with λ = 1
+		- if we found an offspring better than the parent, λ=λ/F
+		- else λ = λ * (F ** 1/4)
+		- F being a constant parameter of the algorithm
+		- (They did F=1.5)
+	- When running on function with fitness plateaus (all 1 fitness in neighborhood), we note that it tends to generate offspring that are **identical to the parent**.
+		- Since this basically is a wasted iteration, we minimally alter the (1 + (λ, λ)) GA so that among individuals with equal fitness it gives preference to those different from the parent individual.
+
 [^xover-building-block]: [How Crossover Speeds Up Building-Block Assembly in Genetic Algorithms](https://arxiv.org/pdf/1403.6600v2) (Nov 2014, ?)
 	- **Mostly proofs**
 	- Using crossover increases the optimal value of p_mutation
@@ -569,7 +604,7 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 	- (μ+λ)-ES : popsize = μ -> generate λ offspring -> select best μ from joint population and continue (elitism)
 		- A common rule of thumb is to set μ ≈ λ/7
 	- #deeper-subject This left open the question whether k-point crossover is as effective as uniform crossover for assembling building blocks in ONEMAX. Here we provide a new and refined analysis, which gives an affirmative answer, under mild conditions on the crossover probability
-	- #deeper-subject The **(1+(λ, λ)) EA** from \[[9](http://www.cmap.polytechnique.fr/~nikolaus.hansen/proceedings/2013/GECCO/proceedings/p781.pdf)\] shows that crossover can lower the expected running time by more than a constant factor.
+	- #deeper-subject The **(1+(λ, λ)) EA** from [^ga-crossover] shows that crossover can lower the expected running time by more than a constant factor.
 		- Starting with one parent, it first creates λ offspring by mutation, with a random and potentially high mutation rate.
 		- Then it selects the best mutant, and crosses it λ times with the original parent, using parameterized uniform crossover (the probability of taking a bit from the first parent is not always 1/2, but a parameter of the algorithm).
 		- This leads to a number of O(n √ log n) expected function evaluations, which can be further decreased to O(n) with a scheme adapting λ according to the current fitness.
@@ -641,7 +676,7 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 
 [^qd-tensegrity-robots]: [Seeking Quality Diversity in Evolutionary Co-design of Morphology and Control of Soft Tensegrity Modular Robots](https://arxiv.org/pdf/2104.12175) (Apr 2021, ?)
 	- Variants of MAP-Elites
-		- [^double-MAP-E_1] 	
+		- [^double-MAP-E_1]
 		- [^double-MAP-E_2]
 		- ViE-NEAT
 			- #deeper-subject ViE uses viability boundries
@@ -656,7 +691,7 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 		- Time : ViE < DM-ME < MAP-Elites
 
 [^gomea]: [Parameterless Gene-pool Optimal Mixing Evolutionary Algorithms](https://arxiv.org/pdf/2109.05259) (Sep 2021, ?)
-	#tosee 
+	#tosee
 
 [^cma-es-margin]: [CMA-ES with Margin: Lower-Bounding Marginal Probability for Mixed-Integer Black-Box Optimization](https://arxiv.org/pdf/2205.13482) (Jul 2022, GECCO)
 	- #tosee
@@ -705,8 +740,12 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 	- Explainable AI
 	- 👎
 
+[^building-block-modular-evo]: [An evolutionary optimization method for modular structures made of predefined building blocks](https://www.sciencedirect.com/science/article/pii/S014102962501538X#sec0080) (Jul 2025)
+	- #tosee 
+
 [^frams-gomea-building-block-varlength]: [GOM-Based Compatible Substitutions Optimization for Variable-Length Representation Gray-Box Problems](https://dl.acm.org/doi/pdf/10.1145/3712255.3726717) (July 2025, GECCO)
 	- #idea this is really good
+	- #idea Have a GOM algorithm which always starts with a `simplest_individual()`, and uses GOM operator to build up a solution (instead of starting from an existing solution in the population)
 	- CoSO : Use GOM for var length genomes
 	- ?Store a library of elite solutions, to identify later the building blocks, rate how well they can be grafted into a solution
 	- Substitution Compatibility Function (SCF):
@@ -749,10 +788,10 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 
 [^book]: [Artificial Life Models in Software](https://pdfs.semanticscholar.org/8676/268ac4320c8fb9baf5200fd86f9c26ab79b5.pdf) (2009, ?)
 	- Carte, nu prea am timp de ea
-	#toresee 
+	#toresee
 
 [^double-map-e_2]: [Quality Diversity: A New Frontier for Evolutionary Computation](https://www.frontiersin.org/journals/robotics-and-ai/articles/10.3389/frobt.2016.00040/full) (Jul 2016, ?)
-	- #stub-article 
+	- #stub-article
 
 [^double-map-e_1]: [Open-ended evolution with multi-containers QD](https://dl.acm.org/doi/10.1145/3205651.3205705) (Jul 2018, GECCO)
 	- #stub-article

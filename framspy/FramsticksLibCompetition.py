@@ -2,7 +2,7 @@ import sys
 from time import perf_counter, strftime
 from typing import List  # to be able to specify a type hint of List[something]
 import numpy as np
-from FramsticksLib import FramsticksLib
+from .FramsticksLib import FramsticksLib
 from base64 import urlsafe_b64encode
 
 

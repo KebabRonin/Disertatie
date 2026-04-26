@@ -6,8 +6,12 @@ import pickle, argparse
 from PIL import Image
 import concurrent.futures, tqdm
 import matplotlib
+
+# Import configuration loader
+from .config_loader import get_disertatie_root, load_config
+
+# Remove warnings from console, but disable interactive plots
 matplotlib.use('agg')
-# /\/\/\ Non-interactive plt
 
 ARR_TO_PLOT = 'mx_arrs'
 
@@ -19,13 +23,18 @@ COLORS = ['red','blue','green','black', 'orange','purple','brown', 'magenta']
 N_RUNS = 20
 MAX_STEPS = 100_001
 example_idx = 0
-DATA_PATH = '/home/xwiki/Documents/fac/GECCO_Robot_Body/Disertatie/'
-PATH = DATA_PATH + 'framspy/experiments/'
+
+# Load configuration
+CONFIG = load_config()
+BASE_PATH = get_disertatie_root()
+# Should be pointing to the Disertatie folder
+assert BASE_PATH.endswith('Disertatie'), 'BASE_PATH points to the wrong folder'
+EXPERIMENTS_PATH = os.path.join(BASE_PATH, 'experiments')
 SHOW_CLASAMENT = False
-IMG_SAVE_PATH = DATA_PATH + 'framspy/runplots/images/'
-GIF_SAVE_PATH = DATA_PATH + 'framspy/runplots/gifs/'
-DATA_FILE = DATA_PATH + 'parsed_result_data.pkl'
-STATS_FILE = DATA_PATH + 'algo_run_dict.json'
+IMG_SAVE_PATH = os.path.join(BASE_PATH, 'framspy', 'runplots', 'images')
+GIF_SAVE_PATH = os.path.join(BASE_PATH, 'framspy', 'runplots', 'gifs')
+DATA_FILE = os.path.join(BASE_PATH, 'parsed_result_data.pkl')
+STATS_FILE = os.path.join(BASE_PATH, 'algo_run_dict.json')
 
 def parseArgs():
     parser = argparse.ArgumentParser(description='This script will run multiple experiments in parallel, and save the results.')
@@ -53,7 +62,7 @@ def order_fn_max(names):
 
 def parse_algo_params(name: str):
     params = {}
-    file_name = PATH + name + '/results_0.stdout'
+    file_name = os.path.join(EXPERIMENTS_PATH, name, 'results_0.stdout')
     with open(file_name, 'r') as f:
         parstr = ''
         currstr = f.readline()
@@ -72,8 +81,8 @@ def parse_algo_params(name: str):
 PARAM_PATT = re.compile(r'\b([\w0-9]+)=([\w0-9_\-\n \/.;:]+)')
 def get_algo_params(name):
     return {'params': parse_algo_params(name['runname']), 'meta': [{
-            'run_start': os.stat(PATH + name['runname'] + f'/results_{fn}.stdout').st_mtime,
-            'run_end': os.stat(PATH + name['runname'] + f'/results_{fn}.stdout').st_ctime,
+            'run_start': os.stat(os.join(EXPERIMENTS_PATH, name['runname'], f'results_{fn}.stdout')).st_mtime,
+            'run_end': os.stat(os.join(EXPERIMENTS_PATH, name['runname'], f'results_{fn}.stdout')).st_ctime,
             'generations': name['generations'],
             'nonevalTime': name['nonevalTime'],
             'totalevals': name['totalevals'],
@@ -94,7 +103,7 @@ def get_algo_dict(rk):
     return names
 
 def get_finished_runs(runname):
-    files = os.listdir(os.path.join(PATH, runname))
+    files = os.listdir(os.path.join(EXPERIMENTS_PATH, runname))
     finished_runs = [i for i in range(N_RUNS) if f'hof_{i}.txt' in files or f'hof_{i}_is_missing.txt' in files]
     return finished_runs
 
@@ -106,7 +115,7 @@ GEN_REGEX_SPECIES = re.compile(f'^([0-9]+)\\.([0-9]+){sp}{rgx}{sp}{rgx}{sp}{rgx}
 def parse_data(rs=None):
     if rs is None:
         rs = {}
-    for idx, d in enumerate(sorted(os.listdir(PATH))):
+    for idx, d in enumerate(sorted(os.listdir(EXPERIMENTS_PATH))):
         if d in rs:
             continue
         finished_runs = get_finished_runs(d)
@@ -131,7 +140,7 @@ def parse_data(rs=None):
             avg_arr = []
             species_dict = {}
             islands = {}
-            with open(os.path.join(PATH, d, f'results_{i}.stdout'), 'r') as f:
+            with open(os.path.join(EXPERIMENTS_PATH, d, f'results_{i}.stdout'), 'r') as f:
                 # First line tells us the arguments the run had.
                 argvalues = f.readline()
                 argvalues = argvalues[len('Argument values: '):]
@@ -153,9 +162,7 @@ def parse_data(rs=None):
                         mx_arr += [float(mx) if mx != 'nan' else -1] * (int(totalevals) - len(mx_arr))
                         mn_arr += [float(mn) if mn != 'nan' else -1] * (int(totalevals) - len(mn_arr))
                         avg_arr += [float(avg) if avg != 'nan' else -1] * (int(totalevals) - len(avg_arr))
-                        if len(mx_arr) != int(totalevals):
-                            print("(Miscount totalevals)", d, i, m.groups(), f"{len(mx_arr)} != {int(totalevals)}")
-                            exit(0)
+                        assert len(mx_arr) != int(totalevals), f"(Miscount totalevals) {d}, {i}, {m.groups()}, {len(mx_arr)} != {int(totalevals)}"
                     # elif re.match(r'^starting island\s+(\d+)', l):
                     #     # We're in convection algorithm, so we should store each island separately.
                     #     island_id, = re.match(r'^starting island\s+(\d+)', l).groups()
@@ -271,17 +278,18 @@ def boxplots(names, order_fn=order_fn_median):
     from scipy.stats import ttest_ind
     BASELINE = 'AdaptMutF0pmut08'
     SIGLVL = 0.05
-    idx_baseline = ordered_names.index(BASELINE)
-    print(f"Performing T-test between {BASELINE} and ({idx_baseline}) algorithms")
-    for on in ordered_names[:idx_baseline]:
-        # Perform two-sample t-test
-        t_statistic, p_value = ttest_ind(names[BASELINE]['runs'], names[on]['runs'], equal_var=False)
+    if BASELINE in ordered_names:
+        idx_baseline = ordered_names.index(BASELINE)
+        print(f"Performing T-test between {BASELINE} and ({idx_baseline}) algorithms")
+        for on in ordered_names[:idx_baseline]:
+            # Perform two-sample t-test
+            t_statistic, p_value = ttest_ind(names[BASELINE]['runs'], names[on]['runs'], equal_var=False)
 
-        # Output the results
-        if p_value < SIGLVL:
-            print(f" {BASELINE} vs {on} ".center(90, '='))
-            print(f"t-statistic: {t_statistic}")
-            print(f"P-value: {p_value} ({'significant change' if p_value < SIGLVL else 'insignificant change'} for {SIGLVL} significance level)")
+            # Output the results
+            if p_value < SIGLVL:
+                print(f" {BASELINE} vs {on} ".center(90, '='))
+                print(f"t-statistic: {t_statistic}")
+                print(f"P-value: {p_value} ({'significant change' if p_value < SIGLVL else 'insignificant change'} for {SIGLVL} significance level)")
 
 def show_runs(rs: dict, d, example_idx, plot=True, printout=False, arr_to_plot=ARR_TO_PLOT, replaceplot=False):
     y_vals = [i for i in range(MAX_STEPS)]
@@ -397,7 +405,6 @@ if __name__ == '__main__':
         if not os.path.exists(DATA_FILE):
             print('Parsing results...')
             rs = parse_data()
-            os.mknod(DATA_FILE)
             pickle.dump(rs, open(DATA_FILE, 'wb'))
         else:
             print('Loding results...')
@@ -466,7 +473,7 @@ if __name__ == '__main__':
     # violins(global_clasament)
     # plt.tight_layout(pad=0.2)
     # # plt.show()
-    # plt.savefig(DATA_PATH + 'Run_results_violin.png')
+    # plt.savefig(BASE_PATH + 'Run_results_violin.png')
 
     print('=' * 120)
     print(f' Global clasament of {ARR_TO_PLOT} '.center(120, '='))
@@ -482,19 +489,19 @@ if __name__ == '__main__':
     boxplots(names, order_fn=order_fn_median)
     plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by median value')
     # plt.tight_layout(pad=0.2)
-    plt.savefig(DATA_PATH + f'Run_results_boxplot_{ARR_TO_PLOT}_ordermedian.png')
+    plt.savefig(BASE_PATH + f'Run_results_boxplot_{ARR_TO_PLOT}_ordermedian.png')
 
     print(' By mean '.center(90, '*'))
     boxplots(names, order_fn=order_fn_mean)
     plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by mean value')
     # plt.tight_layout(pad=0.2)
-    plt.savefig(DATA_PATH + f'Run_results_boxplot_{ARR_TO_PLOT}_ordermean.png')
+    plt.savefig(BASE_PATH + f'Run_results_boxplot_{ARR_TO_PLOT}_ordermean.png')
 
     print(' By max '.center(90, '*'))
     boxplots(names, order_fn=order_fn_max)
     plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by maximum value')
     # plt.tight_layout(pad=0.2)
-    plt.savefig(DATA_PATH + f'Run_results_boxplot_{ARR_TO_PLOT}_ordermax.png')
+    plt.savefig(BASE_PATH + f'Run_results_boxplot_{ARR_TO_PLOT}_ordermax.png')
     exit()
 """
 for i in range(0):

@@ -33,14 +33,14 @@ METHODOLOGY NOTES:
    - Optuna can handle stochastic objectives by accepting mean values
    - Multiple runs per trial (20 in our case) gives stable fitness estimates
    - Intermediate reporting + pruning helps reject bad configs early
-   
+
 2. Early stopping for non-deterministic algorithms - is it good practice?
    YES, IF done carefully:
    - Must have minimum runs (MIN_RUNS_BEFORE_EARLY_STOP) before pruning
    - Pruner uses statistical confidence (not just one bad run)
    - HyperbandPruner is ideal: it works with curves, not just final values
    - We report intermediate results after each run for better pruning decisions
-   
+
 3. Running 20 trials per config to get mean+std:
    YES, this is excellent practice for non-deterministic algorithms:
    - Gives you confidence intervals for comparing algorithms
@@ -80,6 +80,9 @@ import os
 import numpy as np
 from pathlib import Path
 
+# Import configuration loader
+from .config_loader import get_disertatie_root, get_framsticks_path, get_database_path, load_config
+
 
 # ============================================================================
 # CONFIGURATION
@@ -88,12 +91,12 @@ from pathlib import Path
 # Database storage
 STUDY_NAME = "framsticks-study"
 
-DATA_PATH = '/home/xwiki/Documents/fac/GECCO_Robot_Body/Disertatie/'
-DATABASE_URL = f"sqlite:///{DATA_PATH}/algo_runs.db"
-STATS_FILE = DATA_PATH + 'algo_run_dict.json'
-
-# Framsticks configuration
-FRAMSTICKS_PATH = "/home/xwiki/Documents/fac/GECCO_Robot_Body/Framsticks54"
+# Load configuration
+CONFIG = load_config()
+DATA_PATH = get_disertatie_root()
+FRAMSTICKS_PATH = get_framsticks_path(CONFIG)
+DATABASE_URL = f"sqlite:///{get_database_path(CONFIG)}"
+STATS_FILE = os.path.join(DATA_PATH, 'algo_run_dict.json')
 EXPERIMENT_SCRIPT = "./runExperiment.py"
 
 # Algorithm weights (relative probabilities)
@@ -182,7 +185,7 @@ def get_algorithm_specific_params(trial: optuna.Trial, algorithm: str) -> dict:
     params["popsize"] = trial.suggest_int("popsize", 20, 500, step=5)
     params["pmut"] = trial.suggest_float("pmut", 0.1, 1.0, step=0.005)
     params["pxov"] = trial.suggest_float("pxov", 0.0, 1.0, step=0.005)
-    params["tournament"] = trial.suggest_int("tournament", 2, 20)
+    params["tournament"] = trial.suggest_int("tournament", 2, 20) # FIXME This doesn't help in OnePlusLambdaLambda
     params["initialgenotype"] = trial.suggest_categorical("initialgenotype", ["simplest", "XX", "XXneurons"])
 
     # Algorithm-specific parameters
@@ -221,7 +224,7 @@ def get_algorithm_specific_params(trial: optuna.Trial, algorithm: str) -> dict:
 def suggest_algorithm(trial: optuna.Trial) -> str:
     """
     Suggest an algorithm with weighted probabilities.
-    
+
     This is a workaround for Optuna not supporting weighted categoricals.
     We use suggest_int + cumulative weights to pick an algorithm.
     """
@@ -271,14 +274,12 @@ def get_run_name(algorithm, params, test_func):
     return name
 
 
-import run_more as rmore
+import src.run_more as rmore
 
 def run_more(algorithm, params, test_func, n_runs, trial: optuna.Trial):
     params['initialgenotype'] = SIMPLEST_GENOTYPE[f"f{params['genformat']}_{params['initialgenotype']}"]
-    
-    if test_func != [3]:
-        print(f"Warning: test_func is {test_func}, but get_run_name() is only designed for single function optimization. Consider updating get_run_name() to include test_func in the name.")
-        exit(0)
+
+    assert test_func != [3], f"Warning: test_func is {test_func}, but get_run_name() is only designed for single function optimization. Consider updating get_run_name() to include test_func in the name."
     for evalfn in test_func:
         params["evalfn"] = evalfn
         runname = 'rn_' + get_run_name(algorithm, params, params['evalfn'])
@@ -312,7 +313,7 @@ def run_more(algorithm, params, test_func, n_runs, trial: optuna.Trial):
     trial.set_user_attr("max", max_fitness)
     trial.set_user_attr("nruns", len(run_fitnesses))
     trial.set_user_attr("name", runname)
-    
+
     fitness = mean_fitness
     return fitness
 
@@ -323,14 +324,14 @@ def run_more(algorithm, params, test_func, n_runs, trial: optuna.Trial):
 def objective(trial: optuna.Trial) -> float:
     """
     Optuna objective function.
-    
+
     Workflow:
     1. Suggest an algorithm (weighted)
     2. Suggest algorithm-specific hyperparameters
     3. Run the algorithm RUNS_PER_TRIAL times across TEST_FUNCTIONS
     4. Report intermediate results for pruning
     5. Return mean fitness (robustness metric)
-    
+
     For SINGLE FUNCTION optimization instead of robustness:
     - Comment out the loop: for test_func in TEST_FUNCTIONS
     - Set: test_func = 3  # or your chosen function

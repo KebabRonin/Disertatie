@@ -2,10 +2,15 @@ import datetime, sqlite3
 import json, numpy as np
 import optuna
 import copy
+import os
 from optuna.study import StudyDirection
 
-DATA_PATH = '/home/xwiki/Documents/fac/GECCO_Robot_Body/Disertatie/'
-DB_PATH = DATA_PATH + 'algo_runs.db'
+# Import configuration loader
+from config_loader import get_database_path, load_config
+
+# Load configuration
+CONFIG = load_config()
+DB_PATH = get_database_path(CONFIG)
 
 SIMPLEST_GENOTYPE = {
     '_simplest':'None',
@@ -92,15 +97,16 @@ DEFAULTS = {
 
 # Parameters to EXCLUDE from import (not relevant for optimization)
 # EXCLUDE_PARAMS = {
-#     'path', 'lib', 'sim', 'hof_savefile', 'max_numparts', 
-#     'max_numjoints', 'max_numneurons', 'max_numconnections', 
+#     'path', 'lib', 'sim', 'hof_savefile', 'max_numparts',
+#     'max_numjoints', 'max_numneurons', 'max_numconnections',
 #     'max_numgenochars', 'initpop_zero', 'skipinitialgenotype',
 #     'island_eval_order', 'delta_under_mult', 'delta_over_mult',
 #     'hof_size', 'generations'
 # }
+import config_loader
 DATETIMES = []
 # Load the algo_run_dict.json data
-d = json.load(open(DATA_PATH + 'algo_run_dict.json', 'r'))
+d = json.load(open(os.path.join(config_loader.get_disertatie_root(), 'algo_run_dict.json'), 'r'))
 
 def try_cast(value: str, type):
   try:
@@ -208,7 +214,7 @@ def create_study_and_import(study: optuna.Study, algo_key: str, algo_data: dict)
     # for i, (run_meta, fitness) in enumerate(zip(meta_list, runs)):
         # Create trial with parameters
     study.add_trial(trial)
-    
+
     DATETIMES.append((
       study.get_trials()[-1].number,
       min(map(lambda x: x['run_start'], meta_list)),

@@ -1,5 +1,12 @@
 import sys, os, re
 
+# Import configuration loader
+from .config_loader import get_disertatie_root, load_config
+
+# Load configuration
+CONFIG = load_config()
+BASE_PATH = get_disertatie_root()
+
 P_SIZE = 500
 
 SIMPLEST_GENOTYPE = {
@@ -41,18 +48,18 @@ def getExperimentData(rconfig):
     lbda = rconfig['lbda']
     nameSuffix = rconfig['nameSuffix']
     namePrefix = rconfig['namePrefix']
-    name = f'{namePrefix}{"convection_" if convection != None else ""}{algorithm}F{genformat}' \
+    name = f'{namePrefix}{"convection_" if convection else ""}{algorithm}F{genformat}' \
         + f'{("pmut" + str(pmut).replace(".", "")) if pmut != None else ""}'\
         + f'{("lbda" + str(lbda)) if lbda != None else ""}'\
         + f'{("pop" + str(pop)) if pop != None else ""}'
     for ec in re.findall(r'-([a-zA-Z_]+)\s(\"[\s\S]*\"|[^\s]*)', extra_cargs):
         name += ec[0] + re.sub(r'[^a-zA-Z0-9]', '', ec[1])
     name += nameSuffix
-    run_str = 'python run_more.py -runname ' \
+    run_str = 'python -m src.run_more -runname ' \
         + name \
         + f" {extra} " + ' -commandargs "' \
             + ((f' -genformat {genformat}') if genformat != None else '') \
-            + ((f' -algorithm {"convection_" if convection != None else ""}{algorithm}') if genformat != None else '') \
+            + ((f' -algorithm {"convection_" if convection else ""}{algorithm}') if genformat != None else '') \
             + ((f' -pmut {pmut}') if pmut != None else '') \
             + ((f' -lbda {lbda}') if lbda != None else '') \
             + ((f' -popsize {pop}') if pop != None else '') \
@@ -70,7 +77,8 @@ def getUnrunExperiments():
         'extra': '',
         'extra_cargs': '',
     }
-    DATA_PATH = '/home/xwiki/Documents/fac/GECCO_Robot_Body/Disertatie/'
+
+    DATA_PATH = BASE_PATH
 
     import itertools
     alr_run = 0
@@ -78,7 +86,7 @@ def getUnrunExperiments():
     for rconfig in itertools.product(*params.values()):
         runns += 1
         name, run_str = getExperimentData(rconfig)
-        dirname = f'{DATA_PATH}framspy/experiments/{name}'
+        dirname = os.path.join(DATA_PATH, 'experiments', name)
         if os.path.exists(dirname):
             alr_run += 1
         else:
@@ -88,52 +96,64 @@ def getUnrunExperiments():
 runs_cfgs = [
     {
         'convection': False, #[None, 'convection_'],
-        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-        'genformat': 0, # [0, 1],
-        'pmut': 0.8, # [None, 0.8, 0.5],
-        'pop': None, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' -numworkers 10 ', # -nodet 1
-        'extra_cargs': ' -evalfn 4 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-        'nameSuffix': '',
-        'namePrefix': '',
-    },
-    {
-        'convection': False, #[None, 'convection_'],
-        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-        'genformat': 0, # [0, 1],
-        'pmut': 0.8, # [None, 0.8, 0.5],
-        'pop': None, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' -numworkers 10  ', # -nodet 1
-        'extra_cargs': ' -evalfn 5 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-        'nameSuffix': '',
-        'namePrefix': '',
-    },
-    {
-        'convection': False, #[None, 'convection_'],
-        'algorithm': 'eaSimple', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-        'genformat': 0, # [0, 1],
+        'algorithm': 'eaOnePlusLambdaLambda', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+        'genformat': 1, # [0, 1],
         'pmut': None, # [None, 0.8, 0.5],
-        'pop': None, # [None, 100, 500],
+        'pop': 1, # [None, 100, 500],
         'lbda': None, # [100, 350]
-        'extra': ' -numworkers 10  ', # -nodet 1
-        'extra_cargs': ' -evalfn 4 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+        'extra': ' -numworkers 5 -nruns 1 ', # -nodet 1
+        'extra_cargs': f' -initialgenotype "{SIMPLEST_GENOTYPE["f1_neurons"].replace('|','^|')}" ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
         'nameSuffix': '',
         'namePrefix': '',
     },
-    {
-        'convection': False, #[None, 'convection_'],
-        'algorithm': 'eaSimple', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-        'genformat': 0, # [0, 1],
-        'pmut': None, # [None, 0.8, 0.5],
-        'pop': None, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' -numworkers 10  ', # -nodet 1
-        'extra_cargs': ' -evalfn 5 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-        'nameSuffix': '',
-        'namePrefix': '',
-    },
+    # {
+    #     'convection': False, #[None, 'convection_'],
+    #     'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+    #     'genformat': 0, # [0, 1],
+    #     'pmut': 0.8, # [None, 0.8, 0.5],
+    #     'pop': None, # [None, 100, 500],
+    #     'lbda': None, # [100, 350]
+    #     'extra': ' -numworkers 10 ', # -nodet 1
+    #     'extra_cargs': ' -evalfn 4 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+    #     'nameSuffix': '',
+    #     'namePrefix': '',
+    # },
+    # {
+    #     'convection': False, #[None, 'convection_'],
+    #     'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+    #     'genformat': 0, # [0, 1],
+    #     'pmut': 0.8, # [None, 0.8, 0.5],
+    #     'pop': None, # [None, 100, 500],
+    #     'lbda': None, # [100, 350]
+    #     'extra': ' -numworkers 10  ', # -nodet 1
+    #     'extra_cargs': ' -evalfn 5 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+    #     'nameSuffix': '',
+    #     'namePrefix': '',
+    # },
+    # {
+    #     'convection': False, #[None, 'convection_'],
+    #     'algorithm': 'eaSimple', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+    #     'genformat': 0, # [0, 1],
+    #     'pmut': None, # [None, 0.8, 0.5],
+    #     'pop': None, # [None, 100, 500],
+    #     'lbda': None, # [100, 350]
+    #     'extra': ' -numworkers 10  ', # -nodet 1
+    #     'extra_cargs': ' -evalfn 4 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+    #     'nameSuffix': '',
+    #     'namePrefix': '',
+    # },
+    # {
+    #     'convection': False, #[None, 'convection_'],
+    #     'algorithm': 'eaSimple', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+    #     'genformat': 0, # [0, 1],
+    #     'pmut': None, # [None, 0.8, 0.5],
+    #     'pop': None, # [None, 100, 500],
+    #     'lbda': None, # [100, 350]
+    #     'extra': ' -numworkers 10  ', # -nodet 1
+    #     'extra_cargs': ' -evalfn 5 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+    #     'nameSuffix': '',
+    #     'namePrefix': '',
+    # },
     ## TODO: Rerun the following in the weekend, when no other processes are running:
     # {
     #     'convection': None, #[None, 'convection_'],
@@ -174,4 +194,5 @@ print(f"We'll be back in {len(runs) * 7.5} h ({len(runs) * 7.5 / 24:.2f} days)")
 print('=' * 100)
 print()
 
+os.chdir(get_disertatie_root())
 os.system(' && '.join(runs))
