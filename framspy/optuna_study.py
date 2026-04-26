@@ -267,7 +267,7 @@ def get_run_name(algorithm, params, test_func):
             continue
         else:
             cval = params[p]
-        name += '_' + normalizeString(p) + '-' + normalizeString(cval)
+        name += '_' + normalizeString(p)[:4] + normalizeString(cval)
     return name
 
 
@@ -281,7 +281,7 @@ def run_more(algorithm, params, test_func, n_runs, trial: optuna.Trial):
         exit(0)
     for evalfn in test_func:
         params["evalfn"] = evalfn
-        runname = 'bababooey' + get_run_name(algorithm, params, params['evalfn'])
+        runname = 'rn_' + get_run_name(algorithm, params, params['evalfn'])
         p = {
             'nruns': n_runs,
             'nodet': params['nodet'],
@@ -364,8 +364,10 @@ def objective(trial: optuna.Trial) -> float:
 
 def create_study() -> optuna.Study:
     """Create or load a persistent Optuna study."""
-
-    sampler = TPESampler(seed=42, consider_prior=True)
+    # sampler = TPESampler(seed=42, consider_prior=True)
+    import optunahub
+    module = optunahub.load_module(package="samplers/auto_sampler")
+    sampler = module.AutoSampler()
 
     # HyperbandPruner: more suitable for our case than MedianPruner
     # - Works with curves (reports intermediate values)

@@ -98,6 +98,11 @@ def get_finished_runs(runname):
     finished_runs = [i for i in range(N_RUNS) if f'hof_{i}.txt' in files or f'hof_{i}_is_missing.txt' in files]
     return finished_runs
 
+
+rgx = r'([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?|nan)'
+sp = r'\s+'
+GEN_REGEX = re.compile(f'^([0-9]+){sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}?{sp}?$')
+GEN_REGEX_SPECIES = re.compile(f'^([0-9]+)\\.([0-9]+){sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}?{sp}?$')
 def parse_data(rs=None):
     if rs is None:
         rs = {}
@@ -118,10 +123,14 @@ def parse_data(rs=None):
         nonevalTime_arr = []
         totalevals_arr = []
         evalTime_arr = []
+        species_dicts = []
+        islands_arrs = []
         for i in finished_runs:
             mx_arr = []
             mn_arr = []
             avg_arr = []
+            species_dict = {}
+            islands = {}
             with open(os.path.join(PATH, d, f'results_{i}.stdout'), 'r') as f:
                 # First line tells us the arguments the run had.
                 argvalues = f.readline()
@@ -132,9 +141,7 @@ def parse_data(rs=None):
                 if 'popsize' not in args:
                     args['popsize'] = 50
                 for l in f:
-                    rgx = r'([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?|nan)'
-                    sp = r'\s+'
-                    m = re.match(f'^([0-9]+){sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}?{sp}?$', l)
+                    m = re.match(GEN_REGEX, l)
                     if m:
                         gen, nevals, avg, stdev, mn, mx, totalevals, evalTime, nonevalTime = m.groups()
                         if int(totalevals) - len(mx_arr) != int(nevals):
@@ -149,6 +156,39 @@ def parse_data(rs=None):
                         if len(mx_arr) != int(totalevals):
                             print("(Miscount totalevals)", d, i, m.groups(), f"{len(mx_arr)} != {int(totalevals)}")
                             exit(0)
+                    elif re.match(r'^starting island\s+(\d+)', l):
+                        # We're in convection algorithm, so we should store each island separately.
+                        island_id, = re.match(r'^starting island\s+(\d+)', l).groups()
+                        island_id = int(island_id)
+                        if island_id not in islands:
+                            islands[island_id] = {
+                                'mx_arrs': [None] * int(totalevals),
+                                'mn_arrs': [None] * int(totalevals),
+                                'avg_arrs': [None] * int(totalevals),
+                            }
+                        else:
+                            islands[island_id]['mx_arrs'] += [islands[island_id]['mx_arrs'][-1]] * (int(totalevals) - len(islands[island_id]['mx_arrs']))
+                            islands[island_id]['mn_arrs'] += [islands[island_id]['mn_arrs'][-1]] * (int(totalevals) - len(islands[island_id]['mn_arrs']))
+                            islands[island_id]['avg_arrs'] += [islands[island_id]['avg_arrs'][-1]] * (int(totalevals) - len(islands[island_id]['avg_arrs']))
+                        islands[island_id]['mx_arrs'] += [mx]# * (int(totalevals) - len(islands[island_id]['mx']))
+                        islands[island_id]['mn_arrs'] += [mn]# * (int(totalevals) - len(islands[island_id]['mn']))
+                        islands[island_id]['avg_arrs'] += [avg]
+                    elif re.match(GEN_REGEX_SPECIES, l):
+                        # We're in speciation algorithm, so we should store each species separately.
+                        gen, species_id, nevals, avg, stdev, mn, mx, totalevals, evalTime, nonevalTime = re.match(GEN_REGEX_SPECIES, l).groups()
+                        if species_id not in species_dict:
+                            species_dict[species_id] = {
+                                'mx_arrs': [None] * int(totalevals),
+                                'mn_arrs': [None] * int(totalevals),
+                                'avg_arrs': [None] * int(totalevals),
+                            }
+                        else:
+                            species_dict[species_id]['mx_arrs'] += [species_dict[species_id]['mx_arrs'][-1]] * (int(totalevals) - len(species_dict[species_id]['mx_arrs']))
+                            species_dict[species_id]['mn_arrs'] += [species_dict[species_id]['mn_arrs'][-1]] * (int(totalevals) - len(species_dict[species_id]['mn_arrs']))
+                            species_dict[species_id]['avg_arrs'] += [species_dict[species_id]['avg_arrs'][-1]] * (int(totalevals) - len(species_dict[species_id]['avg_arrs']))
+                        species_dict[species_id]['mx_arrs'] += [mx]# * (int(totalevals) - len(species_dict[species_id]['mx']))
+                        species_dict[species_id]['mn_arrs'] += [mn]# * (int(totalevals) - len(species_dict[species_id]['mn']))
+                        species_dict[species_id]['avg_arrs'] += [avg]# * (int(totalevals) - len(species_dict[species_id]['avg']))
                 if 'Lambda' in d:
                     expected_evals = 100_000 - max(int(args['popsize']), int(args['lbda'] if 'lbda' in args else 0))
                 else:
@@ -168,6 +208,18 @@ def parse_data(rs=None):
             mx_arrs.append(mx_arr)
             mn_arrs.append(mn_arr)
             avg_arrs.append(avg_arr)
+            if len(islands) > 0:
+                for s in islands:
+                    islands[s]['mx_arrs'] += [islands[s]['mx_arrs'][-1]] * (MAX_STEPS - len(islands[s]['mx_arrs']))
+                    islands[s]['mn_arrs'] += [islands[s]['mn_arrs'][-1]] * (MAX_STEPS - len(islands[s]['mn_arrs']))
+                    islands[s]['avg_arrs'] += [islands[s]['avg_arrs'][-1]] * (MAX_STEPS - len(islands[s]['avg_arrs']))
+                islands_arrs.append(islands)
+            if len(species_dict) > 0:
+                for s in species_dict:
+                    species_dict[s]['mx_arrs'] += [None] * (MAX_STEPS - len(species_dict[s]['mx_arrs']))
+                    species_dict[s]['mn_arrs'] += [None] * (MAX_STEPS - len(species_dict[s]['mn_arrs']))
+                    species_dict[s]['avg_arrs'] += [None] * (MAX_STEPS - len(species_dict[s]['avg_arrs']))
+                species_dicts.append(species_dict)
         rs[d] = {
             'mx_arrs': mx_arrs,
             'mn_arrs': mn_arrs,
@@ -177,6 +229,10 @@ def parse_data(rs=None):
             'totalevals': totalevals_arr,
             'evalTime': evalTime_arr,
         }
+        if len(species_dicts) > 0:
+            rs[d]['species'] = species_dicts
+        if len(islands_arrs) > 0:
+            rs[d]['islands'] = islands_arrs
     return rs
 
 def violins(names, order_fn=order_fn_median):
@@ -216,7 +272,7 @@ def boxplots(names, order_fn=order_fn_median):
     BASELINE = 'AdaptMutF0pmut08'
     SIGLVL = 0.05
     idx_baseline = ordered_names.index(BASELINE)
-    print(f"Performing T-test between {BASELINE} and :", ordered_names[:idx_baseline])
+    print(f"Performing T-test between {BASELINE} and ({idx_baseline}) algorithms")
     for on in ordered_names[:idx_baseline]:
         # Perform two-sample t-test
         t_statistic, p_value = ttest_ind(names[BASELINE]['runs'], names[on]['runs'], equal_var=False)
@@ -238,8 +294,18 @@ def show_runs(rs: dict, d, example_idx, plot=True, printout=False, arr_to_plot=A
             # Plot run means as a thinner line on same axes
             plt.figure(figsize=(12,6))
             plt.title(f'Evolution of {d} at run {example_idx:>3}')
-            plt.plot(y_vals, rs[d][arr_to_plot][example_idx], label=f'{d} avg', color=color, linewidth=1.5)
-            plt.fill_between(y_vals, rs[d]['mn_arrs'][example_idx], rs[d]['mx_arrs'][example_idx], color=color, alpha=0.06)
+            if 'islands' in rs[d]:
+                for isl in rs[d]['islands']:
+                    plt.plot(y_vals, isl['avg_arrs'][example_idx], label=f'{d} avg', color=color, linewidth=1.5)
+                    plt.fill_between(y_vals, isl['mn_arrs'][example_idx], isl['mx_arrs'][example_idx], color=color, alpha=0.06)
+            elif 'species' in rs[d]:
+                for isl in rs[d]['species']:
+                    plt.plot(y_vals, isl['avg_arrs'][example_idx], label=f'{d} avg', color=color, linewidth=1.5)
+                    plt.fill_between(y_vals, isl['mn_arrs'][example_idx], isl['mx_arrs'][example_idx], color=color, alpha=0.06)
+            else:
+                # Do one plot for it
+                plt.plot(y_vals, rs[d]['avg_arrs'][example_idx], label=f'{d} avg', color=color, linewidth=1.5)
+                plt.fill_between(y_vals, rs[d]['mn_arrs'][example_idx], rs[d]['mx_arrs'][example_idx], color=color, alpha=0.06)
             plt.ylim(0, 800)
             plt.savefig(plotname)
             plt.close()
@@ -281,7 +347,7 @@ def make_gif(images, gif_name):
 
 def make_gif_th(th_idx):
     d = list(rs.keys())[th_idx]
-    make_gif([IMG_SAVE_PATH + f'{d}_{ARR_TO_PLOT}_run_{idx}.png' for idx in get_finished_runs(d)], GIF_SAVE_PATH + f'{d}_{ARR_TO_PLOT}_anim.gif')
+    make_gif([IMG_SAVE_PATH + f'{d}_run_{idx}.png' for idx in get_finished_runs(d)], GIF_SAVE_PATH + f'{d}_anim.gif')
 
 def gaussian(x, mu, sigma):
     return np.exp(-0.5*((x-mu)/sigma)**2) / (sigma*np.sqrt(2*np.pi))
@@ -319,7 +385,7 @@ def plot_rank_gaussians(data, sigma_min=0.2, x_pad=0.5, figsize=(8,4)):
     return plt.gcf(), plt.gca()
 
 
-FIGSIZE=None#(70,20)
+FIGSIZE=(25,10)
 if __name__ == '__main__':
     parsedargs = parseArgs()
     if parsedargs.silent:
@@ -403,31 +469,31 @@ if __name__ == '__main__':
     # plt.savefig(DATA_PATH + 'Run_results_violin.png')
 
     print('=' * 120)
-    print(f' Global clasament of {ARR_TO_PLOT}) '.center(120, '='))
+    print(f' Global clasament of {ARR_TO_PLOT} '.center(120, '='))
     print('=' * 120)
     print(f'{"idx":>3}.\t{"std":<15}\t{"mean":<15}\t{"median":<15}\t{"max":<15}\t{"name"}')
 
     names_sorted = list(names.keys())
-    names_sorted.sort(key=lambda x: np.mean(names[x]['runs']), reverse=True)
+    names_sorted.sort(key=lambda x: np.median(names[x]['runs']), reverse=True)
     for idx, n in enumerate(names_sorted):
         print(f'{idx+1:>3}.\t{np.std(names[n]['runs']):10.5f}\t{np.mean(names[n]['runs']):10.5f}\t{np.median(names[n]['runs']):10.5f}\t{np.max(names[n]['runs']):10.5f}\t{n}')
 
     print(' By median '.center(90, '*'))
     boxplots(names, order_fn=order_fn_median)
     plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by median value')
-    plt.tight_layout(pad=0.2)
+    # plt.tight_layout(pad=0.2)
     plt.savefig(DATA_PATH + f'Run_results_boxplot_{ARR_TO_PLOT}_ordermedian.png')
 
     print(' By mean '.center(90, '*'))
     boxplots(names, order_fn=order_fn_mean)
     plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by mean value')
-    plt.tight_layout(pad=0.2)
+    # plt.tight_layout(pad=0.2)
     plt.savefig(DATA_PATH + f'Run_results_boxplot_{ARR_TO_PLOT}_ordermean.png')
 
     print(' By max '.center(90, '*'))
     boxplots(names, order_fn=order_fn_max)
     plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by maximum value')
-    plt.tight_layout(pad=0.2)
+    # plt.tight_layout(pad=0.2)
     plt.savefig(DATA_PATH + f'Run_results_boxplot_{ARR_TO_PLOT}_ordermax.png')
     exit()
 """

@@ -234,7 +234,8 @@ def main():
 	stats.register("totalevals", lambda _: framsLib._evaluation_count)
 	stats.register("evalTime", lambda _: framsLib._evaluation_time)
 	stats.register("noneval_Time", lambda _: time.perf_counter() - framsLib._time0 - framsLib._evaluation_time)
-
+	print('Max evals set to:', FramsticksLibCompetition.MAX_EVALUATIONS)
+	print('Max time set to:', FramsticksLibCompetition.MAX_TIME)
 	try:
 		match parsed_args.algorithm:
 			case "AdaptMut":
