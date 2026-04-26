@@ -1,6 +1,6 @@
 import os, time, tqdm, sys
 import concurrent.futures
-import argparse
+import argparse, math
 
 DATA_PATH = '/home/xwiki/Documents/fac/GECCO_Robot_Body/Disertatie/'
 
@@ -35,12 +35,16 @@ def run_th(run_id, dirname, command):
 
 def run_runs(params):
     dirname = f'{DATA_PATH}framspy/experiments/{params['runname']}'
-    os.mkdir(dirname)
+    if not os.path.exists(dirname):
+        os.mkdir(dirname)
+    elif not params['continuerun']:
+        print('Continuerun param is not set, but the run already exists')
+        exit()
     command = get_command(params['nodet'], params['commandargs'])
     print("Running the following command:")
     print(command + f' {dirname}/hof_{0}.txt > {dirname}/results_{0}.stdout')
     print("Started at " + time.ctime())
-    print("Expected finish time: ", time.ctime(time.time() + (7.5 * 60 * 3) * params['nruns']))
+    print("Expected finish time: ", time.ctime(time.time() + (3.75 * 60 * 60) * math.ceil(params['nruns'] / 10)))
     with concurrent.futures.ThreadPoolExecutor(max_workers=params['numworkers']) as executor:
         future_fns = {executor.submit(run_th, i, dirname, command): i for i in (params['runindexes'] if 'runindexes' in params else range(params['nruns']))}
         for future in tqdm.tqdm(concurrent.futures.as_completed(future_fns), total=len(future_fns)):
@@ -63,6 +67,13 @@ def main(params):
         else:
             import collect_data
             params['commandargs'] = collect_data.parse_algo_params(params['runname'])
+            params_str = ''
+            for pname in params['commandargs']:
+                if params['commandargs'][pname] != 'None':
+                    if pname == 'dissim' and params['commandargs'][pname].startswith('DissimMethod.'):
+                        params['commandargs'][pname] = params['commandargs'][pname][len('DissimMethod.'):]
+                    params_str += f' -{pname} "{params['commandargs'][pname]}"'
+            params['commandargs'] = params_str
             params['runindexes'] = []
             i = -1
             while len(params['runindexes']) < params['nruns']:

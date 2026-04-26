@@ -9,3 +9,5 @@ Framsticks
 runplots
 trash
 *.db
+parquet_data
+*.parquet

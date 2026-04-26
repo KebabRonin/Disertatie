@@ -156,39 +156,39 @@ def parse_data(rs=None):
                         if len(mx_arr) != int(totalevals):
                             print("(Miscount totalevals)", d, i, m.groups(), f"{len(mx_arr)} != {int(totalevals)}")
                             exit(0)
-                    elif re.match(r'^starting island\s+(\d+)', l):
-                        # We're in convection algorithm, so we should store each island separately.
-                        island_id, = re.match(r'^starting island\s+(\d+)', l).groups()
-                        island_id = int(island_id)
-                        if island_id not in islands:
-                            islands[island_id] = {
-                                'mx_arrs': [None] * int(totalevals),
-                                'mn_arrs': [None] * int(totalevals),
-                                'avg_arrs': [None] * int(totalevals),
-                            }
-                        else:
-                            islands[island_id]['mx_arrs'] += [islands[island_id]['mx_arrs'][-1]] * (int(totalevals) - len(islands[island_id]['mx_arrs']))
-                            islands[island_id]['mn_arrs'] += [islands[island_id]['mn_arrs'][-1]] * (int(totalevals) - len(islands[island_id]['mn_arrs']))
-                            islands[island_id]['avg_arrs'] += [islands[island_id]['avg_arrs'][-1]] * (int(totalevals) - len(islands[island_id]['avg_arrs']))
-                        islands[island_id]['mx_arrs'] += [mx]# * (int(totalevals) - len(islands[island_id]['mx']))
-                        islands[island_id]['mn_arrs'] += [mn]# * (int(totalevals) - len(islands[island_id]['mn']))
-                        islands[island_id]['avg_arrs'] += [avg]
-                    elif re.match(GEN_REGEX_SPECIES, l):
-                        # We're in speciation algorithm, so we should store each species separately.
-                        gen, species_id, nevals, avg, stdev, mn, mx, totalevals, evalTime, nonevalTime = re.match(GEN_REGEX_SPECIES, l).groups()
-                        if species_id not in species_dict:
-                            species_dict[species_id] = {
-                                'mx_arrs': [None] * int(totalevals),
-                                'mn_arrs': [None] * int(totalevals),
-                                'avg_arrs': [None] * int(totalevals),
-                            }
-                        else:
-                            species_dict[species_id]['mx_arrs'] += [species_dict[species_id]['mx_arrs'][-1]] * (int(totalevals) - len(species_dict[species_id]['mx_arrs']))
-                            species_dict[species_id]['mn_arrs'] += [species_dict[species_id]['mn_arrs'][-1]] * (int(totalevals) - len(species_dict[species_id]['mn_arrs']))
-                            species_dict[species_id]['avg_arrs'] += [species_dict[species_id]['avg_arrs'][-1]] * (int(totalevals) - len(species_dict[species_id]['avg_arrs']))
-                        species_dict[species_id]['mx_arrs'] += [mx]# * (int(totalevals) - len(species_dict[species_id]['mx']))
-                        species_dict[species_id]['mn_arrs'] += [mn]# * (int(totalevals) - len(species_dict[species_id]['mn']))
-                        species_dict[species_id]['avg_arrs'] += [avg]# * (int(totalevals) - len(species_dict[species_id]['avg']))
+                    # elif re.match(r'^starting island\s+(\d+)', l):
+                    #     # We're in convection algorithm, so we should store each island separately.
+                    #     island_id, = re.match(r'^starting island\s+(\d+)', l).groups()
+                    #     island_id = int(island_id)
+                    #     if island_id not in islands:
+                    #         islands[island_id] = {
+                    #             'mx_arrs': [None] * int(totalevals),
+                    #             'mn_arrs': [None] * int(totalevals),
+                    #             'avg_arrs': [None] * int(totalevals),
+                    #         }
+                    #     else:
+                    #         islands[island_id]['mx_arrs'] += [islands[island_id]['mx_arrs'][-1]] * (int(totalevals) - len(islands[island_id]['mx_arrs']))
+                    #         islands[island_id]['mn_arrs'] += [islands[island_id]['mn_arrs'][-1]] * (int(totalevals) - len(islands[island_id]['mn_arrs']))
+                    #         islands[island_id]['avg_arrs'] += [islands[island_id]['avg_arrs'][-1]] * (int(totalevals) - len(islands[island_id]['avg_arrs']))
+                    #     islands[island_id]['mx_arrs'] += [mx]# * (int(totalevals) - len(islands[island_id]['mx']))
+                    #     islands[island_id]['mn_arrs'] += [mn]# * (int(totalevals) - len(islands[island_id]['mn']))
+                    #     islands[island_id]['avg_arrs'] += [avg]
+                    # elif re.match(GEN_REGEX_SPECIES, l):
+                    #     # We're in speciation algorithm, so we should store each species separately.
+                    #     gen, species_id, nevals, avg, stdev, mn, mx, totalevals, evalTime, nonevalTime = re.match(GEN_REGEX_SPECIES, l).groups()
+                    #     if species_id not in species_dict:
+                    #         species_dict[species_id] = {
+                    #             'mx_arrs': [None] * int(totalevals),
+                    #             'mn_arrs': [None] * int(totalevals),
+                    #             'avg_arrs': [None] * int(totalevals),
+                    #         }
+                    #     else:
+                    #         species_dict[species_id]['mx_arrs'] += [species_dict[species_id]['mx_arrs'][-1]] * (int(totalevals) - len(species_dict[species_id]['mx_arrs']))
+                    #         species_dict[species_id]['mn_arrs'] += [species_dict[species_id]['mn_arrs'][-1]] * (int(totalevals) - len(species_dict[species_id]['mn_arrs']))
+                    #         species_dict[species_id]['avg_arrs'] += [species_dict[species_id]['avg_arrs'][-1]] * (int(totalevals) - len(species_dict[species_id]['avg_arrs']))
+                    #     species_dict[species_id]['mx_arrs'] += [mx]# * (int(totalevals) - len(species_dict[species_id]['mx']))
+                    #     species_dict[species_id]['mn_arrs'] += [mn]# * (int(totalevals) - len(species_dict[species_id]['mn']))
+                    #     species_dict[species_id]['avg_arrs'] += [avg]# * (int(totalevals) - len(species_dict[species_id]['avg']))
                 if 'Lambda' in d:
                     expected_evals = 100_000 - max(int(args['popsize']), int(args['lbda'] if 'lbda' in args else 0))
                 else:
@@ -471,12 +471,12 @@ if __name__ == '__main__':
     print('=' * 120)
     print(f' Global clasament of {ARR_TO_PLOT} '.center(120, '='))
     print('=' * 120)
-    print(f'{"idx":>3}.\t{"std":<15}\t{"mean":<15}\t{"median":<15}\t{"max":<15}\t{"name"}')
-
+    print(f'|{"idx":>3}.|{"std":<15}|{"mean":<15}|{"median":<15}|{"max":<15}|{"name"}|comment|')
+    print('|---' * 8 + '|')
     names_sorted = list(names.keys())
     names_sorted.sort(key=lambda x: np.median(names[x]['runs']), reverse=True)
     for idx, n in enumerate(names_sorted):
-        print(f'{idx+1:>3}.\t{np.std(names[n]['runs']):10.5f}\t{np.mean(names[n]['runs']):10.5f}\t{np.median(names[n]['runs']):10.5f}\t{np.max(names[n]['runs']):10.5f}\t{n}')
+        print(f'|{idx+1:>3}.|{np.std(names[n]['runs']):10.5f}|{np.mean(names[n]['runs']):10.5f}|{np.median(names[n]['runs']):10.5f}|{np.max(names[n]['runs']):10.5f}|{n}||')
 
     print(' By median '.center(90, '*'))
     boxplots(names, order_fn=order_fn_median)
