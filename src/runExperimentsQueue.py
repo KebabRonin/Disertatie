@@ -1,7 +1,7 @@
 import sys, os, re
 
 # Import configuration loader
-from .config_loader import get_disertatie_root, load_config
+from .config_loader import get_disertatie_root, load_config, get_experiments_dir
 
 # Load configuration
 CONFIG = load_config()
@@ -78,15 +78,13 @@ def getUnrunExperiments():
         'extra_cargs': '',
     }
 
-    DATA_PATH = BASE_PATH
-
     import itertools
     alr_run = 0
     runns = 0
     for rconfig in itertools.product(*params.values()):
         runns += 1
         name, run_str = getExperimentData(rconfig)
-        dirname = os.path.join(DATA_PATH, 'experiments', name)
+        dirname = os.path.join(get_experiments_dir(), name)
         if os.path.exists(dirname):
             alr_run += 1
         else:
@@ -102,7 +100,7 @@ runs_cfgs = [
         'pop': 1, # [None, 100, 500],
         'lbda': None, # [100, 350]
         'extra': ' -numworkers 5 -nruns 1 ', # -nodet 1
-        'extra_cargs': f' -initialgenotype "{SIMPLEST_GENOTYPE["f1_neurons"].replace('|','^|')}" ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+        'extra_cargs': f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_neurons"]}\\" ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
         'nameSuffix': '',
         'namePrefix': '',
     },

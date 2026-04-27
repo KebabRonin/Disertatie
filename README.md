@@ -8,6 +8,23 @@
 
 [Source Index](#source-index)
 
+In order to use this repo, run the following from the `Disertatie` root folder:
+
+```bash
+# Run an experiment (use argument -h to see the options)
+python -m src.runExperiment <arguments>
+
+# Run multiple experiments based on a configuration (which you should defined in src/runExperimentsQueue.py)
+python -m src.runExperimentsQueue
+
+# Run optuna hyperparameter optimisation
+python -m src.optuna_study
+
+# Draw graphs for all local experiments
+python -m src.collect_data --redo
+```
+
+
 ## Working Area
 
 | idx. | std       | mean          | median        | max           | **Termination**           | comment                                                                                                                                                                                        | name                                                                                                                                                         |
@@ -85,7 +102,9 @@
 | 71.  | 17.11060  | 13.11953      | 4.41728       | 63.76950      | `TIME`                    | Struggles to clear 50 fitness, gets ~1000 evals before stopping                                                                                                                                | NEAT_speciationF1dissimPHENEDENSITYCOUNT                                                                                                                     |
 | 72.  | 25.35968  | 11.21698      | 3.47358       | 119.45800     | `TIME`                    | Struggles to clear 20 fitness, gets ~200 evals before stopping                                                                                                                                 | NEAT_speciationF1dissimPHENEDESCRIPTORS                                                                                                                      |
 
+
 Instalation instructions: See [The competition page](https://www.framsticks.com/gecco-competition)
+
 *Some folder paths are hardcoded, so you might have to edit some of the code*
 
 _Development was done primarily on linux mint, so you might have some issues if running on another OS_
@@ -129,7 +148,9 @@ DissimMethod.FITNESS                                         0.000 0.000, 0.0
 
 
 [Competition website](https://www.framsticks.com/gecco-competition)
+
 [GECCO competition link](https://gecco-2026.sigevo.org/Competition?itemId=8259)
+
 [Disertation presentation slides](https://docs.google.com/presentation/d/1LQFmr2H28BHL-tTbk1Y-5kiM2AudMlV4DHNNDb9gkyQ/edit?usp=sharing)
 
 ### Notes

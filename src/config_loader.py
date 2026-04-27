@@ -22,7 +22,9 @@ except ImportError:
 def get_disertatie_root():
     """Get the absolute path to the Disertatie folder (parent of src folder)."""
     src_dir = os.path.dirname(__file__)
-    return os.path.abspath(os.path.join(src_dir, ".."))
+    path = os.path.abspath(os.path.join(src_dir, ".."))
+    assert path.endswith('Disertatie')
+    return path
 
 
 def resolve_path(path_str, base_dir=None):
@@ -86,10 +88,11 @@ def _get_default_config():
     """
     return {
         'framsticks': {
-            'path': '../Framsticks54',
-            'fallback_paths': [
-                '../Framsticks',
+            'path': [
+                '../Framsticks54',
                 './Framsticks'
+                './Framsticks54',
+                '../Framsticks'
             ]
         },
         'database': {
@@ -122,22 +125,15 @@ def get_framsticks_path(config=None):
     disertatie_root = get_disertatie_root()
     framsticks_config = config.get('framsticks', {})
 
-    # Try primary path
-    primary_path = framsticks_config.get('path')
-    if primary_path:
-        resolved_path = resolve_path(primary_path, disertatie_root)
-        if os.path.exists(resolved_path):
-            return resolved_path
-
     # Try fallback paths
-    fallback_paths = framsticks_config.get('fallback_paths', [])
+    fallback_paths = framsticks_config.get('path', [])
     for fallback_path in fallback_paths:
         resolved_path = resolve_path(fallback_path, disertatie_root)
         if os.path.exists(resolved_path):
             return resolved_path
 
     # If nothing found, raise error with helpful message
-    paths_tried = [primary_path] + fallback_paths if primary_path else fallback_paths
+    paths_tried = fallback_paths
     raise FileNotFoundError(
         f"Framsticks path not found. Tried the following:\n"
         + "\n".join([f"  - {resolve_path(p, disertatie_root)}" for p in paths_tried if p])

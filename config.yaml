@@ -4,20 +4,13 @@
 # Framsticks Installation Path
 # Supports both absolute and relative paths (relative to Disertatie folder)
 framsticks:
-  # Absolute path to Framsticks (uncomment and modify if needed)
-  # path: "/home/xwiki/Documents/fac/GECCO_Robot_Body/Framsticks54"
-
-  # Or use relative path (relative to Disertatie folder)
-  # Examples:
-  #   "../Framsticks54"      (parent directory)
-  #   "./Framsticks"         (inside Disertatie)
-  #   "../Framsticks"        (alternative)
-  path: "./Framsticks54"
-
-  # Fallback paths to try if primary path doesn't exist
-  fallback_paths:
-    - "../Framsticks"
+  # Modify if needed.
+  # Fallback paths to try in order, taken in order if the first ones don't exist.
+  path:
     - "./Framsticks"
+    - "./Framsticks54"
+    - "../Framsticks"
+    - "../Framsticks54"
 
 
 
@@ -27,5 +20,5 @@ database:
 
 # Experiment Configuration
 experiments:
-  results_dir: "experiments"  # Relative to Disertatie folder
-  simfiles_path: "./framspy"
+  results_dir: "./framspy/experiments"  # Relative to Disertatie folder
+  simfiles_path: "./framspy" # Where the .sim files are stored, like the example has `eval-allcriteria.sim;deterministic.sim;recording-body-coords.sim;`

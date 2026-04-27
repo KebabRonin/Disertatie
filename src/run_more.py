@@ -2,11 +2,10 @@ import os, time, tqdm, sys
 import concurrent.futures
 import argparse, math
 
-from .config_loader import get_disertatie_root, get_framsticks_path, load_config, get_simfiles_path
+from .config_loader import get_disertatie_root, get_framsticks_path, load_config, get_simfiles_path, get_experiments_dir
 
 BASE_PATH = get_disertatie_root()
 # Should be pointing to the Disertatie folder
-assert BASE_PATH.endswith('Disertatie'), 'BASE_PATH points to the wrong folder'
 
 # Load configuration
 CONFIG = load_config()
@@ -39,7 +38,7 @@ def get_command(nodet, commandargs, framsticks_path=None):
         f'-path {framsticks_path}',
         f'-sim "{simfiles}"',
         '-opt COGpath -generations 100000000 ']
-        + [commandargs.replace('|','^|')] ## FIXME: THIS IS A FIX FOR WINDOWS ONLY!!!
+        + [commandargs] #.replace('|','^|')] ## FIXME: THIS IS A FIX FOR WINDOWS ONLY!!!
         + [' -hof_savefile ']
     )
 # '-genformat 1',
@@ -51,7 +50,7 @@ def run_th(run_id, dirname, command):
     os.system(command + f' {hof_file} > {stdout_file}')# 2> {os.path.join(dirname, f'results_{run_id}.stderr')}
 
 def run_runs(params):
-    dirname = os.path.join(BASE_PATH, 'experiments', params['runname'])
+    dirname = os.path.join(get_experiments_dir(), params['runname'])
     if not os.path.exists(dirname):
         os.mkdir(dirname)
     elif not params['continuerun']:
@@ -76,7 +75,7 @@ def run_runs(params):
     print("Ended at " + time.ctime())
 
 def main(params):
-    experiments_dir = os.path.join(BASE_PATH, 'experiments')
+    experiments_dir = get_experiments_dir()
     if not os.path.exists(experiments_dir):
         os.mkdir(experiments_dir)
     if params['nodet']:
@@ -107,9 +106,6 @@ def main(params):
                     params['runindexes'].append(i)
             print(params['commandargs'])
             print(params['runindexes'])
-    # if os.path.exists(f'{DATA_PATH}framspy/experiments/{RUN_FOLDER_NAME}'):
-    #     print("[STOPPING] Experiment already exists: " + f'{DATA_PATH}framspy/experiments/{RUN_FOLDER_NAME}')
-    #     exit(0)
     os.chdir(get_disertatie_root())
     run_runs(params)
     exit()

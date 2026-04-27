@@ -143,8 +143,8 @@ N_JOBS = 10  # Change to 10 for parallel execution
 # ============================================================================
 
 SIMPLEST_GENOTYPE = {
-    'f1_simplest':'None',
-    'f0_simplest':'None',
+    'f1_simplest':None,
+    'f0_simplest':None,
     'f1_XX':'XX',
     # In order: @rotation muscle, |bending muscle, Gyroscope, Gpart (Tilt), Muscle, Touch, Smell, Neuron(sigmoid), *constant
     # See https://www.framsticks.com/neurons_summary
@@ -182,21 +182,26 @@ def get_algorithm_specific_params(trial: optuna.Trial, algorithm: str) -> dict:
     # Common parameters for all algorithms
     params["algorithm"] = algorithm
     params["genformat"] = trial.suggest_categorical("genformat", [0, 1])
-    params["popsize"] = trial.suggest_int("popsize", 20, 500, step=5)
     params["pmut"] = trial.suggest_float("pmut", 0.1, 1.0, step=0.005)
-    params["pxov"] = trial.suggest_float("pxov", 0.0, 1.0, step=0.005)
-    params["tournament"] = trial.suggest_int("tournament", 2, 20) # FIXME This doesn't help in OnePlusLambdaLambda
     params["initialgenotype"] = trial.suggest_categorical("initialgenotype", ["simplest", "XX", "XXneurons"])
 
     # Algorithm-specific parameters
-    if "Lambda" in algorithm:
-        # eaMuPlusLambda, eaMuCommaLambda
-        params["lbda"] = trial.suggest_int("lbda", 50, 500, step=10)
+    if algorithm == 'eaOnePlusLambdaLambda':
+        params["popsize"] = trial.suggest_int("popsize", 1, 1)
+    else:
+        params["popsize"] = trial.suggest_int("popsize", 1, 500)
+        params["tournament"] = trial.suggest_int("tournament", 2, 20) # FIXME This doesn't help in OnePlusLambdaLambda
+
+    if algorithm in ['eaMuPlusLambda', 'eaMuCommaLambda']:
+        params["lbda"] = trial.suggest_int("lbda", params['popsize'], 500, step=5)
         # They require the sum of pmut and pxov to be 1 for some reason...
+        params["pxov"] = trial.suggest_float('pxov', 1 - params['pmut'], 1 - params['pmut'], step=0.005)
+    else:
+        params["pxov"] = trial.suggest_float("pxov", 0.0, 1.0, step=0.005)
 
     if "convection" in algorithm:
         # convection_eaSimple, convection_AdaptMut
-        params["nislands"] = trial.suggest_int("nislands", 3, 20)
+        params["nislands"] = trial.suggest_int("nislands", 2, 100)
         params["migrate_after"] = trial.suggest_int("migrate_after", 1, 50)
         params["island_eval_order"] = "bestToWorst"
 
@@ -229,7 +234,11 @@ def suggest_algorithm(trial: optuna.Trial) -> str:
     We use suggest_int + cumulative weights to pick an algorithm.
     """
     return trial.suggest_categorical("algorithm", [
-        'AdaptMut', 'eaSimple', 'convection_eaSimple', 'convection_AdaptMut', 'NEAT_speciation', 'eaMuPlusLambda', 'eaMuCommaLambda'
+        'AdaptMut', 'eaSimple',
+        'convection_eaSimple', 'convection_AdaptMut',
+        'NEAT_speciation',
+        'eaMuPlusLambda', 'eaMuCommaLambda',
+        'eaOnePlusLambdaLambda',
     ])
     # algorithms = list(ALGORITHM_WEIGHTS.keys())
     # weights = list(ALGORITHM_WEIGHTS.values())
@@ -277,9 +286,18 @@ def get_run_name(algorithm, params, test_func):
 import src.run_more as rmore
 
 def run_more(algorithm, params, test_func, n_runs, trial: optuna.Trial):
+    print(params['initialgenotype'])
     params['initialgenotype'] = SIMPLEST_GENOTYPE[f"f{params['genformat']}_{params['initialgenotype']}"]
+    print(params['initialgenotype'])
+    if params['initialgenotype'] == None:
+        # Framsticks knows to handle the simplest genotype by default.
+        del params['initialgenotype']
+    print(params.get('initialgenotype', 'EMPTY!!!'))
+    if test_func != [3]:
+        print(f"Warning: test_func is {test_func}, but get_run_name() is only designed for single function optimization. Consider updating get_run_name() to include test_func in the name.")
+        exit(0)
 
-    assert test_func != [3], f"Warning: test_func is {test_func}, but get_run_name() is only designed for single function optimization. Consider updating get_run_name() to include test_func in the name."
+    assert test_func != [3]
     for evalfn in test_func:
         params["evalfn"] = evalfn
         runname = 'rn_' + get_run_name(algorithm, params, params['evalfn'])

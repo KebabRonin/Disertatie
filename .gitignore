@@ -1,7 +1,7 @@
 .svn
 __pycache__
 *.gen
-experiments/*
+experiments
 Framsticks
 .vscode
 *.results

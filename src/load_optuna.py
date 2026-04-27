@@ -6,7 +6,7 @@ import os
 from optuna.study import StudyDirection
 
 # Import configuration loader
-from config_loader import get_database_path, load_config
+from .config_loader import get_database_path, load_config, get_disertatie_root
 
 # Load configuration
 CONFIG = load_config()
@@ -45,7 +45,11 @@ PARAM_DISTRIBUTIONS = {
   # Common parameters (all algorithms)
   'evalfn': optuna.distributions.CategoricalDistribution([3, 4, 5]),
   'algorithm': optuna.distributions.CategoricalDistribution([
-    'AdaptMut', 'eaSimple', 'convection_eaSimple', 'convection_AdaptMut', 'NEAT_speciation', 'eaMuPlusLambda', 'eaMuCommaLambda'
+    'AdaptMut', 'eaSimple',
+    'convection_eaSimple', 'convection_AdaptMut',
+    'NEAT_speciation',
+    'eaMuPlusLambda', 'eaMuCommaLambda',
+    'eaOnePlusLambdaLambda',
   ]),
   'nodet': optuna.distributions.CategoricalDistribution([0, 1]),
   'genformat': optuna.distributions.CategoricalDistribution([0, 1]),
@@ -56,7 +60,7 @@ PARAM_DISTRIBUTIONS = {
   'pmut': optuna.distributions.FloatDistribution(0.1, 1.0, step=0.005),
   'pxov': optuna.distributions.FloatDistribution(0.0, 1.0, step=0.005),
   # Convection-specific parameters
-  'nislands': optuna.distributions.IntDistribution(3, 20),
+  'nislands': optuna.distributions.IntDistribution(2, 100),
   'migrate_after': optuna.distributions.IntDistribution(1, 50),
   'island_eval_order': optuna.distributions.CategoricalDistribution(['bestToWorst', 'worstToBest', 'interleaved']),
   # NEAT_speciation-specific parameters
@@ -72,7 +76,7 @@ PARAM_DISTRIBUTIONS = {
   # AdaptMut-specific parameters
   'xmut_enabled': optuna.distributions.CategoricalDistribution([0, 1]),
   # Lambda (eaMuPlusLambda, eaMuCommaLambda) parameters
-  'lbda': optuna.distributions.IntDistribution(50, 500, step=10),
+  'lbda': optuna.distributions.IntDistribution(20, 500, step=5),
 }
 
 DEFAULTS = {
@@ -103,10 +107,6 @@ DEFAULTS = {
 #     'island_eval_order', 'delta_under_mult', 'delta_over_mult',
 #     'hof_size', 'generations'
 # }
-import config_loader
-DATETIMES = []
-# Load the algo_run_dict.json data
-d = json.load(open(os.path.join(config_loader.get_disertatie_root(), 'algo_run_dict.json'), 'r'))
 
 def try_cast(value: str, type):
   try:
@@ -183,7 +183,7 @@ def create_study_and_import(study: optuna.Study, algo_key: str, algo_data: dict)
     mean = np.mean(runs)
     std = np.std(runs)
 
-    baseline_mean = np.mean(BASELINE['runs'])  # or reference fitness
+    # baseline_mean = np.mean(BASELINE['runs'])  # or reference fitness
     # fitness = (mean - baseline_mean) / std
     fitness = mean
 
@@ -232,14 +232,18 @@ if __name__ == '__main__':
   parsedargs = parser.parse_args()
 
   import os, time
-  os.system(f"mv {DB_PATH} {DATA_PATH}/db_backups/algo_runs_backup_{int(time.time())}.db")
-  os.system("python collect_data.py --redo")
+  os.chdir(get_disertatie_root())
+  os.system("python -m src.collect_data --redo")
+  exit(0)
 
+  # Load the algo_run_dict.json data
+  d = json.load(open(os.path.join(get_disertatie_root(), 'algo_run_dict.json'), 'r'))
 
   # Import all algorithms
   print("Starting import to Optuna database...")
   print(f"Database path: {DB_PATH}")
   print(f"Number of algorithms: {len(d)}")
+  os.rename(DB_PATH, os.path.join(get_disertatie_root(), "db_backups", f"algo_runs_backup_{int(time.time())}.db"))
   # Create or load the study
   study = optuna.create_study(
       study_name='framsticks-study',
@@ -250,7 +254,8 @@ if __name__ == '__main__':
   # dummytrial = study.get_trials()[0]
   # print(dummytrial.params)
   # exit()
-  BASELINE = d['AdaptMutF0pmut08']
+  # BASELINE = d['AdaptMutF0pmut08']
+  DATETIMES = []
   ordered_keys = sorted(d.keys(), key=lambda k: min(map(lambda x: x['run_start'], d[k]['meta'])), reverse=False)
   for algo_key in ordered_keys:
     algo_data = d[algo_key]

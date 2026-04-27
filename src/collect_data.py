@@ -8,12 +8,12 @@ import concurrent.futures, tqdm
 import matplotlib
 
 # Import configuration loader
-from .config_loader import get_disertatie_root, load_config
+from .config_loader import get_disertatie_root, load_config, get_experiments_dir
 
 # Remove warnings from console, but disable interactive plots
 matplotlib.use('agg')
 
-ARR_TO_PLOT = 'mx_arrs'
+ARR_TO_PLOT = 'mx_arrs' # 'avg_arrs' #
 
 HIGHLIGHT = {
     'eaSimpleF1': 'red',
@@ -28,8 +28,7 @@ example_idx = 0
 CONFIG = load_config()
 BASE_PATH = get_disertatie_root()
 # Should be pointing to the Disertatie folder
-assert BASE_PATH.endswith('Disertatie'), 'BASE_PATH points to the wrong folder'
-EXPERIMENTS_PATH = os.path.join(BASE_PATH, 'experiments')
+EXPERIMENTS_PATH = get_experiments_dir()
 SHOW_CLASAMENT = False
 IMG_SAVE_PATH = os.path.join(BASE_PATH, 'framspy', 'runplots', 'images')
 GIF_SAVE_PATH = os.path.join(BASE_PATH, 'framspy', 'runplots', 'gifs')
@@ -81,8 +80,8 @@ def parse_algo_params(name: str):
 PARAM_PATT = re.compile(r'\b([\w0-9]+)=([\w0-9_\-\n \/.;:]+)')
 def get_algo_params(name):
     return {'params': parse_algo_params(name['runname']), 'meta': [{
-            'run_start': os.stat(os.join(EXPERIMENTS_PATH, name['runname'], f'results_{fn}.stdout')).st_mtime,
-            'run_end': os.stat(os.join(EXPERIMENTS_PATH, name['runname'], f'results_{fn}.stdout')).st_ctime,
+            'run_start': os.stat(os.path.join(EXPERIMENTS_PATH, name['runname'], f'results_{fn}.stdout')).st_mtime,
+            'run_end': os.stat(os.path.join(EXPERIMENTS_PATH, name['runname'], f'results_{fn}.stdout')).st_ctime,
             'generations': name['generations'],
             'nonevalTime': name['nonevalTime'],
             'totalevals': name['totalevals'],
@@ -110,6 +109,29 @@ def get_finished_runs(runname):
 
 rgx = r'([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?|nan)'
 sp = r'\s+'
+
+def get_best_genotype_over_all_runs() -> list[list]:
+    scoreboard = []
+    path = os.path.join(get_disertatie_root(), 'framspy', 'S2ViYWJSb25pblVBSUM=.results')
+    if os.path.exists(path):
+        with open(path, 'r') as f:
+            # '2026-04-27 20:13	KebabRoninUAIC	3	100001	14627.3	86.6475	373.5824823213579	//0'
+            regex = re.compile(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}\tKebabRoninUAIC\t(\d)\t(\d+)\t' + f"{rgx}{sp}{rgx}{sp}{rgx}{sp}(.*)")
+            next_entry = None
+            for l in f.readlines():
+                m = regex.match(l)
+                if m:
+                    if next_entry:
+                        scoreboard.append(next_entry)
+                    evalfn, totalevals, time, nonevaltime, fitness, genotype = m.groups()
+                    if genotype.startswith('//0'):
+                        genotype += '\n'
+                    next_entry = [evalfn, int(totalevals), float(time), float(nonevaltime), float(fitness), genotype]
+                elif next_entry:
+                    next_entry[5] += l
+    scoreboard.sort(key=lambda x: x[4])
+    return scoreboard
+
 GEN_REGEX = re.compile(f'^([0-9]+){sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}?{sp}?$')
 GEN_REGEX_SPECIES = re.compile(f'^([0-9]+)\\.([0-9]+){sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}?{sp}?$')
 def parse_data(rs=None):
@@ -162,7 +184,7 @@ def parse_data(rs=None):
                         mx_arr += [float(mx) if mx != 'nan' else -1] * (int(totalevals) - len(mx_arr))
                         mn_arr += [float(mn) if mn != 'nan' else -1] * (int(totalevals) - len(mn_arr))
                         avg_arr += [float(avg) if avg != 'nan' else -1] * (int(totalevals) - len(avg_arr))
-                        assert len(mx_arr) != int(totalevals), f"(Miscount totalevals) {d}, {i}, {m.groups()}, {len(mx_arr)} != {int(totalevals)}"
+                        assert len(mx_arr) == int(totalevals), f"(Miscount totalevals) {d}, {i}, {m.groups()}, {len(mx_arr)} != {int(totalevals)}"
                     # elif re.match(r'^starting island\s+(\d+)', l):
                     #     # We're in convection algorithm, so we should store each island separately.
                     #     island_id, = re.match(r'^starting island\s+(\d+)', l).groups()
@@ -296,8 +318,9 @@ def show_runs(rs: dict, d, example_idx, plot=True, printout=False, arr_to_plot=A
     res = []
     idx = list(rs.keys()).index(d)
     if plot:
-        plotname = IMG_SAVE_PATH + f'{d}_{arr_to_plot}_run_{example_idx}.png'
+        plotname = os.path.join(IMG_SAVE_PATH, f'{d}_{arr_to_plot}_run_{example_idx}.png')
         if replaceplot or not os.path.exists(plotname):
+            print(f'Making plot for {plotname}')
             color = COLORS[idx % len(COLORS)]
             # Plot run means as a thinner line on same axes
             plt.figure(figsize=(12,6))
@@ -355,7 +378,7 @@ def make_gif(images, gif_name):
 
 def make_gif_th(th_idx):
     d = list(rs.keys())[th_idx]
-    make_gif([IMG_SAVE_PATH + f'{d}_run_{idx}.png' for idx in get_finished_runs(d)], GIF_SAVE_PATH + f'{d}_anim.gif')
+    make_gif([os.path.join(IMG_SAVE_PATH, f'{d}_{ARR_TO_PLOT}_run_{idx}.png') for idx in get_finished_runs(d)], os.path.join(GIF_SAVE_PATH, f'{d}_anim.gif'))
 
 def gaussian(x, mu, sigma):
     return np.exp(-0.5*((x-mu)/sigma)**2) / (sigma*np.sqrt(2*np.pi))
@@ -395,6 +418,11 @@ def plot_rank_gaussians(data, sigma_min=0.2, x_pad=0.5, figsize=(8,4)):
 
 FIGSIZE=(25,10)
 if __name__ == '__main__':
+    # sc = get_best_genotype_over_all_runs()
+    # for s in sc[-3:]:# filter(lambda x: x[0] == '4', sc):
+    #     print(s[:5])
+    #     print()
+    #     print(s[5])
     parsedargs = parseArgs()
     if parsedargs.silent:
         print = lambda *x, **kw: x
@@ -418,9 +446,6 @@ if __name__ == '__main__':
                 ress += show_runs(rs, d, i, arr_to_plot=ARR_TO_PLOT)
         ress.sort(key=lambda x: x[1], reverse=True)
         run_ths(make_gif_th, len(rs.keys()), title='Making gifs...')
-        # for d in rs:
-        #     print('Making gif for ', d)
-        #     make_gif([IMG_SAVE_PATH + f'{d}_run{idx}.png' for idx in range(N_RUNS)], GIF_SAVE_PATH + f'{d}_anim.gif')
         print('Making clasament...')
         global_clasament = []
         for f in ress:
@@ -478,8 +503,8 @@ if __name__ == '__main__':
     print('=' * 120)
     print(f' Global clasament of {ARR_TO_PLOT} '.center(120, '='))
     print('=' * 120)
-    print(f'|{"idx":>3}.|{"std":<15}|{"mean":<15}|{"median":<15}|{"max":<15}|{"name"}|comment|')
-    print('|---' * 8 + '|')
+    print(f'|{"idx":>3}.|{"std":<10}|{"mean":<10}|{"median":<10}|{"max":<10}|{"name":<10}|{"comment":<10}|')
+    print('|----' + ('|' + '-' * 10) * 6 + '|')
     names_sorted = list(names.keys())
     names_sorted.sort(key=lambda x: np.median(names[x]['runs']), reverse=True)
     for idx, n in enumerate(names_sorted):
