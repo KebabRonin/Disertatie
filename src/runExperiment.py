@@ -70,6 +70,20 @@ def frams_mutate(frams_lib: FramsticksLib, individual):
 def frams_getsimplest(frams_lib: FramsticksLib, genetic_format, initial_genotype):
 	return initial_genotype if initial_genotype is not None else frams_lib.getSimplest(genetic_format)
 
+def frams_getrandomindividual(frams_lib: FramsticksLib, initial_genotype):
+	ind = frams_lib.getRandomGenotype(initial_genotype, 2, 100, 2, 100, 100, True)
+	print(ind)
+	return ind
+
+
+# from ..framspy import frams
+
+# def get_numparts(frams_lib, genotype):
+# 	m = frams.Model.newFromString(genotype)
+# 	numparts = m.numparts._value()
+# 	numneurons = m.numneurons._value()
+# 	print("dir(Model)", dir(m))
+# 	return {"numparts": numparts, "numneurons": numneurons}
 
 def is_feasible_fitness_value(fitness_value: float) -> bool:
 	assert isinstance(fitness_value, float), f"feasible_fitness({fitness_value}): argument is not of type 'float', it is of type '{type(fitness_value)}'"  # since we are using DEAP, we unfortunately must represent the fitness of an "infeasible solution" as a float...
@@ -119,6 +133,7 @@ def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_fo
 
 	toolbox = base.Toolbox()
 	toolbox.register("attr_simplest_genotype", frams_getsimplest, frams_lib, genetic_format, initial_genotype)  # "Attribute generator"
+	toolbox.register("attr_random_genotype", frams_getrandomindividual, frams_lib, toolbox.attr_simplest_genotype())  # "Attribute generator"
 	# (failed) struggle to have an individual which is a simple str, not a list of str
 	# toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_frams)
 	# https://stackoverflow.com/questions/51451815/python-deap-library-using-random-words-as-individuals
@@ -126,6 +141,8 @@ def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_fo
 	# https://gitlab.com/santiagoandre/deap-customize-population-example/-/blob/master/AGbasic.py
 	# https://groups.google.com/forum/#!topic/deap-users/22g1kyrpKy8
 	toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_simplest_genotype, 1)
+	toolbox.register("random_individual", tools.initRepeat, creator.Individual, toolbox.attr_random_genotype, 1) # TODO: 
+	# framsLib.getRandomGenotype(simplest, 2, 6, 2, 4, 100, True)
 	# print(toolbox.individual())
 	# print(toolbox.individual().fitness) ()
 	# print(toolbox.individual().fitness.values) ()
@@ -163,6 +180,7 @@ def parseArguments():
 	parser.add_argument('-island_eval_order', type=str, default='worstToBest', help="Order in which to evaluate islands (only for convection), could lead to minor performance boost for the last generation only, default: worstToBest")
 	parser.add_argument('-migrate_after', type=int, default=10, help="Number of generations to execute for each island before migrating all islands (only for convection), default: 10.")
 	parser.add_argument('-xmut_enabled', type=bool, default=1, help="0/1 If to enable mutation = replace with simple individual (only for AdaptMut), default: 1.")
+	parser.add_argument('-added_ind', choices=['random', 'initial'], default='initial', help="(only for AdaptMut), what genotype to add with a low probability when mutating, default: initial.")
 	parser.add_argument('-lbda', type=int, default=100, help="lambda - how many children to produce (only used for eaMuLambda), default: 100.") # Suggested: 7 * popsize (=350, but that seems like a bit much)
 	parser.add_argument('-delta', type=float, default=3.0, help="delta (speciation) - Distance threshold for determining species.")
 	parser.add_argument('-delta_under_mult', type=float, default=0.96, help="delta (speciation) - By how much to reduce the Distance threshold if the amount of species is too low.")
@@ -249,6 +267,7 @@ def main():
 				pop, log = adaptMut(
 							pop, toolbox,
 							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations, xmut_enabled=parsed_args.xmut_enabled,
+							added_ind=parsed_args.added_ind,
 							stats=stats, halloffame=hof, verbose=True)
 			case "eaMuPlusLambda":
 				print('eaMu+Lambda')
@@ -303,6 +322,7 @@ def main():
 					return adaptMut(
 						population, toolbox, ngen=params['generations'],
 						cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, xmut_enabled=parsed_args.xmut_enabled,
+						added_ind=parsed_args.added_ind,
 						stats=stats, halloffame=hof, verbose=True)
 
 				from .dalgorithm.ConvectionSelection import convectionSelection, ConvectionSelectionPopulationEvalOrder

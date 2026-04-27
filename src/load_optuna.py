@@ -62,6 +62,7 @@ PARAM_DISTRIBUTIONS = {
   # Convection-specific parameters
   'nislands': optuna.distributions.IntDistribution(2, 100),
   'migrate_after': optuna.distributions.IntDistribution(1, 50),
+  'added_ind': optuna.distributions.CategoricalDistribution(['initial', 'random']),
   'island_eval_order': optuna.distributions.CategoricalDistribution(['bestToWorst', 'worstToBest', 'interleaved']),
   # NEAT_speciation-specific parameters
   # 'delta': optuna.distributions.FloatDistribution(1.0, 10.0),
@@ -90,6 +91,7 @@ DEFAULTS = {
   'pxov': 0.2,
   'nislands': 10,
   'migrate_after': 10,
+  'added_ind': 'initial',
   'island_eval_order': 'worstToBest',
   'delta': 3.0,
   'delta_under_mult': 0.96,

@@ -222,6 +222,7 @@ def get_algorithm_specific_params(trial: optuna.Trial, algorithm: str) -> dict:
 
     if algorithm == "AdaptMut":
         params["xmut_enabled"] = trial.suggest_categorical("xmut_enabled", [0, 1])
+        params["added_ind"] = trial.suggest_categorical("xmut_enabled", ['initial', 'random'])
 
     return params
 

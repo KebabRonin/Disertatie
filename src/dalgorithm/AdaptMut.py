@@ -24,7 +24,7 @@ def s_int(x):
     b = a + 1
     return (np.random.choice([a, b], p=[b - x, x - a]))
 
-def varAnd(population, toolbox, cxpb, mutpb, mutstrength, xmut_enabled):
+def varAnd(population, toolbox, cxpb, mutpb, mutstrength, xmut_enabled, added_ind):
     r"""
     This variation is named *And* because of its propensity to apply both
     crossover and mutation on the individuals. Note that both operators are
@@ -47,15 +47,18 @@ def varAnd(population, toolbox, cxpb, mutpb, mutstrength, xmut_enabled):
         for j in range(nr_mutations):
             if random.random() < mutpb:
                 if xmut_enabled and random.random() < 0.01:
-                    ## AdaptMut randomly adds a specimen rarely
-                    offspring[i] = toolbox.individual()
+                    ## AdaptMut randomly adds a RANDOM specimen rarely
+                    if added_ind == 'initial':
+                        offspring[i] = toolbox.individual()
+                    elif added_ind == 'random':
+                        offspring[i] = toolbox.random_individual()
                 else:
                     offspring[i], = toolbox.mutate(offspring[i])
                     del offspring[i].fitness.values
 
     return offspring
 
-def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, stats=None,
+def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind, stats=None,
              halloffame=None, verbose=__debug__):
     """
     Taken from deap, adapted for adaptMut
@@ -86,7 +89,7 @@ def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, stats=None,
         offspring = toolbox.select(population, len(population))
 
         # Vary the pool of individuals
-        offspring = varAnd(offspring, toolbox, cxpb, mutpb, mutationStrength, xmut_enabled)
+        offspring = varAnd(offspring, toolbox, cxpb, mutpb, mutationStrength, xmut_enabled, added_ind=added_ind)
 
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]

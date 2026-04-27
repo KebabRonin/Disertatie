@@ -16,9 +16,9 @@ framsticks:
 
 # Database Configuration
 database:
-  path: "algo_runs.db"  # Path relative to Disertatie folder
+  path: "./algo_runs.db"  # Path relative to Disertatie folder
 
 # Experiment Configuration
 experiments:
-  results_dir: "./framspy/experiments"  # Relative to Disertatie folder
+  results_dir: "./experiments"  # Relative to Disertatie folder
   simfiles_path: "./framspy" # Where the .sim files are stored, like the example has `eval-allcriteria.sim;deterministic.sim;recording-body-coords.sim;`

@@ -82,10 +82,10 @@ def get_algo_params(name):
     return {'params': parse_algo_params(name['runname']), 'meta': [{
             'run_start': os.stat(os.path.join(EXPERIMENTS_PATH, name['runname'], f'results_{fn}.stdout')).st_mtime,
             'run_end': os.stat(os.path.join(EXPERIMENTS_PATH, name['runname'], f'results_{fn}.stdout')).st_ctime,
-            'generations': name['generations'],
-            'nonevalTime': name['nonevalTime'],
-            'totalevals': name['totalevals'],
-            'evalTime': name['evalTime'],
+            'generations': int(name['generations']),
+            'nonevalTime': None if name['nonevalTime'] is None else float(name['nonevalTime']),
+            'totalevals': float(name['totalevals']),
+            'evalTime': float(name['evalTime']),
         } for fn in range(len(get_finished_runs(name['runname'])))]
     }
 
@@ -286,9 +286,12 @@ def violins(names, order_fn=order_fn_median):
             tick.set_color(HIGHLIGHT[tick.get_text()])
 
 def boxplots(names, order_fn=order_fn_median):
+    global HIGHLIGHT
     plt.figure(figsize=FIGSIZE)
     ordered_names = order_fn(names)
     for idx, n in enumerate(ordered_names):
+        if len(names[n]['runs']) < 20:
+            HIGHLIGHT[n] = 'blue'
         plt.scatter([idx+1] * len(names[n]['runs']), names[n]['runs'], color=COLORS[idx % len(COLORS)], label=n, alpha=0.2)
     plt.boxplot([names[n]['runs'] for n in ordered_names], showmeans=True)
     plt.xticks(range(1, len(names)+1), ordered_names, rotation=45, ha='right')
@@ -380,42 +383,6 @@ def make_gif_th(th_idx):
     d = list(rs.keys())[th_idx]
     make_gif([os.path.join(IMG_SAVE_PATH, f'{d}_{ARR_TO_PLOT}_run_{idx}.png') for idx in get_finished_runs(d)], os.path.join(GIF_SAVE_PATH, f'{d}_anim.gif'))
 
-def gaussian(x, mu, sigma):
-    return np.exp(-0.5*((x-mu)/sigma)**2) / (sigma*np.sqrt(2*np.pi))
-
-def plot_rank_gaussians(data, sigma_min=0.2, x_pad=0.5, figsize=(8,4)):
-    """
-    data: sorted list of (name, score, meta); rank = position in list (1..N).
-    Repeats allowed. Plots one regular (unstacked) Gaussian per unique name,
-    centered at mean rank with sigma = max(std, sigma_min). All curves use same amplitude (pdf).
-    """
-    # collect ranks
-    ranks_by_name = defaultdict(list)
-    for i, (name, score, meta) in enumerate(data, start=1):
-        ranks_by_name[name].append(i)
-
-    N = len(data)
-    x = np.linspace(1 - x_pad, N + x_pad, 1200)
-    plt.figure(figsize=figsize)
-
-    for i, (name, ranks) in enumerate(ranks_by_name.items()):
-        rs = np.array(ranks, dtype=float)
-        mu = rs.mean()
-        sigma = max(rs.std(ddof=0), sigma_min)
-        y = gaussian(x, mu, sigma)
-        plt.plot(x, y, label=f"{name} (μ={mu:.2f}, σ={sigma:.2f})", color=f"C{i%10}")
-
-    plt.xlim(1 - x_pad, N + x_pad)
-    plt.xlabel("Rank (1 = top)")
-    plt.ylabel("Gaussian PDF")
-    plt.xticks(range(1, N+1))
-    plt.legend(loc='upper right', fontsize='small', ncol=1)
-    plt.title("Rank-distribution Gaussians per name")
-    plt.gca().invert_xaxis()  # remove if you prefer rank 1 at left
-    plt.tight_layout()
-    return plt.gcf(), plt.gca()
-
-
 FIGSIZE=(25,10)
 if __name__ == '__main__':
     # sc = get_best_genotype_over_all_runs()
@@ -503,170 +470,54 @@ if __name__ == '__main__':
     print('=' * 120)
     print(f' Global clasament of {ARR_TO_PLOT} '.center(120, '='))
     print('=' * 120)
-    print(f'|{"idx":>3}.|{"std":<10}|{"mean":<10}|{"median":<10}|{"max":<10}|{"name":<10}|{"comment":<10}|')
-    print('|----' + ('|' + '-' * 10) * 6 + '|')
+    print(f'|{"idx":>3}.|{"std":<10}|{"mean":<10}|{"median":<10}|{"max":<10}|{"overtime":<10}|{"name":<10}|{"comment":<10}|')
+    print('|----' + ('|' + '-' * 10) * 7 + '|')
     names_sorted = list(names.keys())
     names_sorted.sort(key=lambda x: np.median(names[x]['runs']), reverse=True)
+    comments = json.load(open(os.path.join(get_disertatie_root(), 'algo_comments.json'), 'r'))
+
+    best_max = [(n, np.max(names[n]['runs'])) for n in names_sorted]
+    best_max.sort(key=lambda x: x[1], reverse=True)
+    best_max = best_max[0][0]
+    best_mean = [(n, np.mean(names[n]['runs'])) for n in names_sorted]
+    best_mean.sort(key=lambda x: x[1], reverse=True)
+    best_mean = best_mean[0][0]
+    best_median = [(n, np.median(names[n]['runs'])) for n in names_sorted]
+    best_median.sort(key=lambda x: x[1], reverse=True)
+    best_median = best_median[0][0]
+
     for idx, n in enumerate(names_sorted):
-        print(f'|{idx+1:>3}.|{np.std(names[n]['runs']):10.5f}|{np.mean(names[n]['runs']):10.5f}|{np.median(names[n]['runs']):10.5f}|{np.max(names[n]['runs']):10.5f}|{n}||')
+        mean = f'{np.mean(names[n]['runs']):10.5f}'
+        if n == best_mean:
+            mean = f'**{mean}**'
+        median = f'{np.median(names[n]['runs']):10.5f}'
+        if n == best_median:
+            median = f'**{median}**'
+        maxx = f'{np.max(names[n]['runs']):10.5f}'
+        if n == best_max:
+            maxx = f'**{maxx}**'
+        comment = comments[n] if n in comments else ''
+        runs_time_exceeded = len(list(filter(lambda x: x['nonevalTime'] is not None and x['nonevalTime'] > 3600, names[n]['meta'])))
+        print(
+            f'|{idx+1:>3}.'
+            + f'|{np.std(names[n]['runs']):10.5f}|{mean}|{median}|{maxx}'
+            + f'|`({runs_time_exceeded}/{len(names[n]['runs'])})`|{n}|{comment}|')
 
     print(' By median '.center(90, '*'))
     boxplots(names, order_fn=order_fn_median)
     plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by median value')
     # plt.tight_layout(pad=0.2)
-    plt.savefig(BASE_PATH + f'Run_results_boxplot_{ARR_TO_PLOT}_ordermedian.png')
+    plt.savefig(os.path.join(get_disertatie_root(), f'Run_results_boxplot_{ARR_TO_PLOT}_ordermedian.png'))
 
     print(' By mean '.center(90, '*'))
     boxplots(names, order_fn=order_fn_mean)
     plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by mean value')
     # plt.tight_layout(pad=0.2)
-    plt.savefig(BASE_PATH + f'Run_results_boxplot_{ARR_TO_PLOT}_ordermean.png')
+    plt.savefig(os.path.join(get_disertatie_root(), f'Run_results_boxplot_{ARR_TO_PLOT}_ordermean.png'))
 
     print(' By max '.center(90, '*'))
     boxplots(names, order_fn=order_fn_max)
     plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by maximum value')
     # plt.tight_layout(pad=0.2)
-    plt.savefig(BASE_PATH + f'Run_results_boxplot_{ARR_TO_PLOT}_ordermax.png')
+    plt.savefig(os.path.join(get_disertatie_root(), f'Run_results_boxplot_{ARR_TO_PLOT}_ordermax.png'))
     exit()
-"""
-for i in range(0):
-    # running max
-    # Build x-axis values: per-step median totalevals across runs (robust)
-    x_vals = []
-    for s in range(max_steps):
-        vals = tot_arr[:, s]
-        valid = vals[~np.isnan(vals)]
-        x_vals.append(float(np.median(valid)) if valid.size else np.nan)
-    x_vals = np.array(x_vals)
-
-    # Trim to last valid x
-    valid_steps = np.where(~np.isnan(x_vals))[0]
-    if valid_steps.size == 0:
-        continue
-    last_valid = valid_steps[-1] + 1
-    x_vals = x_vals[:last_valid]
-    avg_arr = avg_arr[:, :last_valid]
-    mx_arr  = mx_arr[:, :last_valid]
-
-    # Per-step stats (equal weight per run: mean of available runs at that step)
-    step_means = []
-    step_stds  = []
-    step_mins  = []
-    step_maxs  = []
-    for s in range(last_valid):
-        vals = avg_arr[:, s]
-        valid = vals[~np.isnan(vals)]
-        if valid.size == 0:
-            step_means.append(np.nan); step_stds.append(np.nan); step_mins.append(np.nan); step_maxs.append(np.nan)
-        else:
-            step_means.append(float(np.mean(valid)))
-            step_stds.append(float(np.std(valid)))
-            step_mins.append(float(np.min(valid)))
-            step_maxs.append(float(np.max(valid)))
-    step_means = np.array(step_means); step_stds = np.array(step_stds)
-    step_mins  = np.array(step_mins);  step_maxs = np.array(step_maxs)
-
-    # Per-run largest positive jump positions (1-based step AFTER jump) computed on per-run avg curve
-    per_run_jump_positions = []
-    per_run_jump_values = []
-    for r in range(N_RUNS):
-        row = avg_arr[r]
-        valid_idx = np.where(~np.isnan(row))[0]
-        if valid_idx.size < 2:
-            per_run_jump_positions.append(np.nan); per_run_jump_values.append(np.nan); continue
-        last = valid_idx[-1]
-        diffs = np.diff(row[: last+1])
-        if diffs.size == 0 or np.all(np.isnan(diffs)):
-            per_run_jump_positions.append(np.nan); per_run_jump_values.append(np.nan); continue
-        j_idx = int(np.nanargmax(diffs))
-        j_val = float(diffs[j_idx])
-        per_run_jump_positions.append(j_idx + 2)  # 1-based step after jump
-        per_run_jump_values.append(j_val)
-
-    avg_jump_pos = float(np.nanmean(per_run_jump_positions)) if np.any(~np.isnan(per_run_jump_positions)) else None
-    median_jump_pos = float(np.nanmedian(per_run_jump_positions)) if np.any(~np.isnan(per_run_jump_positions)) else None
-
-    # Also compute largest jump on mean curve
-    mean_max_jump_pos = None; mean_max_jump_val = None
-    if len(step_means) >= 2:
-        mean_diffs = np.diff(step_means)
-        mm_idx = int(np.nanargmax(mean_diffs))
-        mean_max_jump_pos = mm_idx + 2  # 1-based step after jump
-        mean_max_jump_val = float(mean_diffs[mm_idx])
-
-    # Plot mean average-of-averages (equal run weight) and min/max area
-    plt.plot(x_vals, step_means, label=f'{d} mean', color=color, linewidth=2)
-    # plt.fill_between(x_vals, step_mins, step_maxs, color=color, alpha=0.12)
-
-    # Mark average per-run jump position (map fractional step to x via interpolation)
-    if avg_jump_pos is not None:
-        xp = np.interp(avg_jump_pos - 1, np.arange(len(x_vals)), x_vals)  # avg_jump_pos is 1-based
-        plt.axvline(x=xp, color=color, linestyle=':', alpha=0.9)
-        plt.annotate(f'Avg run jump {avg_jump_pos:.2f}\n(med {median_jump_pos:.2f})',
-                     xy=(xp, np.nanmax(step_means)),
-                     xytext=(xp, np.nanmax(step_means) + 0.05 * (np.nanmax(step_maxs)-np.nanmin(step_mins))),
-                     ha='center', color=color, fontsize=9)
-
-    # Mark mean-curve largest jump (use exact x value)
-    if mean_max_jump_pos is not None and mean_max_jump_pos - 1 < len(x_vals):
-        xm = x_vals[mean_max_jump_pos - 1]
-        plt.axvline(x=xm, color=color, linestyle='--', alpha=0.6)
-        plt.annotate(f'Mean jump @ {int(xm)} evals\nΔ={mean_max_jump_val:.3g}',
-                     xy=(xm, step_means[mean_max_jump_pos - 1]),
-                     xytext=(xm, step_means[mean_max_jump_pos - 1] + 0.05 * (np.nanmax(step_maxs)-np.nanmin(step_mins))),
-                     arrowprops=dict(arrowstyle='->', color=color), color=color, fontsize=9, ha='center')
-
-    # --- Running-max of per-step max (mx) averaged across runs (equal run weight) ---
-    # Compute per-run running max preserving NaNs after last valid
-    runmax_arr = np.full_like(mx_arr, np.nan)
-    for r in range(N_RUNS):
-        row = mx_arr[r].copy()
-        valid_idx = np.where(~np.isnan(row))[0]
-        if valid_idx.size == 0:
-            continue
-        last = valid_idx[-1]
-        running = np.maximum.accumulate(row[: last+1])
-        runmax_arr[r, : last+1] = running
-
-    runmax_means = []; runmax_mins = []; runmax_maxs = []; runmax_stds = []
-    for s in range(last_valid):
-        vals = runmax_arr[:, s]
-        valid = vals[~np.isnan(vals)]
-        if valid.size == 0:
-            runmax_means.append(np.nan); runmax_mins.append(np.nan); runmax_maxs.append(np.nan); runmax_stds.append(np.nan)
-        else:
-            runmax_means.append(float(np.mean(valid)))
-            runmax_mins.append(float(np.min(valid)))
-            runmax_maxs.append(float(np.max(valid)))
-            runmax_stds.append(float(np.std(valid)))
-    runmax_means = np.array(runmax_means); runmax_mins = np.array(runmax_mins)
-    runmax_maxs = np.array(runmax_maxs); runmax_stds = np.array(runmax_stds)
-
-    # Per-run largest jump positions on runmax curves
-    per_run_runmax_jump_positions = []
-    for r in range(N_RUNS):
-        row = runmax_arr[r]
-        valid_idx = np.where(~np.isnan(row))[0]
-        if valid_idx.size < 2:
-            per_run_runmax_jump_positions.append(np.nan); continue
-        last = valid_idx[-1]
-        diffs = np.diff(row[: last+1])
-        j_idx = int(np.nanargmax(diffs))
-        per_run_runmax_jump_positions.append(j_idx + 2)
-    avg_runmax_jump_pos = float(np.nanmean(per_run_runmax_jump_positions)) if np.any(~np.isnan(per_run_runmax_jump_positions)) else None
-
-
-    if avg_runmax_jump_pos is not None:
-        xr = np.interp(avg_runmax_jump_pos - 1, np.arange(len(x_vals)), x_vals)
-        plt.axvline(x=xr, color=color, linestyle=':', linewidth=1, alpha=0.6)
-
-
-# Finalize plot
-plt.title('Comparison: mean(avg) and mean running-max vs totalevals')
-plt.xlabel('Total evaluations')
-plt.ylabel('Value')
-plt.legend(loc='best', fontsize='small')
-plt.grid(alpha=0.3)
-plt.tight_layout()
-plt.show()
-"""
