@@ -3,9 +3,10 @@ import os
 import sys
 import numpy as np
 from deap import creator, base, tools, algorithms
+from .config_loader import get_framspy_path
+sys.path.append(get_framspy_path())
 from framspy.FramsticksLib import FramsticksLib, DissimMethod
 from framspy.FramsticksLibCompetition import FramsticksLibCompetition
-
 # Note: this may be less efficient than running the evolution directly in Framsticks, so if performance is key, compare both options.
 
 
@@ -76,7 +77,7 @@ def frams_getrandomindividual(frams_lib: FramsticksLib, initial_genotype):
 	return ind
 
 
-# from ..framspy import frams
+# from framspy import frams
 
 # def get_numparts(frams_lib, genotype):
 # 	m = frams.Model.newFromString(genotype)
@@ -217,7 +218,7 @@ def ensureDir(string):
 
 
 def save_genotypes(filename, OPTIMIZATION_CRITERIA, hof):
-	from ..framspy.framsfiles import writer as framswriter
+	from framspy.framsfiles import writer as framswriter
 	with open(filename, "w") as outfile:
 		for ind in hof:
 			keyval = {}

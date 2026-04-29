@@ -88,3 +88,19 @@ NEURO_MUT = {
     "neuadd_Thr": 0,
   }
 }
+
+DEFAULTS = {
+
+}
+
+def set_general_weights(framsLib, w_body, w_neuro):
+  pass
+
+def get_current_weights(framsLib, genetic_repr):
+  pass
+  return {}
+
+def set_weights(framsLib, genetic_repr, settings=DEFAULTS):
+  pass
+  for s in settings.keys():
+    exec(f"frams.GenMan.{s} = {settings[s]}")

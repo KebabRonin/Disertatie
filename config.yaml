@@ -22,3 +22,4 @@ database:
 experiments:
   results_dir: "./experiments"  # Relative to Disertatie folder
   simfiles_path: "./framspy" # Where the .sim files are stored, like the example has `eval-allcriteria.sim;deterministic.sim;recording-body-coords.sim;`
+  framspy_path: "./framspy" # Where the .sim files are stored, like the example has `eval-allcriteria.sim;deterministic.sim;recording-body-coords.sim;`

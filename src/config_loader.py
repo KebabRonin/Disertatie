@@ -100,9 +100,19 @@ def _get_default_config():
         },
         'experiments': {
             'results_dir': 'experiments',
-            'simfiles_path': '../Framsticks54'
+            'simfiles_path': './framspy',
+            'framspy_path': './framspy'
         }
     }
+
+def get_framspy_path(config=None):
+    if config is None:
+        config = load_config()
+    disertatie_root = get_disertatie_root()
+    framspy_config = config.get('experiments', {})
+    framspy_path = framspy_config.get('framspy_path', '')
+    return resolve_path(framspy_path, disertatie_root)
+
 
 
 def get_framsticks_path(config=None):

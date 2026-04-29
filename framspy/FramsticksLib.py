@@ -6,10 +6,7 @@ import argparse
 import random
 import numpy as np
 
-try:
-	from . import frams
-except:
-	import frams
+import frams
 
 @unique
 class DissimMethod(Enum):  # values assigned to fields are irrelevant, hence auto()

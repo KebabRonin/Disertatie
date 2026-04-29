@@ -13,11 +13,13 @@ from .config_loader import get_disertatie_root, load_config, get_experiments_dir
 # Remove warnings from console, but disable interactive plots
 matplotlib.use('agg')
 
+BASELINE = 'AdaptMutF0pmut08added_indrandom'
 ARR_TO_PLOT = 'mx_arrs' # 'avg_arrs' #
 
 HIGHLIGHT = {
     'eaSimpleF1': 'red',
-    'AdaptMutF0pmut08': 'red',
+    'AdaptMutF0pmut08added_indrandom': 'red',
+    BASELINE: 'red'
 }
 COLORS = ['red','blue','green','black', 'orange','purple','brown', 'magenta']
 N_RUNS = 20
@@ -179,8 +181,10 @@ def parse_data(rs=None):
                             if m.groups()[1] == args['popsize'] and int(totalevals) - len(mx_arr) == 0:
                                 # For convection selection, the global population counts twice for some reason
                                 continue
-                            print("(Miscount nevals)", d, i, args['popsize'], m.groups(), int(totalevals), len(mx_arr), f"{int(totalevals) - len(mx_arr)} != {int(nevals)}")
-                            exit(0)
+                            if not 'eaOnePlusLambdaLambda' in d:
+                                # I don't count the evals properly here, so just disregard for now.
+                                print("(Miscount nevals)", d, i, args['popsize'], m.groups(), int(totalevals), len(mx_arr), f"{int(totalevals) - len(mx_arr)} != {int(nevals)}")
+                                exit(0)
                         mx_arr += [float(mx) if mx != 'nan' else -1] * (int(totalevals) - len(mx_arr))
                         mn_arr += [float(mn) if mn != 'nan' else -1] * (int(totalevals) - len(mn_arr))
                         avg_arr += [float(avg) if avg != 'nan' else -1] * (int(totalevals) - len(avg_arr))
@@ -301,8 +305,6 @@ def boxplots(names, order_fn=order_fn_median):
             tick.set_color(HIGHLIGHT[tick.get_text()])
     # t-test to see if better solutions are statistically significant
     from scipy.stats import ttest_ind
-    BASELINE = 'AdaptMutF0pmut08'
-    SIGLVL = 0.05
     if BASELINE in ordered_names:
         idx_baseline = ordered_names.index(BASELINE)
         print(f"Performing T-test between {BASELINE} and ({idx_baseline}) algorithms")
@@ -382,6 +384,46 @@ def make_gif(images, gif_name):
 def make_gif_th(th_idx):
     d = list(rs.keys())[th_idx]
     make_gif([os.path.join(IMG_SAVE_PATH, f'{d}_{ARR_TO_PLOT}_run_{idx}.png') for idx in get_finished_runs(d)], os.path.join(GIF_SAVE_PATH, f'{d}_anim.gif'))
+
+
+def print_clasament(names):
+    print('=' * 120)
+    print(f' Global clasament of {ARR_TO_PLOT} '.center(120, '='))
+    print('=' * 120)
+    print(f'|{"idx":>3}.|{"std":<10}|{"mean":<10}|{"median":<10}|{"max":<10}|{"overtime":<10}|{"name":<10}|{"comment":<10}|')
+    print('|----' + ('|' + '-' * 10) * 7 + '|')
+
+    names_sorted = list(names.keys())
+    names = {n: names[n] for n in names_sorted} # Ensure different evalfns are not listed together
+    names_sorted.sort(key=lambda x: np.median(names[x]['runs']), reverse=True)
+    comments = json.load(open(os.path.join(get_disertatie_root(), 'algo_comments.json'), 'r'))
+
+    best_max = [(n, np.max(names[n]['runs'])) for n in names_sorted]
+    best_max.sort(key=lambda x: x[1], reverse=True)
+    best_max = best_max[0][0]
+    best_mean = [(n, np.mean(names[n]['runs'])) for n in names_sorted]
+    best_mean.sort(key=lambda x: x[1], reverse=True)
+    best_mean = best_mean[0][0]
+    best_median = [(n, np.median(names[n]['runs'])) for n in names_sorted]
+    best_median.sort(key=lambda x: x[1], reverse=True)
+    best_median = best_median[0][0]
+
+    for idx, n in enumerate(names_sorted):
+        mean = f'{np.mean(names[n]['runs']):10.5f}'
+        if n == best_mean:
+            mean = f'**{mean.strip()}**'
+        median = f'{np.median(names[n]['runs']):10.5f}'
+        if n == best_median:
+            median = f'**{median.strip()}**'
+        maxx = f'{np.max(names[n]['runs']):10.5f}'
+        if n == best_max:
+            maxx = f'**{maxx.strip()}**'
+        comment = comments[n] if n in comments else ''
+        runs_time_exceeded = len(list(filter(lambda x: x['nonevalTime'] is not None and x['nonevalTime'] > 3600, names[n]['meta'])))
+        print(
+            f'|{idx+1:>3}.'
+            + f'|{np.std(names[n]['runs']):10.5f}|{mean}|{median}|{maxx}'
+            + f'|`({runs_time_exceeded}/{len(names[n]['runs'])})`|{n}|{comment}|')
 
 FIGSIZE=(25,10)
 if __name__ == '__main__':
@@ -466,42 +508,16 @@ if __name__ == '__main__':
     # plt.tight_layout(pad=0.2)
     # # plt.show()
     # plt.savefig(BASE_PATH + 'Run_results_violin.png')
+    print(' Evalfn4 '.center(130, '*'))
+    print_clasament({n: names[n] for n in names.keys() if 'evalfn4' in n})
+    print(' Evalfn5 '.center(130, '*'))
+    print_clasament({n: names[n] for n in names.keys() if 'evalfn5' in n})
+    print(' Evalfn3 '.center(130, '*'))
+    names = {n: names[n] for n in names.keys() if 'evalfn5' not in n and 'evalfn4' not in n}
+    # print_clasament({n: names[n] for n in names.keys() if 'evalfn5' not in n and 'evalfn4' not in n})
+    print_clasament(names)
 
-    print('=' * 120)
-    print(f' Global clasament of {ARR_TO_PLOT} '.center(120, '='))
-    print('=' * 120)
-    print(f'|{"idx":>3}.|{"std":<10}|{"mean":<10}|{"median":<10}|{"max":<10}|{"overtime":<10}|{"name":<10}|{"comment":<10}|')
-    print('|----' + ('|' + '-' * 10) * 7 + '|')
-    names_sorted = list(names.keys())
-    names_sorted.sort(key=lambda x: np.median(names[x]['runs']), reverse=True)
-    comments = json.load(open(os.path.join(get_disertatie_root(), 'algo_comments.json'), 'r'))
-
-    best_max = [(n, np.max(names[n]['runs'])) for n in names_sorted]
-    best_max.sort(key=lambda x: x[1], reverse=True)
-    best_max = best_max[0][0]
-    best_mean = [(n, np.mean(names[n]['runs'])) for n in names_sorted]
-    best_mean.sort(key=lambda x: x[1], reverse=True)
-    best_mean = best_mean[0][0]
-    best_median = [(n, np.median(names[n]['runs'])) for n in names_sorted]
-    best_median.sort(key=lambda x: x[1], reverse=True)
-    best_median = best_median[0][0]
-
-    for idx, n in enumerate(names_sorted):
-        mean = f'{np.mean(names[n]['runs']):10.5f}'
-        if n == best_mean:
-            mean = f'**{mean}**'
-        median = f'{np.median(names[n]['runs']):10.5f}'
-        if n == best_median:
-            median = f'**{median}**'
-        maxx = f'{np.max(names[n]['runs']):10.5f}'
-        if n == best_max:
-            maxx = f'**{maxx}**'
-        comment = comments[n] if n in comments else ''
-        runs_time_exceeded = len(list(filter(lambda x: x['nonevalTime'] is not None and x['nonevalTime'] > 3600, names[n]['meta'])))
-        print(
-            f'|{idx+1:>3}.'
-            + f'|{np.std(names[n]['runs']):10.5f}|{mean}|{median}|{maxx}'
-            + f'|`({runs_time_exceeded}/{len(names[n]['runs'])})`|{n}|{comment}|')
+    SIGLVL = 0.05
 
     print(' By median '.center(90, '*'))
     boxplots(names, order_fn=order_fn_median)
