@@ -7,6 +7,8 @@ from .config_loader import get_framspy_path
 sys.path.append(get_framspy_path())
 from framspy.FramsticksLib import FramsticksLib, DissimMethod
 from framspy.FramsticksLibCompetition import FramsticksLibCompetition
+
+from scipy.spatial import distance
 # Note: this may be less efficient than running the evolution directly in Framsticks, so if performance is key, compare both options.
 
 
@@ -57,10 +59,23 @@ def frams_crossover(frams_lib: FramsticksLib, individual1, individual2):
 	individual2[0] = frams_lib.crossOver(geno1, geno2)
 	return individual1, individual2
 
+def fitness_dissim(individuals):
+  n = len(individuals)
+
+  fitnesses = np.array([ind.fitness.values for ind in individuals])
+  square_matrix = distance.cdist(fitnesses,fitnesses, 'euclidean')
+  assert square_matrix.shape == (n, n)
+
+  return square_matrix
+
 def frams_dissim(frams_lib: FramsticksLib, individuals: list, dissim_method:DissimMethod):
 	# FramsLib expect list of strings, not list of deap.creator.Individual
 	ind_genos = [g[0] for g in individuals]
-	return frams_lib.dissimilarity(ind_genos, method=dissim_method)
+	if dissim_method == DissimMethod.FITNESS:
+		# Handle it here, since frams_lib doesn't implement it.
+		return fitness_dissim(individuals)
+	else:
+		return frams_lib.dissimilarity(ind_genos, method=dissim_method)
 
 
 def frams_mutate(frams_lib: FramsticksLib, individual):
@@ -186,7 +201,7 @@ def parseArguments():
 	parser.add_argument('-delta', type=float, default=3.0, help="delta (speciation) - Distance threshold for determining species.")
 	parser.add_argument('-delta_under_mult', type=float, default=0.96, help="delta (speciation) - By how much to reduce the Distance threshold if the amount of species is too low.")
 	parser.add_argument('-delta_over_mult', type=float, default=1.33, help="delta (speciation) - By how much to reduce the Distance threshold if the amount of species is too high.")
-	parser.add_argument('-dissim', type=str, default="PHENE_STRUCT_OPTIM", help="dissimilarity method  (only used for ???), default: FITNESS.")
+	parser.add_argument('-dissim', type=str, default="PHENE_STRUCT_OPTIM", help="dissimilarity method  (only used for ???), default: PHENE_STRUCT_OPTIM.")
 
 	parser.add_argument('-opt', required=True, help='optimization criteria: vertpos, velocity, distance, vertvel, lifespan, numjoints, numparts, numneurons, numconnections (or other as long as it is provided by the .sim file and its .expdef). For multiple criteria optimization, separate the names by the comma.')
 	parser.add_argument('-popsize', type=int, default=50, help="Population size, default: 50.")

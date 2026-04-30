@@ -298,7 +298,6 @@ def run_more(algorithm, params, test_func, n_runs, trial: optuna.Trial):
         print(f"Warning: test_func is {test_func}, but get_run_name() is only designed for single function optimization. Consider updating get_run_name() to include test_func in the name.")
         exit(0)
 
-    assert test_func != [3]
     for evalfn in test_func:
         params["evalfn"] = evalfn
         runname = 'rn_' + get_run_name(algorithm, params, params['evalfn'])

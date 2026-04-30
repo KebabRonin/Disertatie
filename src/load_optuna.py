@@ -169,6 +169,8 @@ ALGO_PARAMS = {
   'eaSimple': COMMON_PARAMS,
   'eaMuPlusLambda': COMMON_PARAMS + ['lbda'],
   'eaMuCommaLambda': COMMON_PARAMS + ['lbda'],
+  # TODO: 
+  # 'eaOnePlusLambdaLambda': COMMON_PARAMS + ['lbda'],
 }
 
 def create_study_and_import(study: optuna.Study, algo_key: str, algo_data: dict):
@@ -236,7 +238,7 @@ if __name__ == '__main__':
   import os, time
   os.chdir(get_disertatie_root())
   os.system("python -m src.collect_data --redo")
-  exit(0)
+  # exit(0)
 
   # Load the algo_run_dict.json data
   d = json.load(open(os.path.join(get_disertatie_root(), 'algo_run_dict.json'), 'r'))
@@ -259,6 +261,8 @@ if __name__ == '__main__':
   # BASELINE = d['AdaptMutF0pmut08']
   DATETIMES = []
   ordered_keys = sorted(d.keys(), key=lambda k: min(map(lambda x: x['run_start'], d[k]['meta'])), reverse=False)
+  # ordered_keys = list(filter(lambda k: d['run_start'], d[k]['meta'])), ordered_keys)
+  # evalfn
   for algo_key in ordered_keys:
     algo_data = d[algo_key]
     print(f"\nImporting: {algo_key}")

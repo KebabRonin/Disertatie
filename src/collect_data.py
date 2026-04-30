@@ -427,11 +427,12 @@ def print_clasament(names):
 
 FIGSIZE=(25,10)
 if __name__ == '__main__':
-    # sc = get_best_genotype_over_all_runs()
-    # for s in sc[-3:]:# filter(lambda x: x[0] == '4', sc):
-    #     print(s[:5])
-    #     print()
-    #     print(s[5])
+    sc = get_best_genotype_over_all_runs()
+    l = list(filter(lambda x: x[0] == '3', sc))
+    for s in [l[len(l)//2]]:
+        print(s[:5])
+        print()
+        print(s[5])
     parsedargs = parseArgs()
     if parsedargs.silent:
         print = lambda *x, **kw: x

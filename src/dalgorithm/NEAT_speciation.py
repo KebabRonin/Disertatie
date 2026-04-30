@@ -3,7 +3,7 @@ import numpy as np
 import math
 from deap import tools
 
-from runExperiment import FITNESS_VALUE_INFEASIBLE_SOLUTION
+from ..runExperiment import FITNESS_VALUE_INFEASIBLE_SOLUTION
 
 UID_P10 = 10**6
 TEST = True
