@@ -245,7 +245,7 @@ if __name__ == '__main__':
   import os, time
   os.chdir(get_disertatie_root())
   if not parsedargs.noredo:
-    os.system("python -m src.collect_data --redo")
+    os.system("python -m src.collect_data")
   # exit(0)
 
   # Load the algo_run_dict.json data

@@ -121,24 +121,20 @@ https://github.com/marcovirgolin/GP-GOMEA
 
 _Roughly ordered by difficulty/impact_
 
+* [ ] GOMEA ([2025 competition entry description here](https://www.framsticks.com/filebrowser/download/341) - it relies on f1)
+* [ ] Add soft restarts to more algorithms
+	* [x] AdaptMut
+	* [ ] eaSimple
+	* [ ] NEAT_speciation (might be counterproductive)
+	* [ ] convection
+	* [ ] Annealer
 * [ ] Add an annealing step at the end, where only neurons are modified (weights with p=0.9, add/remove with p=0.1)
+* [ ] That speciation algorithm (niching by similarity, and encouraging exploration) - this is Novelty Search
 * [ ] Self-adaptive EA (aka. store the strategy parameters, such as the mutation step sizes, as part of individuals)
-* [x] Implement Self-adaptive (1 + (λ, λ))
-* [x] Random init
-* [ ] Compute % of time spent in stagnation, for each algorithm
+* [ ] Alter selection (something other than tournament)
 * [ ] Alter the mutation/selection:
 	* [ ] Mutation: Adding a part is 0.1, removing is 0.15, modifying is rest (overall body mutation=0.3, neuromutation=0.7)
 	* [ ] Selection: Tournament size, selection method
-* [ ] Different initializations:
-	* [ ] Random init: The first generation should already contain different individuals
-		- Don't evaluate the first generation, which is filled with identical genotypes, clones of the simplest genotype - since all individuals are identical, fitness isn't a good measure for selection (since it is equivalent to a random selection)
-		- Option 1: Use the built-in `get_random_individual()` function in Framsticks
-		- Option 2: Init with initial genotype, and run a round of mutation/crossover before starting
-	* [x] Have the initial genotype be 'XX' instead of 'X'
-		* Two parts and a Joint
-		* This is the simplest genotype which is potentially capable of movement (if neurons are properly added)
-		* Could also try to have one of the parts contain all possible neuron types, so evolution can only focus on adding some connections at first
-			* ! Highest performing solutions already contain most possible neuron types (even if they aren't used), so this might speed things up
 * [x] Implement NEAT Speciation/Clustering
 	* [x] Test the Framsticks dissimilarity metric to get more familiar with it
 		* Dissimilarity is an actually almost symmetric, but not quite
@@ -155,9 +151,7 @@ _Roughly ordered by difficulty/impact_
 	* Need to find a way to define 'dimensions' in Framsticks: (in NEAT dimension = nr. hidden layers)
 		* Genotype length (needs to be robust to possibly hard-coded parameters in the evaluation phase)?
 		* (f1) Available gene modifiers?
-* [ ] GOMEA ([2025 competition entry description here](https://www.framsticks.com/filebrowser/download/341) - it relies on f1)
-* [ ] That speciation algorithm (niching by similarity, and encouraging exploration) - this is Novelty Search
-* [ ] Alter selection (something other than tournament)
+* [ ] Compute % of time spent in stagnation, for each algorithm
 * [ ] #idea Make mutation probabilities dynamic (with CMA-ES or some fitness-dependent measure)
 	* Outline:
 		* All mutation probabilities start equal (prob body is mutated, prob neuron is mutated, and their sub-probabilities (add/remove/swap for each connection/part/neuron type))
@@ -171,10 +165,10 @@ _Roughly ordered by difficulty/impact_
 	* [x] NEAT speciation
 	* [ ] CMA-ES
 	> PyEMD: If you use this code, please cite the papers listed at the end of the README
-* [ ] Hyena for float tuning only?
+
+
 * [x] Add an additional test map (some heightfield + water, instead of superflat) (**Is this worth it for the paper/algorithm?**)
 	* Even better, the example comes with 3 evaluation functions
-
 * [x] Investigate Building Block algorithms
 	* Don't, speciation already kinda does this
 * [x] Alter tournament size
@@ -186,6 +180,18 @@ _Roughly ordered by difficulty/impact_
 * [x] Convection Selection (Island-based, split by fitness score)
 * [x] AdaptMut (Same as Simple EA, but stronger mutation)
 * [x] Simple EA (TODO: more details here)
+* [x] Implement Self-adaptive (1 + (λ, λ))
+* [x] Random init
+* [x] Different initializations:
+	* [x] Random init: The first generation should already contain different individuals
+		- Don't evaluate the first generation, which is filled with identical genotypes, clones of the simplest genotype - since all individuals are identical, fitness isn't a good measure for selection (since it is equivalent to a random selection)
+		- Option 1: Use the built-in `get_random_individual()` function in Framsticks
+		- Option 2: Init with initial genotype, and run a round of mutation/crossover before starting
+	* [x] Have the initial genotype be 'XX' instead of 'X'
+		* Two parts and a Joint
+		* This is the simplest genotype which is potentially capable of movement (if neurons are properly added)
+		* Could also try to have one of the parts contain all possible neuron types, so evolution can only focus on adding some connections at first
+			* ! Highest performing solutions already contain most possible neuron types (even if they aren't used), so this might speed things up
 
 For competition:
 * [ ] Create standalone Python file (containing all the code, and which creates the necessary dependencies (.sim files, etc), also include a TOC and file sections as comments)
@@ -558,7 +564,7 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 [^feasible-infeasible]: [On a Feasible–Infeasible Two-Population (FI-2Pop) genetic algorithm for constrained optimization: Distance tracing and no free lunch](https://faculty.wharton.upenn.edu/wp-content/uploads/2013/03/genetic-algorithm-for-constrained-optimization_1.pdf) (Oct 2008, EJOR)
 	- For Constraint Satisfaction Problems (ILP, etc)
 	- The key to our approach is the following. Conventionally, we select feasible individuals with the goal of increasing payoff, while disregarding potential constraint violations. Unconventionally, we select infeasible individuals with the goal of repairing them, while disregarding potential payoffs.
-	-- #idea: infeasible solutions are not removed, but they instead inherit 1/2 of their parents fitness mean. This way infeasible solutions are penalized, but they can be fixed in the next generations  
+	- #idea: infeasible solutions are not removed, but they instead inherit 1/2 of their parents fitness mean. This way infeasible solutions are penalized, but they can be fixed in the next generations  
 	- to see if framsticks supports mutating infeasible solutions  
 	- The paper by  Kimbrough et al. (2004a) presents a detailed case study of a good success in which no feasible solutions were found until after more than 2500 generations  
 	- the paper relies on infeasible solutions having degrees of infeasibility 
