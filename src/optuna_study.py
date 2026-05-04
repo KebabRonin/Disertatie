@@ -217,12 +217,16 @@ def get_algorithm_specific_params(trial: optuna.Trial, algorithm: str) -> dict:
                 "PHENE_DESCRIPTORS",
                 "PHENE_DENSITY_COUNT",
                 "PHENE_DENSITY_FREQ",
+                "FITNESS",
             ],
         )
 
     if algorithm == "AdaptMut":
         params["xmut_enabled"] = trial.suggest_categorical("xmut_enabled", [0, 1])
-        params["added_ind"] = trial.suggest_categorical("xmut_enabled", ['initial', 'random'])
+        params["added_ind"] = trial.suggest_categorical("added_ind", ['initial', 'random'])
+        params["restart_method"] = trial.suggest_categorical("restart_method", ['none', 'hard', 'soft_perturb_best'])
+        if params["restart_method"] != 'none':
+            params["restart_patience"] = trial.suggest_int("restart_patience", 2, 100)
 
     return params
 
@@ -287,13 +291,10 @@ def get_run_name(algorithm, params, test_func):
 import src.run_more as rmore
 
 def run_more(algorithm, params, test_func, n_runs, trial: optuna.Trial):
-    print(params['initialgenotype'])
     params['initialgenotype'] = SIMPLEST_GENOTYPE[f"f{params['genformat']}_{params['initialgenotype']}"]
-    print(params['initialgenotype'])
     if params['initialgenotype'] == None:
         # Framsticks knows to handle the simplest genotype by default.
         del params['initialgenotype']
-    print(params.get('initialgenotype', 'EMPTY!!!'))
     if test_func != [3]:
         print(f"Warning: test_func is {test_func}, but get_run_name() is only designed for single function optimization. Consider updating get_run_name() to include test_func in the name.")
         exit(0)
@@ -305,6 +306,7 @@ def run_more(algorithm, params, test_func, n_runs, trial: optuna.Trial):
             'nruns': n_runs,
             'nodet': params['nodet'],
             'runname': runname,
+            'noredo': False,
             'numworkers': N_JOBS,
             'commandargs': ' '.join([f"-{k} \"{v}\"" for k, v in params.items() if k != 'nodet']),
         }

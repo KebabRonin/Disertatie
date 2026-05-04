@@ -7,7 +7,7 @@ from .config_loader import get_framspy_path
 sys.path.append(get_framspy_path())
 from framspy.FramsticksLib import FramsticksLib, DissimMethod
 from framspy.FramsticksLibCompetition import FramsticksLibCompetition
-
+import traceback
 from scipy.spatial import distance
 # Note: this may be less efficient than running the evolution directly in Framsticks, so if performance is key, compare both options.
 
@@ -25,10 +25,32 @@ def genotype_within_constraint(genotype, dict_criteria_values, criterion_name, c
 			return False
 	return True
 
-def frams_evaluate(frams_lib, individual):
+def frams_compute_crowding_distance(frams_lib, dissim_method, population: list[list[str]], distance_matrix=None):
+	"""
+	Compute a crowding distance for a population.
+	Updates the population individuals inplace, and returns the computed distance matrix, for reuse in whatever you need.
+
+	Should be called after evaluating the population, so we can compute the 'FITNESS' dissim method.
+	FIXME: CONTRADICTION: This is part of the fitness.
+	"""
+	if distance_matrix == None:
+		distance_matrix = frams_dissim(frams_lib, population, dissim_method)
+	# print(distance_matrix)
+	for geno in population:
+		idx = population.index(geno)
+		print(geno, idx)
+		if geno[0]['evaluations'] is not None:
+				# Add the crowding distance as an evaluated fitness metric, if a dissim method was defined.
+				geno[0]['evaluations']['']['crowding'] = np.linalg.norm(distance_matrix[idx], ord=2)
+	return distance_matrix
+
+def frams_evaluate(frams_lib, individual, population=None, dissim_method=DissimMethod.GENE_LEVENSHTEIN):
 	FITNESS_CRITERIA_INFEASIBLE_SOLUTION = [FITNESS_VALUE_INFEASIBLE_SOLUTION] * len(OPTIMIZATION_CRITERIA)  # this special fitness value indicates that the solution should not be propagated via selection ("that genotype is invalid"). The floating point value is only used for compatibility with DEAP. If you implement your own optimization algorithm, instead of a negative value in this constant, use a special value like None to properly distinguish between feasible and infeasible solutions.
 	genotype = individual[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	data = frams_lib.evaluate([genotype])
+	if population:
+		# For crowding distance, 
+		frams_compute_crowding_distance(frams_lib, dissim_method, population)
 	# print("{'genotype': \"" + genotype.replace('\n', '\\n') + "\", 'data': " + str(data) + "}", file=sys.stderr)
 	valid = True
 	try:
@@ -38,7 +60,7 @@ def frams_evaluate(frams_lib, individual):
 		fitness = [default_evaluation_data[crit] for crit in OPTIMIZATION_CRITERIA]
 	except (KeyError, TypeError) as e:  # the evaluation may have failed for an invalid genotype (such as X[@][@] with "Don't simulate genotypes with warnings" option), or because the creature failed to stabilize, or for some other reason
 		valid = False
-		# print(traceback.format_exc())
+		print(traceback.format_exc())
 		print('Problem "%s" so could not evaluate genotype "%s", hence assigned it a special ("infeasible solution") fitness value: %s' % (str(e), genotype, FITNESS_CRITERIA_INFEASIBLE_SOLUTION))
 	if valid:
 		default_evaluation_data['numgenocharacters'] = len(genotype)  # add one new key to the dictionary for consistent constraint checking below
@@ -88,7 +110,6 @@ def frams_getsimplest(frams_lib: FramsticksLib, genetic_format, initial_genotype
 
 def frams_getrandomindividual(frams_lib: FramsticksLib, initial_genotype):
 	ind = frams_lib.getRandomGenotype(initial_genotype, 2, 100, 2, 100, 100, True)
-	print(ind)
 	return ind
 
 
@@ -143,13 +164,14 @@ def selNSGA2_only_feasible(individuals, k, toolboxclone):
 	return tools.selNSGA2(feasible, k)
 
 
-def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_format, initial_genotype) -> base.Toolbox:
+def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_format, initial_genotype, dissim) -> base.Toolbox:
 	creator.create("FitnessMax", base.Fitness, weights=[1.0] * len(OPTIMIZATION_CRITERIA))
 	creator.create("Individual", list, fitness=creator.FitnessMax)  # would be nice to have "str" instead of unnecessary "list of str"
 
 	toolbox = base.Toolbox()
 	toolbox.register("attr_simplest_genotype", frams_getsimplest, frams_lib, genetic_format, initial_genotype)  # "Attribute generator"
 	toolbox.register("attr_random_genotype", frams_getrandomindividual, frams_lib, toolbox.attr_simplest_genotype())  # "Attribute generator"
+	toolbox.register("attr_random_genotype_with_initial", frams_getrandomindividual, frams_lib)  # "Attribute generator"
 	# (failed) struggle to have an individual which is a simple str, not a list of str
 	# toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_frams)
 	# https://stackoverflow.com/questions/51451815/python-deap-library-using-random-words-as-individuals
@@ -163,8 +185,15 @@ def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_fo
 	# print(toolbox.individual().fitness) ()
 	# print(toolbox.individual().fitness.values) ()
 	# exit(0)
-	toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+	if parsed_args.population_initialization == 'random':
+		toolbox.register("population", tools.initRepeat, list, toolbox.random_individual)
+	elif parsed_args.population_initialization == 'clone':
+		toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+	# if 'crowding' in parsed_args.opt:
+	# 	toolbox.register("evaluate", frams_evaluate_with_crowding, frams_lib)
+	# else:
 	toolbox.register("evaluate", frams_evaluate, frams_lib)
+	toolbox.register("add_crowding_distance", frams_compute_crowding_distance, frams_lib)
 	toolbox.register("mate", frams_crossover, frams_lib)
 	toolbox.register("mutate", frams_mutate, frams_lib)
 	toolbox.register("dissimilarity", frams_dissim, frams_lib) # Open the door to dissimilarity-based methods. FIXME: Does this count as an evaluation? I hope not...
@@ -196,6 +225,8 @@ def parseArguments():
 	parser.add_argument('-island_eval_order', type=str, default='worstToBest', help="Order in which to evaluate islands (only for convection), could lead to minor performance boost for the last generation only, default: worstToBest")
 	parser.add_argument('-migrate_after', type=int, default=10, help="Number of generations to execute for each island before migrating all islands (only for convection), default: 10.")
 	parser.add_argument('-xmut_enabled', type=bool, default=1, help="0/1 If to enable mutation = replace with simple individual (only for AdaptMut), default: 1.")
+	parser.add_argument('-restart_patience', type=int, default=20, help=r"After how many generations of no improvement greater than 1% in the max fitness to do a restart.")
+	parser.add_argument('-restart_method', choices=['hard', 'soft_perturb_best', 'none'], default='none', help="Restart hard (so reinit pop from scratch), or soft (by applying some mutations to the best ind from the run that is ending and continuing the run)")
 	parser.add_argument('-added_ind', choices=['random', 'initial'], default='initial', help="(only for AdaptMut), what genotype to add with a low probability when mutating, default: initial.")
 	parser.add_argument('-lbda', type=int, default=100, help="lambda - how many children to produce (only used for eaMuLambda), default: 100.") # Suggested: 7 * popsize (=350, but that seems like a bit much)
 	parser.add_argument('-delta', type=float, default=3.0, help="delta (speciation) - Distance threshold for determining species.")
@@ -222,6 +253,11 @@ def parseArguments():
 	if parsed_args.algorithm == 'eaOnePlusLambdaLambda' and parsed_args.popsize != 1:
 		print(f"Error: You used the eaOnePlusLambdaLambda algorithm, but popsize is not 1 (it's {parsed_args.popsize})")
 		exit(0)
+	if parsed_args.initialgenotype == 'random':
+		parsed_args.population_initialization = 'random'
+		parsed_args.initialgenotype = None
+	else:
+		parsed_args.population_initialization = 'clone'
 	return parsed_args
 
 
@@ -256,7 +292,16 @@ def main():
 	framsLib = FramsticksLibCompetition(parsed_args.path, parsed_args.lib, parsed_args.sim)
 	# if parsed_args.initialgenotype and parsed_args.skipinitialgenotype:
 	# 	parsed_args.initialgenotype.fitness = DeapFitness()
-	toolbox = prepareToolbox(framsLib, OPTIMIZATION_CRITERIA, parsed_args.tournament, '1' if parsed_args.genformat is None else parsed_args.genformat, parsed_args.initialgenotype)
+	if len(OPTIMIZATION_CRITERIA) <= 1:
+		print("Probably using regular selection")
+	else:
+		print("Probably using NSGA-II selection")
+	toolbox = prepareToolbox(framsLib,
+									OPTIMIZATION_CRITERIA,
+									parsed_args.tournament, '1' if parsed_args.genformat is None else parsed_args.genformat,
+									parsed_args.initialgenotype,
+									parsed_args.dissim
+									)
 	pop = toolbox.population(n=parsed_args.popsize)
 	hof = tools.HallOfFame(parsed_args.hof_size)
 	stats = tools.Statistics(lambda ind: ind.fitness.values)
@@ -283,6 +328,7 @@ def main():
 				pop, log = adaptMut(
 							pop, toolbox,
 							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations, xmut_enabled=parsed_args.xmut_enabled,
+							# restart_method=parsed_args.restart_method, restart_patience=parsed_args.restart_patience,
 							added_ind=parsed_args.added_ind,
 							stats=stats, halloffame=hof, verbose=True)
 			case "eaMuPlusLambda":
@@ -330,6 +376,7 @@ def main():
 						exit(0)
 				pop, log = convectionSelection(pop, toolbox, ngen=parsed_args.generations,
 								n_islands=parsed_args.nislands, reconvene_gen_interval=parsed_args.migrate_after, algo=algo_ea, island_eval_order=parsed_args.island_eval_order,
+								# restart_method=parsed_args.restart_method, restart_patience=parsed_args.restart_patience,
 								stats=stats, halloffame=hof, verbose=True)
 			case "convection_AdaptMut":
 				print('cv_am')
@@ -354,6 +401,7 @@ def main():
 						exit(0)
 				pop, log = convectionSelection(pop, toolbox, ngen=parsed_args.generations,
 								n_islands=parsed_args.nislands, reconvene_gen_interval=parsed_args.migrate_after, algo=algo_am, island_eval_order=parsed_args.island_eval_order,
+								# restart_method=parsed_args.restart_method, restart_patience=parsed_args.restart_patience,
 								stats=stats, halloffame=hof, verbose=True)
 			case "NEAT_speciation":
 				print("NEATsp")
@@ -363,6 +411,7 @@ def main():
 						dynamic_delta_under=parsed_args.delta_under_mult,
 						dynamic_delta_over=parsed_args.delta_over_mult,
 						cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, dissimilarity_metric=parsed_args.dissim,
+						# restart_method=parsed_args.restart_method, restart_patience=parsed_args.restart_patience,
 						stats=stats, halloffame=hof, verbose=True)
 			case _:
 				raise "Unknown algorithm"

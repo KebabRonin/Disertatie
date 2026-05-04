@@ -50,7 +50,10 @@ class ConvectionSelectionPopulationEvalOrder(Enum):
 def chunks(xs, split_count):
     n = len(xs) // split_count
     rest = len(xs) % split_count
-    return [xs[i:i+n+(1 if i < rest else 0)] for i in range(0, len(xs), n)]
+    chx = [xs[i*n:i*n+n+(1 if i < rest else 0)] for i in range(0, split_count)]
+    assert len(chx) == split_count
+    assert sum([len(x) for x in chx]) == len(xs)
+    return chx
 
 def convectionSelection(population, toolbox, ngen, algo,
             reconvene_gen_interval=10, n_islands=10, stats=None, island_eval_order=ConvectionSelectionPopulationEvalOrder.WORST_TO_BEST,

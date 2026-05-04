@@ -5,7 +5,7 @@ from deap import tools
 
 from ..runExperiment import FITNESS_VALUE_INFEASIBLE_SOLUTION
 
-UID_P10 = 10**6
+UID_P10 = 10**10
 TEST = True
 
 def s_int(x):
@@ -18,7 +18,10 @@ class Species:
     def __init__(self, pop: list):
         self.pop = pop
         self.past_fitnesses = []
-        self.uid = id(self) % UID_P10
+
+    @property
+    def uid(self):
+        return id(self) % UID_P10
 
     @property
     def age(self):
@@ -89,6 +92,8 @@ def split_in_species(previous_species: list[Species], distance_matrix, admission
     for sp in previous_species:
         pop += sp.pop
     assert_unique(pop, 'start of split')
+    # for p in pop:
+        # print(p.fitness.crowding_dist)
 
     for idx_ind, ind in enumerate(pop):
         found_a_home = False
@@ -145,7 +150,7 @@ def print_species_dashboard(new_species, delta):
     pr_str = ''
     pr_post = []
     for i, sp in enumerate(new_species):
-        repr = str(sp.get_representative()[0])
+        repr = str(sp.get_representative()[0]).replace('\n', ' ')
         ellipsize_repr = repr if len(repr) <= 15 else f"{repr[:12]}..."
         pr_str += f"| <{sp.uid:>8}-{sp.age:>3}> ({len(sp.pop):>3} ind) {sp.species_fitness:10.5f}    {ellipsize_repr:<15} |"
         pr_post.append(repr)
@@ -194,7 +199,7 @@ def speciation(population, toolbox,
         logbook.record(gen=f"0.{sp.uid}", nevals=len(sp.pop), **record)
     if verbose:
         print(logbook.stream)
-
+    hist = [max([p.fitness.values for p in new_pop])]
     # Begin the generational process
     for gen in range(1, ngen + 1):
         old_species = new_species
@@ -365,5 +370,7 @@ def speciation(population, toolbox,
             logbook.record(gen=f"{gen}.{sp.uid}", nevals=len(sp.pop), **record)
         if verbose:
             print(logbook.stream)
+
+        hist.append(max([p.fitness.values for p in new_pop]))
 
     return new_pop, logbook

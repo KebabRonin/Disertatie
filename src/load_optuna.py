@@ -55,7 +55,7 @@ PARAM_DISTRIBUTIONS = {
   'genformat': optuna.distributions.CategoricalDistribution([0, 1]),
   'initialgenotype': optuna.distributions.CategoricalDistribution(['simplest', 'XX', 'XXneurons']),
   # EA parameters
-  'popsize': optuna.distributions.IntDistribution(5, 500, step=5),
+  'popsize': optuna.distributions.IntDistribution(1, 500, step=1),
   'tournament': optuna.distributions.IntDistribution(2, 20),
   'pmut': optuna.distributions.FloatDistribution(0.1, 1.0, step=0.005),
   'pxov': optuna.distributions.FloatDistribution(0.0, 1.0, step=0.005),
@@ -73,6 +73,7 @@ PARAM_DISTRIBUTIONS = {
     'PHENE_DESCRIPTORS',
     'PHENE_DENSITY_COUNT',
     'PHENE_DENSITY_FREQ',
+    'FITNESS',
   ]),
   # AdaptMut-specific parameters
   'xmut_enabled': optuna.distributions.CategoricalDistribution([0, 1]),
@@ -98,6 +99,8 @@ DEFAULTS = {
   'delta_over_mult': 1.33,
   'dissim': 'PHENE_STRUCT_OPTIM',
   'xmut_enabled': 1,
+  'restart_patience': 15,
+  'restart_method': 'none',
   'lbda': 100,
 }
 
@@ -141,7 +144,6 @@ def from_str_to_type(algo_data_param, param_name: str):
   if value == 'None': return None
   if value.startswith('DissimMethod.'):
     cval = value.split('.')[1]
-    if cval == 'FITNESS': return DEFAULTS['dissim']
     return cval
   return value
 
@@ -165,12 +167,12 @@ ALGO_PARAMS = {
   'convection_eaSimple': COMMON_PARAMS + ['nislands', 'migrate_after', 'island_eval_order'],
   'convection_AdaptMut': COMMON_PARAMS + ['nislands', 'migrate_after', 'island_eval_order'],
   'NEAT_speciation': COMMON_PARAMS + ['dissim', 'delta', 'delta_under_mult', 'delta_over_mult'],
-  'AdaptMut': COMMON_PARAMS + ['xmut_enabled'],
+  'AdaptMut': COMMON_PARAMS + ['xmut_enabled', 'restart_patience', 'restart_method'],
   'eaSimple': COMMON_PARAMS,
   'eaMuPlusLambda': COMMON_PARAMS + ['lbda'],
   'eaMuCommaLambda': COMMON_PARAMS + ['lbda'],
   # TODO: 
-  # 'eaOnePlusLambdaLambda': COMMON_PARAMS + ['lbda'],
+  'eaOnePlusLambdaLambda': ['evalfn', 'algorithm', 'genformat', 'initialgenotype', 'popsize', 'tournament'] + ['lbda'],
 }
 
 def create_study_and_import(study: optuna.Study, algo_key: str, algo_data: dict):
@@ -186,6 +188,10 @@ def create_study_and_import(study: optuna.Study, algo_key: str, algo_data: dict)
     runs = algo_data['runs']
     mean = np.mean(runs)
     std = np.std(runs)
+
+    if params['evalfn'] not in EVAL_FN_TO_IMPORT:
+      print(f"Runs for {algo_key} have evalfn != 3 (was {params['evalfn']}). Skipping...")
+      return None
 
     # baseline_mean = np.mean(BASELINE['runs'])  # or reference fitness
     # fitness = (mean - baseline_mean) / std
@@ -229,15 +235,17 @@ def create_study_and_import(study: optuna.Study, algo_key: str, algo_data: dict)
     return study
 
 if __name__ == '__main__':
-
+  EVAL_FN_TO_IMPORT = [3]
   import argparse
   parser = argparse.ArgumentParser(description='Import algorithm runs into Optuna database')
   parser.add_argument('--silent', action='store_true', help='Suppress output')
+  parser.add_argument('--noredo', action='store_true', help='Suppress output')
   parsedargs = parser.parse_args()
 
   import os, time
   os.chdir(get_disertatie_root())
-  os.system("python -m src.collect_data --redo")
+  if not parsedargs.noredo:
+    os.system("python -m src.collect_data --redo")
   # exit(0)
 
   # Load the algo_run_dict.json data

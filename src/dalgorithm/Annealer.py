@@ -2,16 +2,12 @@ import random
 from deap import tools
 import math
 
-def eaOnePlusLambdaLambda(population, toolbox, lbda, ngen, autolambda=True,
+def annealer(population, toolbox, lbda, ngen, autolambda=True,
                    stats=None, halloffame=None, verbose=__debug__):
     logbook = tools.Logbook()
     logbook.header = ['gen', 'nevals'] + (stats.fields if stats else [])
 
     assert len(population) == 1
-
-    if autolambda:
-        lbda = 1
-        F = 1.5
 
     # Evaluate the individuals with an invalid fitness
     invalid_ind = [ind for ind in population if not ind.fitness.valid]
@@ -112,4 +108,3 @@ def eaOnePlusLambdaLambda(population, toolbox, lbda, ngen, autolambda=True,
         if verbose:
             print(logbook.stream)
 
-    return population, logbook

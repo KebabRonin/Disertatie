@@ -6,7 +6,7 @@ import pickle, argparse
 from PIL import Image
 import concurrent.futures, tqdm
 import matplotlib
-
+import random
 # Import configuration loader
 from .config_loader import get_disertatie_root, load_config, get_experiments_dir
 
@@ -21,7 +21,12 @@ HIGHLIGHT = {
     'AdaptMutF0pmut08added_indrandom': 'red',
     BASELINE: 'red'
 }
-COLORS = ['red','blue','green','black', 'orange','purple','brown', 'magenta']
+COLORS = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'magenta']
+
+def get_algo_color(algo_name):
+    random.seed(algo_name)
+    return random.choice(COLORS)
+
 N_RUNS = 20
 MAX_STEPS = 100_001
 example_idx = 0
@@ -32,8 +37,12 @@ BASE_PATH = get_disertatie_root()
 # Should be pointing to the Disertatie folder
 EXPERIMENTS_PATH = get_experiments_dir()
 SHOW_CLASAMENT = False
-IMG_SAVE_PATH = os.path.join(BASE_PATH, 'framspy', 'runplots', 'images')
-GIF_SAVE_PATH = os.path.join(BASE_PATH, 'framspy', 'runplots', 'gifs')
+IMG_SAVE_PATH = os.path.join(BASE_PATH, 'runplots', 'images')
+GIF_SAVE_PATH = os.path.join(BASE_PATH, 'runplots', 'gifs')
+if not os.path.exists(IMG_SAVE_PATH):
+    os.makedirs(IMG_SAVE_PATH)
+if not os.path.exists(GIF_SAVE_PATH):
+    os.makedirs(GIF_SAVE_PATH)
 DATA_FILE = os.path.join(BASE_PATH, 'parsed_result_data.pkl')
 STATS_FILE = os.path.join(BASE_PATH, 'algo_run_dict.json')
 
@@ -81,15 +90,15 @@ def parse_algo_params(name: str):
 
 PARAM_PATT = re.compile(r'\b([\w0-9]+)=([\w0-9_\-\n \/.;:]+)')
 def get_algo_params(name):
-    return {'params': parse_algo_params(name['runname']), 'meta': [{
-            'run_start': os.stat(os.path.join(EXPERIMENTS_PATH, name['runname'], f'results_{fn}.stdout')).st_mtime,
-            'run_end': os.stat(os.path.join(EXPERIMENTS_PATH, name['runname'], f'results_{fn}.stdout')).st_ctime,
+    print(name)
+    return {
+            'run_start': os.stat(os.path.join(EXPERIMENTS_PATH, name['runname'], f'results_{name['runidx']}.stdout')).st_mtime,
+            'run_end': os.stat(os.path.join(EXPERIMENTS_PATH, name['runname'], f'results_{name['runidx']}.stdout')).st_ctime,
             'generations': int(name['generations']),
             'nonevalTime': None if name['nonevalTime'] is None else float(name['nonevalTime']),
             'totalevals': float(name['totalevals']),
             'evalTime': float(name['evalTime']),
-        } for fn in range(len(get_finished_runs(name['runname'])))]
-    }
+        }
 
 def get_algo_dict(rk):
     """
@@ -98,8 +107,12 @@ def get_algo_dict(rk):
     names = {}
     for n in rk:
         if n['runname'] not in names:
-            names[n['runname']] = get_algo_params(n)
-            names[n['runname']]['runs'] = []
+            names[n['runname']] = {
+                'params': parse_algo_params(n['runname']),
+                'meta': [],
+                'runs': [],
+            }
+        names[n['runname']]['meta'].append(get_algo_params(n))
         names[n['runname']]['runs'].append(n['fitness'])
     return names
 
@@ -136,13 +149,21 @@ def get_best_genotype_over_all_runs() -> list[list]:
 
 GEN_REGEX = re.compile(f'^([0-9]+){sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}?{sp}?$')
 GEN_REGEX_SPECIES = re.compile(f'^([0-9]+)\\.([0-9]+){sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}?{sp}?$')
+GEN_REGEX_ISLAND_START = r'^starting island\s+(\d+)\s+$'
 def parse_data(rs=None):
     if rs is None:
         rs = {}
+    modified = False
+    print("I already have these:", rs.keys())
     for idx, d in enumerate(sorted(os.listdir(EXPERIMENTS_PATH))):
-        if d in rs:
-            continue
+        # if ('convection' not in d):
+        #     continue
         finished_runs = get_finished_runs(d)
+        if d in rs:
+            if len(rs[d]['mx_arrs']) == len(finished_runs):
+                continue
+            else:
+                print(f"Updating runs for {d}, since I found more (I have {len(rs[d]['mx_arrs'])}, now there's {len(finished_runs)})")
         if len(finished_runs) == 0:
             print(f"Skipping {d} since it has no finished runs")
             continue
@@ -153,6 +174,7 @@ def parse_data(rs=None):
         mn_arrs = []
         avg_arrs = []
         gens_arr = []
+        std_arrs = []
         nonevalTime_arr = []
         totalevals_arr = []
         evalTime_arr = []
@@ -162,6 +184,7 @@ def parse_data(rs=None):
             mx_arr = []
             mn_arr = []
             avg_arr = []
+            std_arr = []
             species_dict = {}
             islands = {}
             with open(os.path.join(EXPERIMENTS_PATH, d, f'results_{i}.stdout'), 'r') as f:
@@ -173,87 +196,111 @@ def parse_data(rs=None):
                 # args = {a[0]: a[1] for a in arggs}
                 if 'popsize' not in args:
                     args['popsize'] = 50
-                for l in f:
+                island_id = None
+                prevTevals = None
+                last_totalevals = None
+                for lidx, l in enumerate(f):
+                    totalevals = None
                     m = re.match(GEN_REGEX, l)
+                    m_species = re.match(GEN_REGEX_SPECIES, l)
+                    m_species_end = re.match(r"^Removed species (\d+).*$", l)
+                    m_island  = re.match(GEN_REGEX_ISLAND_START, l)
                     if m:
                         gen, nevals, avg, stdev, mn, mx, totalevals, evalTime, nonevalTime = m.groups()
-                        if int(totalevals) - len(mx_arr) != int(nevals):
-                            if m.groups()[1] == args['popsize'] and int(totalevals) - len(mx_arr) == 0:
-                                # For convection selection, the global population counts twice for some reason
-                                continue
-                            if not 'eaOnePlusLambdaLambda' in d:
-                                # I don't count the evals properly here, so just disregard for now.
-                                print("(Miscount nevals)", d, i, args['popsize'], m.groups(), int(totalevals), len(mx_arr), f"{int(totalevals) - len(mx_arr)} != {int(nevals)}")
-                                exit(0)
-                        mx_arr += [float(mx) if mx != 'nan' else -1] * (int(totalevals) - len(mx_arr))
-                        mn_arr += [float(mn) if mn != 'nan' else -1] * (int(totalevals) - len(mn_arr))
-                        avg_arr += [float(avg) if avg != 'nan' else -1] * (int(totalevals) - len(avg_arr))
-                        assert len(mx_arr) == int(totalevals), f"(Miscount totalevals) {d}, {i}, {m.groups()}, {len(mx_arr)} != {int(totalevals)}"
-                    # elif re.match(r'^starting island\s+(\d+)', l):
-                    #     # We're in convection algorithm, so we should store each island separately.
-                    #     island_id, = re.match(r'^starting island\s+(\d+)', l).groups()
-                    #     island_id = int(island_id)
-                    #     if island_id not in islands:
-                    #         islands[island_id] = {
-                    #             'mx_arrs': [None] * int(totalevals),
-                    #             'mn_arrs': [None] * int(totalevals),
-                    #             'avg_arrs': [None] * int(totalevals),
-                    #         }
-                    #     else:
-                    #         islands[island_id]['mx_arrs'] += [islands[island_id]['mx_arrs'][-1]] * (int(totalevals) - len(islands[island_id]['mx_arrs']))
-                    #         islands[island_id]['mn_arrs'] += [islands[island_id]['mn_arrs'][-1]] * (int(totalevals) - len(islands[island_id]['mn_arrs']))
-                    #         islands[island_id]['avg_arrs'] += [islands[island_id]['avg_arrs'][-1]] * (int(totalevals) - len(islands[island_id]['avg_arrs']))
-                    #     islands[island_id]['mx_arrs'] += [mx]# * (int(totalevals) - len(islands[island_id]['mx']))
-                    #     islands[island_id]['mn_arrs'] += [mn]# * (int(totalevals) - len(islands[island_id]['mn']))
-                    #     islands[island_id]['avg_arrs'] += [avg]
-                    # elif re.match(GEN_REGEX_SPECIES, l):
-                    #     # We're in speciation algorithm, so we should store each species separately.
-                    #     gen, species_id, nevals, avg, stdev, mn, mx, totalevals, evalTime, nonevalTime = re.match(GEN_REGEX_SPECIES, l).groups()
-                    #     if species_id not in species_dict:
-                    #         species_dict[species_id] = {
-                    #             'mx_arrs': [None] * int(totalevals),
-                    #             'mn_arrs': [None] * int(totalevals),
-                    #             'avg_arrs': [None] * int(totalevals),
-                    #         }
-                    #     else:
-                    #         species_dict[species_id]['mx_arrs'] += [species_dict[species_id]['mx_arrs'][-1]] * (int(totalevals) - len(species_dict[species_id]['mx_arrs']))
-                    #         species_dict[species_id]['mn_arrs'] += [species_dict[species_id]['mn_arrs'][-1]] * (int(totalevals) - len(species_dict[species_id]['mn_arrs']))
-                    #         species_dict[species_id]['avg_arrs'] += [species_dict[species_id]['avg_arrs'][-1]] * (int(totalevals) - len(species_dict[species_id]['avg_arrs']))
-                    #     species_dict[species_id]['mx_arrs'] += [mx]# * (int(totalevals) - len(species_dict[species_id]['mx']))
-                    #     species_dict[species_id]['mn_arrs'] += [mn]# * (int(totalevals) - len(species_dict[species_id]['mn']))
-                    #     species_dict[species_id]['avg_arrs'] += [avg]# * (int(totalevals) - len(species_dict[species_id]['avg']))
+                        if totalevals == prevTevals:
+                            # For convection runs, count this as a regular step, not as an island step.
+                            island_id = None
+                        if island_id is None:
+                            mx_arr += [(int(totalevals), float(mx) if mx != 'nan' else None)]
+                            mn_arr += [(int(totalevals), float(mn) if mn != 'nan' else None)]
+                            avg_arr += [(int(totalevals), float(avg) if avg != 'nan' else None)]
+                            std_arr += [(int(totalevals), float(stdev) if stdev != 'nan' else None)]
+                        else:
+                            islands[island_id]['mx_arrs'] += [(int(totalevals), float(mx) if mx != 'nan' else None)]
+                            islands[island_id]['mn_arrs'] += [(int(totalevals), float(mn) if mn != 'nan' else None)]
+                            islands[island_id]['avg_arrs'] += [(int(totalevals), float(avg) if avg != 'nan' else None)]
+                            islands[island_id]['std_arrs'] += [(int(totalevals), float(stdev) if stdev != 'nan' else None)]
+                    elif m_island:
+                        # We're in convection algorithm, so we should store each island separately.
+                        island_id, = m_island.groups()
+                        island_id = int(island_id)
+                        if island_id not in islands:
+                            islands[island_id] = {
+                                'mx_arrs': [],
+                                'mn_arrs': [],
+                                'avg_arrs': [],
+                                'std_arrs': [],
+                            }
+                        continue
+                    elif m_species_end:
+                        species_id, = m_species_end.groups()
+                        if species_id in species_dict:
+                            spec_i = 0
+                            while f"{species_id}-{spec_i}" in species_dict:
+                                spec_i += 1
+                            lastidx = len(species_dict[species_id]['avg_arrs']) - 1
+                            while lastidx > 0 and (
+                                    species_dict[species_id]['avg_arrs'][lastidx][0] == species_dict[species_id]['avg_arrs'][lastidx - 1][0]
+                                    ):
+                                # Since island ids are imperfect, several islands can share the same id.
+                                # This loop treats the case when, after island X is killed, a new island X is generated,
+                                # but it is removed before it can do another loop (eg. it contained only infeasible individuals)
+                                species_dict[species_id]['avg_arrs'] = species_dict[species_id]['avg_arrs'][:-1]
+                                species_dict[species_id]['mx_arrs']  = species_dict[species_id]['mx_arrs'][:-1]
+                                species_dict[species_id]['mn_arrs']  = species_dict[species_id]['mn_arrs'][:-1]
+                                species_dict[species_id]['std_arrs'] = species_dict[species_id]['std_arrs'][:-1]
+                                lastidx = len(species_dict[species_id]['avg_arrs']) - 1
+                            species_dict[f"{species_id}-{spec_i}"] = species_dict[species_id]
+                            species_dict.pop(species_id)
+                        else:
+                            pass
+                    elif m_species:
+                        # We're in speciation algorithm, so we should store each species separately.
+                        gen, species_id, nevals, avg, stdev, mn, mx, totalevals, evalTime, nonevalTime = m_species.groups()
+                        if species_id not in species_dict:
+                            species_dict[species_id] = {
+                                'mx_arrs': [],
+                                'mn_arrs': [],
+                                'avg_arrs': [],
+                                'std_arrs': [],
+                            }
+                        species_dict[species_id]['mx_arrs'] += [(int(totalevals), float(mx) if mx != 'nan' else None)]
+                        species_dict[species_id]['mn_arrs'] += [(int(totalevals), float(mn) if mn != 'nan' else None)]
+                        species_dict[species_id]['avg_arrs'] += [(int(totalevals), float(avg) if avg != 'nan' else None)]
+                        species_dict[species_id]['std_arrs'] += [(int(totalevals), float(stdev) if stdev != 'nan' else None)]
+                    prevTevals = totalevals
+                    last_totalevals = totalevals if totalevals is not None else last_totalevals
                 if 'Lambda' in d:
                     expected_evals = 100_000 - max(int(args['popsize']), int(args['lbda'] if 'lbda' in args else 0))
+                elif 'convection' in d:
+                    expected_evals = 100_000 - int(args['popsize']) * int(args['migrate_after'])
                 else:
                     expected_evals = 100_000 - int(args['popsize'])
-                if len(mx_arr) <= expected_evals:
-                    if float(nonevalTime) > 3600:
+                if mx_arr[-1][0] <= expected_evals:
+                    if nonevalTime is not None and float(nonevalTime) > 3600:
                         print("(Hit time limit)", d, i, f"{float(nonevalTime)} > 3600")
                     else:
-                        print("(Stopped too early) ", d, i, f"{len(mx_arr)} <= {expected_evals}")
-            mx_arr += [mx_arr[-1]] * (MAX_STEPS - len(mx_arr))
-            mn_arr += [mn_arr[-1]] * (MAX_STEPS - len(mn_arr))
-            avg_arr += [avg_arr[-1]] * (MAX_STEPS - len(avg_arr))
+                        print("(Stopped too early) ", d, i, f"{mx_arr[-1][0]} <= {expected_evals}")
+                # print(len(islands))
+                # for i in islands.keys():
+                #     print(i)
+                #     print(len(islands[list(islands.keys())[i]]['avg_arrs']))
+                #     print(islands[list(islands.keys())[i]]['avg_arrs'][-10:])
+                # exit(0)
             gens_arr.append(gen)
             nonevalTime_arr.append(nonevalTime)
-            totalevals_arr.append(totalevals)
+            totalevals_arr.append(last_totalevals)
             evalTime_arr.append(evalTime)
             mx_arrs.append(mx_arr)
             mn_arrs.append(mn_arr)
             avg_arrs.append(avg_arr)
+            std_arrs.append(std_arr)
             if len(islands) > 0:
-                for s in islands:
-                    islands[s]['mx_arrs'] += [islands[s]['mx_arrs'][-1]] * (MAX_STEPS - len(islands[s]['mx_arrs']))
-                    islands[s]['mn_arrs'] += [islands[s]['mn_arrs'][-1]] * (MAX_STEPS - len(islands[s]['mn_arrs']))
-                    islands[s]['avg_arrs'] += [islands[s]['avg_arrs'][-1]] * (MAX_STEPS - len(islands[s]['avg_arrs']))
                 islands_arrs.append(islands)
             if len(species_dict) > 0:
-                for s in species_dict:
-                    species_dict[s]['mx_arrs'] += [None] * (MAX_STEPS - len(species_dict[s]['mx_arrs']))
-                    species_dict[s]['mn_arrs'] += [None] * (MAX_STEPS - len(species_dict[s]['mn_arrs']))
-                    species_dict[s]['avg_arrs'] += [None] * (MAX_STEPS - len(species_dict[s]['avg_arrs']))
                 species_dicts.append(species_dict)
         rs[d] = {
+            'params': args,
             'mx_arrs': mx_arrs,
             'mn_arrs': mn_arrs,
             'avg_arrs': avg_arrs,
@@ -261,21 +308,24 @@ def parse_data(rs=None):
             'nonevalTime': nonevalTime_arr,
             'totalevals': totalevals_arr,
             'evalTime': evalTime_arr,
+            'species_dicts': species_dicts,
+            'islands_arrs': islands_arrs,
         }
+        modified = True
         if len(species_dicts) > 0:
             rs[d]['species'] = species_dicts
         if len(islands_arrs) > 0:
             rs[d]['islands'] = islands_arrs
-    return rs
+    return rs, modified
 
 def violins(names, order_fn=order_fn_median):
     plt.figure(figsize=FIGSIZE)
     ordered_names = order_fn(names)
     for idx, n in enumerate(ordered_names):
-        plt.scatter([idx+1] * 20, names[n]['runs'], color=COLORS[idx % len(COLORS)], label=n)
+        plt.scatter([idx+1] * 20, names[n]['runs'], color=get_algo_color(n), label=n)
     vp = plt.violinplot([names[n]['runs'] for n in ordered_names], showmeans=True, showmedians=True)
     for i, body in enumerate(vp['bodies']):
-        body.set_facecolor(COLORS[i % len(COLORS)])
+        body.set_facecolor(get_algo_color(n))
         body.set_edgecolor('blue')
     vp['cmeans'].set_color('black')
     vp['cmeans'].set_linewidth(1.5)
@@ -296,7 +346,7 @@ def boxplots(names, order_fn=order_fn_median):
     for idx, n in enumerate(ordered_names):
         if len(names[n]['runs']) < 20:
             HIGHLIGHT[n] = 'blue'
-        plt.scatter([idx+1] * len(names[n]['runs']), names[n]['runs'], color=COLORS[idx % len(COLORS)], label=n, alpha=0.2)
+        plt.scatter([idx+1] * len(names[n]['runs']), names[n]['runs'], color=get_algo_color(n), label=n, alpha=0.2)
     plt.boxplot([names[n]['runs'] for n in ordered_names], showmeans=True)
     plt.xticks(range(1, len(names)+1), ordered_names, rotation=45, ha='right')
     ax = plt.gca()
@@ -305,6 +355,7 @@ def boxplots(names, order_fn=order_fn_median):
             tick.set_color(HIGHLIGHT[tick.get_text()])
     # t-test to see if better solutions are statistically significant
     from scipy.stats import ttest_ind
+    SIGLVL = 0.05
     if BASELINE in ordered_names:
         idx_baseline = ordered_names.index(BASELINE)
         print(f"Performing T-test between {BASELINE} and ({idx_baseline}) algorithms")
@@ -319,33 +370,78 @@ def boxplots(names, order_fn=order_fn_median):
                 print(f"P-value: {p_value} ({'significant change' if p_value < SIGLVL else 'insignificant change'} for {SIGLVL} significance level)")
 
 def show_runs(rs: dict, d, example_idx, plot=True, printout=False, arr_to_plot=ARR_TO_PLOT, replaceplot=False):
-    y_vals = [i for i in range(MAX_STEPS)]
     res = []
     idx = list(rs.keys()).index(d)
     if plot:
-        plotname = os.path.join(IMG_SAVE_PATH, f'{d}_{arr_to_plot}_run_{example_idx}.png')
+        plotname = os.path.join(IMG_SAVE_PATH, f'{d}_run_{example_idx}.png')
         if replaceplot or not os.path.exists(plotname):
             print(f'Making plot for {plotname}')
-            color = COLORS[idx % len(COLORS)]
+            color = get_algo_color(d)
             # Plot run means as a thinner line on same axes
             plt.figure(figsize=(12,6))
             plt.title(f'Evolution of {d} at run {example_idx:>3}')
             if 'islands' in rs[d]:
-                for isl in rs[d]['islands']:
-                    plt.plot(y_vals, isl['avg_arrs'][example_idx], label=f'{d} avg', color=color, linewidth=1.5)
-                    plt.fill_between(y_vals, isl['mn_arrs'][example_idx], isl['mx_arrs'][example_idx], color=color, alpha=0.06)
+                print(d, example_idx)
+                for islid in rs[d]['islands'][example_idx]:
+                    if islid != 9:
+                        # Only plot best island, to reduce clutter
+                        continue
+                    isl = rs[d]['islands'][example_idx][islid]
+                    y_vals = [x[0] for x in isl['avg_arrs']]
+                    x_vals = [x[1] for x in isl['avg_arrs']]
+                    x_vals_mn = [x[1] for x in isl['mn_arrs']]
+                    x_vals_mx = [x[1] for x in isl['mx_arrs']]
+                    plt.plot(y_vals, x_vals, label=f'{d} avg', color=color, linewidth=1.5)
+                    plt.fill_between(y_vals, x_vals_mn, x_vals_mx, color=color, alpha=0.15)
+                    break
+                y_vals = [x[0] for x in rs[d]['avg_arrs'][example_idx]]
+                x_vals = [x[1] for x in rs[d]['avg_arrs'][example_idx]]
+                x_vals_mn = [x[1] for x in rs[d]['mn_arrs'][example_idx]]
+                x_vals_mx = [x[1] for x in rs[d]['mx_arrs'][example_idx]]
+                plt.plot(y_vals, x_vals, label=f'{d} avg', color='black', linewidth=1.5)
+                plt.fill_between(y_vals, x_vals_mn, x_vals_mx, color='black', alpha=0.15)
             elif 'species' in rs[d]:
-                for isl in rs[d]['species']:
-                    plt.plot(y_vals, isl['avg_arrs'][example_idx], label=f'{d} avg', color=color, linewidth=1.5)
-                    plt.fill_between(y_vals, isl['mn_arrs'][example_idx], isl['mx_arrs'][example_idx], color=color, alpha=0.06)
+                FILTER_SPECIES_AGE = 10
+                shown_species = list(filter(lambda x: len(rs[d]['species'][example_idx][x]['avg_arrs']) >= FILTER_SPECIES_AGE, rs[d]['species'][example_idx]))
+                print(len(rs[d]['species'][example_idx]))
+                print(len(shown_species))
+                for i, isl_name in enumerate(shown_species):
+                    if len(rs[d]['species'][example_idx][isl_name]['avg_arrs']) < FILTER_SPECIES_AGE:
+                        continue
+                    isl = rs[d]['species'][example_idx][isl_name]
+                    y_vals = [x[0] for x in isl['avg_arrs']]
+                    x_vals = [x[1] for x in isl['avg_arrs']]
+                    x_vals_mn = [x[1] for x in isl['mn_arrs']]
+                    x_vals_mx = [x[1] for x in isl['mx_arrs']]
+                    plt.plot(y_vals, x_vals, label=f'{d} avg', color=color, linewidth=1.5)
+                    # plt.fill_between(y_vals, x_vals_mn, x_vals_mx, color=color, alpha=0.15)
+                y_vals = [x[0] for x in rs[d]['avg_arrs'][example_idx]]
+                x_vals = [x[1] for x in rs[d]['avg_arrs'][example_idx]]
+                x_vals_mn = [x[1] for x in rs[d]['mn_arrs'][example_idx]]
+                x_vals_mx = [x[1] for x in rs[d]['mx_arrs'][example_idx]]
+                plt.plot(y_vals, x_vals, label=f'{d} avg', color='black', linewidth=1.5)
+                plt.fill_between(y_vals, x_vals_mn, x_vals_mx, color='black', alpha=0.15)
             else:
                 # Do one plot for it
-                plt.plot(y_vals, rs[d]['avg_arrs'][example_idx], label=f'{d} avg', color=color, linewidth=1.5)
-                plt.fill_between(y_vals, rs[d]['mn_arrs'][example_idx], rs[d]['mx_arrs'][example_idx], color=color, alpha=0.06)
-            plt.ylim(0, 800)
+                print(d, plotname)
+                y_vals = [x[0] for x in rs[d]['avg_arrs'][example_idx]]
+                x_vals = [x[1] for x in rs[d]['avg_arrs'][example_idx]]
+                x_vals_mn = [x[1] for x in rs[d]['mn_arrs'][example_idx]]
+                x_vals_mx = [x[1] for x in rs[d]['mx_arrs'][example_idx]]
+                plt.plot(y_vals, x_vals, label=f'{d} avg', color=color, linewidth=1.5)
+                plt.fill_between(y_vals, x_vals_mn, x_vals_mx, color=color, alpha=0.15)
+            match rs[d]['params'].get('evalfn', '3'):
+                case '5':
+                    plt.ylim(975, 1000)
+                case '4':
+                    plt.ylim(0, 500)
+                case '3':
+                    plt.ylim(0, 800)
+            plt.xlim(0, 100_000)
+            plt.tight_layout(pad=0.2)
             plt.savefig(plotname)
             plt.close()
-    res.append((d, max(rs[d][arr_to_plot][example_idx]), rs[d], example_idx))
+    res.append((d, max(map(lambda x: x[1], rs[d][arr_to_plot][example_idx])), rs[d], example_idx))
     if printout:
         print(f" run {example_idx:>2} ".center(90, '='))
         print(f"{'Rank':>4}  {'Name':<50} {'Score':<10}")
@@ -383,7 +479,7 @@ def make_gif(images, gif_name):
 
 def make_gif_th(th_idx):
     d = list(rs.keys())[th_idx]
-    make_gif([os.path.join(IMG_SAVE_PATH, f'{d}_{ARR_TO_PLOT}_run_{idx}.png') for idx in get_finished_runs(d)], os.path.join(GIF_SAVE_PATH, f'{d}_anim.gif'))
+    make_gif([os.path.join(IMG_SAVE_PATH, f'{d}_run_{idx}.png') for idx in get_finished_runs(d)], os.path.join(GIF_SAVE_PATH, f'{d}_anim.gif'))
 
 
 def print_clasament(names):
@@ -427,12 +523,11 @@ def print_clasament(names):
 
 FIGSIZE=(25,10)
 if __name__ == '__main__':
-    sc = get_best_genotype_over_all_runs()
-    l = list(filter(lambda x: x[0] == '3', sc))
-    for s in [l[len(l)//2]]:
-        print(s[:5])
-        print()
-        print(s[5])
+    # sc = get_best_genotype_over_all_runs()
+    # for s in sc[-3:]:# filter(lambda x: x[0] == '4', sc):
+    #     print(s[:5])
+    #     print()
+    #     print(s[5])
     parsedargs = parseArgs()
     if parsedargs.silent:
         print = lambda *x, **kw: x
@@ -442,17 +537,19 @@ if __name__ == '__main__':
     if not os.path.exists(STATS_FILE):
         if not os.path.exists(DATA_FILE):
             print('Parsing results...')
-            rs = parse_data()
+            rs, modified = parse_data()
             pickle.dump(rs, open(DATA_FILE, 'wb'))
         else:
-            print('Loding results...')
+            print('Loading results...')
             rs = pickle.load(open(DATA_FILE, 'rb'))
-            rs = parse_data(rs)
+            rs, modified = parse_data(rs)
+            if modified:
+                pickle.dump(rs, open(DATA_FILE, 'wb'))
         print('Results finished loading/parsing...')
         ress = []
-        for d in rs.keys():
+        for d in tqdm.tqdm(list(rs.keys()), position=0, desc="Experiments"):
             finished_runs = get_finished_runs(d)
-            for i in range(len(finished_runs)):
+            for i in tqdm.trange(len(finished_runs), position=1, desc="Runs"):
                 ress += show_runs(rs, d, i, arr_to_plot=ARR_TO_PLOT)
         ress.sort(key=lambda x: x[1], reverse=True)
         run_ths(make_gif_th, len(rs.keys()), title='Making gifs...')
@@ -518,7 +615,6 @@ if __name__ == '__main__':
     # print_clasament({n: names[n] for n in names.keys() if 'evalfn5' not in n and 'evalfn4' not in n})
     print_clasament(names)
 
-    SIGLVL = 0.05
 
     print(' By median '.center(90, '*'))
     boxplots(names, order_fn=order_fn_median)

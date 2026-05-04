@@ -22,6 +22,7 @@ def parseArgs():
     @since 12 Apr 2025, 21:43 # Change this to before you run the experiment
     """
     parser.add_argument('-nodet', type=int, default=0, help='1 if determinism.sim should be disabled')
+    parser.add_argument('-noredo', action='store_true', default=False, help='To skip running the collect_data script')
     return parser.parse_args()
 
 def get_command(nodet, commandargs, framsticks_path=None):
@@ -56,6 +57,7 @@ def run_runs(params):
     elif not params['continuerun']:
         print('Continuerun param is not set, but the run already exists')
         exit()
+    print('cargs', params['commandargs'])
     command = get_command(params['nodet'], params['commandargs'])
     print("Running the following command:")
     print(command + f' {dirname}/hof_{0}.txt > {dirname}/results_{0}.stdout')
@@ -108,8 +110,9 @@ def main(params):
             print(params['runindexes'])
     os.chdir(get_disertatie_root())
     run_runs(params)
-    exit()
-    os.system("python -m src.collect_data --redo")
+    # exit()
+    if not params['noredo']:
+        os.system("python -m src.collect_data --redo")
     print()
     print(' * '.center(100, '='))
     print()
@@ -123,6 +126,7 @@ if __name__ == '__main__':
     nnodet = bool(parsedargs.nodet)
     params = {
         'nodet': nnodet,
+        'noredo': parsedargs.noredo,
         'runname': parsedargs.runname,
         'nruns': parsedargs.nruns,
         'commandargs':parsedargs.commandargs,

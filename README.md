@@ -110,13 +110,21 @@ Novelty stage > Evolution stage > Annealing stage
 https://github.com/CodeReclaimers/neat-python
 https://github.com/marcovirgolin/GP-GOMEA
 
+#### Observations/Takeaways
+
+* `eaOnePlusLambdaLambda` - allow fitness-neutral improvements, otherwise you'll never leave the starting genotype
+* Most final solutions of a run have a lot of neurons which are unused
+  * So set the starting genotype not as the simplest possible, but the simplest given the problem at hand (i.e. We need movement -> a solution will have at least 2 bones and some neurons) 
+  * [ ] TODO: Add some guards so you can't use the neuron initial genotype when the simulator has maxnumneuros = 0
+
 #### TODO
 
 _Roughly ordered by difficulty/impact_
 
 * [ ] Add an annealing step at the end, where only neurons are modified (weights with p=0.9, add/remove with p=0.1)
 * [ ] Self-adaptive EA (aka. store the strategy parameters, such as the mutation step sizes, as part of individuals)
-* [ ] Implement Self-adaptive (1 + (λ, λ))
+* [x] Implement Self-adaptive (1 + (λ, λ))
+* [x] Random init
 * [ ] Compute % of time spent in stagnation, for each algorithm
 * [ ] Alter the mutation/selection:
 	* [ ] Mutation: Adding a part is 0.1, removing is 0.15, modifying is rest (overall body mutation=0.3, neuromutation=0.7)
@@ -570,9 +578,16 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 	- This doesn't help me
 
 [^feasible-infeasible]: [On a Feasible–Infeasible Two-Population (FI-2Pop) genetic algorithm for constrained optimization: Distance tracing and no free lunch](https://faculty.wharton.upenn.edu/wp-content/uploads/2013/03/genetic-algorithm-for-constrained-optimization_1.pdf) (Oct 2008, EJOR)
-	- #tosee
 	- For Constraint Satisfaction Problems (ILP, etc)
 	- The key to our approach is the following. Conventionally, we select feasible individuals with the goal of increasing payoff, while disregarding potential constraint violations. Unconventionally, we select infeasible individuals with the goal of repairing them, while disregarding potential payoffs.
+	-- #idea: infeasible solutions are not removed, but they instead inherit 1/2 of their parents fitness mean. This way infeasible solutions are penalized, but they can be fixed in the next generations  
+	- to see if framsticks supports mutating infeasible solutions  
+	- The paper by  Kimbrough et al. (2004a) presents a detailed case study of a good success in which no feasible solutions were found until after more than 2500 generations  
+	- the paper relies on infeasible solutions having degrees of infeasibility 
+	-  #advice**Infeasible solutions count towards evals in Framsticks**
+	- #idea count infeasible solutions per run  
+	- #todo see if crossover / mutation is prone to breaking neuron links, since a change can reorder the nodes (i dont think it breaks, since framsticks handles it, but idk)  
+	- #idea Not for competition, since GPU is required, but train a nn for getting genotype embeddings for distance?
 
 [^frams-ski]: [Evolving free-form stick ski jumpers and their neural control systems](https://www.framsticks.com/files/common/Komosinski_Polak_EvolvedSkiJumping.pdf) (2009, Polish GECCO)
 	-  #advice **The crossing over operator was not used** in this experiment; it is not particularly efficient when morphologies and control systems that are strongly coupled are evolved
