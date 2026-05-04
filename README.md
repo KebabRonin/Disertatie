@@ -377,87 +377,65 @@ Fitness functions examples (included in the Competition example):
 
 |idx.|std       |mean      |median    |max       |overtime  |name      |comment   |
 |----|----------|----------|----------|----------|----------|----------|----------|
-|  1.|  83.55977| 270.61985|**287.27300**| 417.56500|`(0/20)`|convection_AdaptMutF0pop500||
-|  2.| 120.81813|**289.86785**| 275.52600| 529.32700|`(0/20)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr19_nisl6_pmut085_pops465_pxov03_tour7||
-|  3.| 125.82745| 283.17560| 272.94300|**595.53200**|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr24_nisl6_pmut098_pops495_pxov0115_tour3|Steady increase, greater spikes in first generations|
-|  4.|  79.87178| 285.36440| 272.86650| 528.28200|`(0/20)`|AdaptMutF0|Intermittent drops in fitness are soft restarts, stagnation is hard to notice (if it exists at all)|
-|  5.|  94.69579| 237.20980| 263.34450| 430.82200|`(0/20)`|AdaptMutF0initialgenotype0_f0_neurons|Almost instant fitness increase, no prolonged warmup time, but more stagnant overall ( #idea maybe use the genotype to init population, but for replacement mutation still use the X genotype)|
-|  6.|  75.62944| 245.00700| 258.95100| 379.95700|`(0/20)`|convection_eaSimpleF1||
-|  7.|  45.08143| 256.26170| 251.66100| 344.25600|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr21_nisl6_pmut071_pops465_pxov0275_tour7||
-|  8.|  99.18738| 266.63089| 249.66900| 486.33400|`(0/20)`|AdaptMutF0pmut08pop25|Way more jittery|
-|  9.| 102.88860| 249.01476| 243.49050| 509.24100|`(0/20)`|AdaptMutF0pmut08added_indrandom||
-| 10.|  76.19516| 252.28110| 238.67850| 400.73700|`(0/20)`|no_det_nodet_convection_AdaptMutF0pop500|Steady-ish progress|
-| 11.|  83.07671| 240.69130| 237.80850| 469.03600|`(0/20)`|AdaptMutF0initialgenotype0_f0_basic2|Slightly more prone to break good solutions|
-| 12.|  76.41129| 237.25845| 237.04800| 408.54700|`(0/20)`|convection_eaSimpleF1pmut08||
-| 13.| 110.93452| 234.14576| 235.27100| 543.96200|`(0/20)`|AdaptMutF0pmut08|Long periods of stagnation, with little drops but no improvements|
-| 14.|  76.20256| 237.87615| 233.75750| 375.80300|`(0/20)`|convection_eaSimpleF0||
-| 15.|  68.06847| 243.16535| 233.65450| 381.50200|`(0/20)`|convection_AdaptMutF0||
-| 16.|  80.11475| 209.76748| 224.81550| 415.27300|`(0/20)`|no_det_nodet_AdaptMutF0pmut08|More consistently gets better results|
-| 17.|  65.07585| 218.12545| 224.04450| 351.91400|`(0/20)`|convection_AdaptMutF1pmut08||
-| 18.|  61.89369| 227.00630| 222.91400| 383.42600|`(0/20)`|convection_eaSimpleF0pmut08||
-| 19.|  99.34002| 228.31046| 222.26500| 444.28900|`(0/20)`|no_det_nodet_convection_eaSimpleF1pop100|A couple of moderate jumps, but long periods with no improvement|
-| 20.|  76.60084| 228.22349| 219.10850| 437.91500|`(0/20)`|convection_AdaptMutF1pop100xmut_enabled0||
-| 21.|  66.50227| 233.40955| 218.69150| 436.75800|`(0/20)`|convection_AdaptMutF0xmut_enabled0||
-| 22.|  73.85333| 223.47885| 215.32750| 350.03900|`(0/20)`|convection_eaSimpleF1pop200||
-| 23.| 122.67286| 248.97780| 211.05800| 580.27500|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr23_nisl5_pmut074_pops465_pxov0295_tour7||
-| 24.| 110.34577| 235.89450| 210.62450| 558.28300|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr18_nisl3_pmut05700000000000001_pops410_pxov041500000000000004_tour7||
-| 25.|  82.98468| 222.51854| 206.76750| 415.99400|`(0/20)`|AdaptMutF0pmut08pop100|More stable, but slow, small improvement|
-| 26.|  61.87346| 213.96295| 206.66400| 365.82300|`(0/20)`|convection_AdaptMutF1||
-| 27.|  57.18818| 213.65675| 206.53200| 378.89500|`(0/20)`|convection_AdaptMutF0pmut08||
-| 28.|  72.61134| 226.32945| 206.06100| 363.00300|`(0/20)`|convection_AdaptMutF1pmut08xmut_enabled0||
-| 29.|  50.34269| 198.82950| 196.75200| 289.71000|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XXneurons_islabestToWorst_migr22_nisl20_pmut0655_pops440_pxov047500000000000003_tour5||
-| 30.| 111.40678| 207.12883| 193.75100| 532.74400|`(0/20)`|convection_eaSimpleF1pop100||
-| 31.|  55.63186| 207.42730| 193.13900| 333.87500|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr24_nisl5_pmut0735_pops460_pxov03_tour7||
-| 32.|  68.95538| 222.61520| 192.88100| 323.21800|`(0/20)`|convection_eaSimpleF1pmut07||
-| 33.| 105.09188| 205.27519| 192.79650| 554.37200|`(0/20)`|no_det_nodet_AdaptMutF0|Strangely stable with frequent small jitter, but lower fitness overall|
-| 34.|  87.30806| 226.05770| 189.55650| 447.52000|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr30_nisl7_pmut0855_pops425_pxov027_tour3||
-| 35.|  50.96380| 196.63790| 187.82050| 285.83900|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr25_nisl4_pmut0765_pops500_pxov089_tour12||
-| 36.|  68.90135| 198.14890| 185.83250| 310.82700|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr23_nisl6_pmut0975_pops495_pxov011_tour3|Steady improvement|
-| 37.|  40.83007| 190.73325| 182.97050| 309.40200|`(0/20)`|NEAT_speciationF0pop200nislands15|More stagnant ( #advice maybe less generations per run, not enough time for species to mature)|
-| 38.|  57.04898| 189.49424| 180.27850| 303.23000|`(0/20)`|NEAT_speciationF0dissimPHENESTRUCTGREEDY|A bit more stable than the default|
-| 39.|  73.95906| 189.64228| 177.21600| 390.06700|`(0/20)`|convection_eaSimpleF1pmut08pop100||
-| 40.|  73.01028| 193.69287| 174.94050| 324.67000|`(0/20)`|NEAT_speciationF0|Good initial growth, decent jitter, steady increase|
-| 41.|  80.20317| 198.37750| 174.87850| 379.49800|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr44_nisl7_pmut0965_pops465_pxov002_tour2||
-| 42.|  93.26182| 206.14497| 168.68200| 410.86000|`(0/20)`|NEAT_speciationF0pop100|Big potential for spikes, but can also get stuck in stagnation|
-| 43.|  60.30816| 163.28717| 166.47900| 334.73300|`(0/20)`|NEAT_speciationF0pop100nislands5|Noticeably lower fitness overall, more stable and slow-ish increase|
-| 44.|  61.32771| 169.08129| 159.87450| 274.47900|`(0/20)`|NEAT_speciationF0nislands5|Steady spikes overall, but prone to long periods of stagnation|
-| 45.|  62.84837| 172.29113| 157.24650| 318.19800|`(20/20)`|NEAT_speciationF1dissimPHENESTRUCTGREEDY|More moderate spikes over entire run, better progress in some runs, but still plateaus in first quarter pretty frequently|
-| 46.|  85.51423| 179.28712| 154.63700| 373.58200|`(0/10)`|rn_evalfn3_eaMuCommaLambda_algoeaMuCommaLambda_genf0_initf0XX_lbda500_pmut0635_pops500_pxov0365_tour6||
-| 47.|  63.03672| 158.54638| 154.61500| 315.77500|`(0/20)`|NEAT_speciationF1nislands5|Gets 1 big spike then plateaus/stagnates mostly|
-| 48.|  75.91908| 175.99690| 151.50400| 331.23400|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf1_initf1XX_islabestToWorst_migr24_nisl5_pmut08_pops410_pxov0595_tour6||
-| 49.|  86.04574| 181.19127| 150.70550| 349.12000|`(0/20)`|AdaptMutF1initialgenotypeXX|A bit more unpredictable than the basic version, but still big stagnation|
-| 50.|  61.58722| 129.18333| 147.07950| 221.11400|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_lbda500_pmut08099999999999999_pops500_pxov019000000000000006_tour5||
-| 51.|  97.42668| 171.55590| 146.49150| 406.93200|`(0/20)`|eaSimpleF0|Very slow/stagnation in second half, but good enough growth in the first half|
-| 52.|  46.01961| 153.61436| 144.87000| 253.04200|`(0/10)`|rn_evalfn3_AdaptMut_algoAdaptMut_genf0_pmut0535_pops435_pxov048_tour4_xmut0||
-| 53.|  45.91179| 145.26954| 144.85750| 230.89800|`(0/20)`|eaMuPlusLambdaF0pmut08lbda100|Larger and generally more early spikes compared to Comma, but still stagnation|
-| 54.| 102.29949| 158.55645| 140.20150| 441.26800|`(0/20)`|AdaptMutF1|BIG STAGNATION in the second half, and in general|
-| 55.|  42.67774| 142.36872| 132.55850| 262.88300|`(0/20)`|eaSimpleF0initialgenotype0_f0_basic2|Jumps in first third and one more moderate jump at 2/3|
-| 56.|  67.68371| 145.57736| 131.59850| 260.21800|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr1_nisl14_pmut10_pops495_pxov03_tour7|Pretty slow start, ~2 spikes in second half|
-| 57.|  71.88942| 130.98950| 126.90950| 342.90200|`(0/20)`|eaSimpleF0initialgenotype0_f0_neurons|Faster initial growth, but less diversity I think (it tends to stagnate and has stable results (aka most runs arrive in the same fitness ballbark))|
-| 58.|  97.49192| 147.39023| 123.26300| 383.96800|`(0/20)`|AdaptMutF1initialgenotypeXXGGpartTSN|Less 'almost instant' fitness improvement, still stagnation|
-| 59.|  46.16849| 140.86175| 122.53750| 224.99800|`(0/20)`|eaMuCommaLambdaF0pmut08lbda100|Kinda hillclimber, but it can go down|
-| 60.|  47.05908| 116.59629| 119.23650| 242.66000|`(0/20)`|eaOnePlusLambdaLambdaF0pop1initialgenotype0||
-| 61.|  46.51430| 120.22287| 112.46950| 224.62600|`(0/20)`|eaMuCommaLambdaF0pmut08lbda350|Very slow warmup (eval budget go brrr)|
-| 62.|  68.52382| 129.94296| 109.77900| 332.84800|`(0/20)`|eaSimpleF0pmut08|Spikes happen later|
-| 63.|  72.13336| 122.41123| 105.47150| 293.15400|`(0/20)`|NEAT_speciationF1|Way lower increases per spike than f0|
-| 64.|  50.13103| 119.74849| 104.49100| 245.62800|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_initf0XX_lbda500_pmut084_pops365_pxov016000000000000003_tour10||
-| 65.|  71.52893| 126.27572|  95.65995| 321.39800|`(0/20)`|AdaptMutF1pmut08|Stagnation|
-| 66.|  45.07542| 100.32251|  94.20590| 204.39900|`(0/20)`|eaSimpleF1initialgenotypeXX|Even bigger stagnation|
-| 67.|  58.26179|  94.44432|  91.13255| 251.47300|`(0/20)`|eaSimpleF1pmut08|Not much difference with default pmut|
-| 68.|  66.95189| 122.10886|  89.82540| 279.38800|`(0/20)`|eaMuPlusLambdaF0pmut08lbda350|Disappointingly slow and steady, Comma looked better wrt. jitter|
-| 69.|  46.52943|  87.73373|  78.88120| 186.71600|`(0/20)`|eaSimpleF1|Lower fitness, big stagnation|
-| 70.|  39.10576|  81.30353|  77.50035| 176.81000|`(0/20)`|no_det_nodet_eaSimpleF1|Struggles to clear 100, big stagnation|
-| 71.|  53.30151|  89.18116|  73.74875| 222.89700|`(20/20)`|NEAT_speciationF1pop100nislands5|Struggles to clear 100, low fitness|
-| 72.|  42.89914|  73.12026|  67.67320| 204.55300|`(0/20)`|eaSimpleF1initialgenotypeXXGGpartTSN|Even BIGGER stagnation, not faster initial growth|
-| 73.|  47.04598|  74.61855|  66.99510| 194.15300|`(0/20)`|NEAT_speciationF1dissimGENELEVENSHTEIN|Struggles to clear 100 fitness|
-| 74.|  29.02296|  64.12219|  61.02105| 141.53600|`(0/20)`|eaMuCommaLambdaF1pmut08lbda350|Struggling very much, but much better than lbda100|
-| 75.|  56.08614|  60.04540|  57.69920| 226.25700|`(0/20)`|eaMuPlusLambdaF1pmut08lbda100|Infrequent jumps, low fitness|
-| 76.|  49.55113|  53.89931|  42.86660| 224.64700|`(0/20)`|eaMuCommaLambdaF1pmut08lbda100|Very bad ( #idea the F1 mutation/xover operators are weaker than F0)|
-| 77.|  33.83895|  39.37166|  19.75955| 126.18800|`(0/20)`|eaMuPlusLambdaF1pmut08lbda350|Even lower fitness, for some reason it struggles to get over 50 fitness|
-| 78.|  27.95409|  26.19581|  13.71005|  86.35990|`(20/20)`|NEAT_speciationF1dissimPHENEDENSITYFREQ|Gets close to 100 fitness, gets ~5000 evals before stopping|
-| 79.|  17.11060|  13.11953|   4.41728|  63.76950|`(20/20)`|NEAT_speciationF1dissimPHENEDENSITYCOUNT|Struggles to clear 50 fitness, gets ~1000 evals before stopping|
-| 80.|  25.35968|  11.21698|   3.47358| 119.45800|`(20/20)`|NEAT_speciationF1dissimPHENEDESCRIPTORS|Struggles to clear 20 fitness, gets ~200 evals before stopping|
-| 81.|   0.00000|   0.00000|   0.00000|   0.00000|`(0/10)`|rn_evalfn3_eaOnePlusLambdaLambda_algoeaOnePlusLambdaLambda_genf1_pmut067_pops1_pxov0275||
+|  1.| 136.24328| 275.38059|**282.51000**| 521.60900|`(0/10)`|AdaptMutF0pmut08pop100initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
+|  2.|  79.87178| 285.36440| 272.86650| 528.28200|`(0/20)`|AdaptMutF0|Intermittent drops in fitness are soft restarts, stagnation is hard to notice (if it exists at all)|
+|  3.|  96.69836|**296.45600**| 266.98850| 518.02800|`(0/10)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandom||
+|  4.|  94.69579| 237.20980| 263.34450| 430.82200|`(0/20)`|AdaptMutF0initialgenotype0_f0_neurons|Almost instant fitness increase, no prolonged warmup time, but more stagnant overall ( #idea maybe use the genotype to init population, but for replacement mutation still use the X genotype)|
+|  5.|  99.18738| 266.63089| 249.66900| 486.33400|`(0/20)`|AdaptMutF0pmut08pop25|Way more jittery|
+|  6.| 102.88860| 249.01476| 243.49050| 509.24100|`(0/20)`|AdaptMutF0pmut08added_indrandom||
+|  7.|  88.12868| 229.04553| 240.24650| 337.70500|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_pmut07_pops135_pxov0015_tour5_xmut0||
+|  8.|  83.07671| 240.69130| 237.80850| 469.03600|`(0/20)`|AdaptMutF0initialgenotype0_f0_basic2|Slightly more prone to break good solutions|
+|  9.|  76.59244| 250.90370| 237.16500| 398.75500|`(0/20)`|no_det_nodet_convection_AdaptMutF0pop500|Steady-ish progress|
+| 10.| 110.93452| 234.14576| 235.27100| 543.96200|`(0/20)`|AdaptMutF0pmut08|Long periods of stagnation, with little drops but no improvements|
+| 11.|  80.11475| 209.76748| 224.81550| 415.27300|`(0/20)`|no_det_nodet_AdaptMutF0pmut08|More consistently gets better results|
+| 12.|  98.79815| 226.00597| 220.31450| 444.28900|`(0/20)`|no_det_nodet_convection_eaSimpleF1pop100|A couple of moderate jumps, but long periods with no improvement|
+| 13.|  74.61531| 238.77660| 215.04150| 363.58400|`(0/10)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_pmut06849999999999999_pops25_pxov041000000000000003_tour12_xmut0||
+| 14.|  82.98468| 222.51854| 206.76750| 415.99400|`(0/20)`|AdaptMutF0pmut08pop100|More stable, but slow, small improvement|
+| 15.| 105.09188| 205.27519| 192.79650|**554.37200**|`(0/20)`|no_det_nodet_AdaptMutF0|Strangely stable with frequent small jitter, but lower fitness overall|
+| 16.|  42.74749| 176.14970| 186.08450| 245.84500|`(0/10)`|rn_evalfn3_eaSimple_algoeaSimple_genf0_pmut0615_pops33_pxov0015_tour3||
+| 17.|  40.83007| 190.73325| 182.97050| 309.40200|`(0/20)`|NEAT_speciationF0pop200nislands15|More stagnant ( #advice maybe less generations per run, not enough time for species to mature)|
+| 18.|  57.04898| 189.49424| 180.27850| 303.23000|`(0/20)`|NEAT_speciationF0dissimPHENESTRUCTGREEDY|A bit more stable than the default|
+| 19.|  73.01028| 193.69287| 174.94050| 324.67000|`(0/20)`|NEAT_speciationF0|Good initial growth, decent jitter, steady increase|
+| 20.|  93.26182| 206.14497| 168.68200| 410.86000|`(0/20)`|NEAT_speciationF0pop100|Big potential for spikes, but can also get stuck in stagnation|
+| 21.|  60.30816| 163.28717| 166.47900| 334.73300|`(0/20)`|NEAT_speciationF0pop100nislands5|Noticeably lower fitness overall, more stable and slow-ish increase|
+| 22.|  61.32771| 169.08129| 159.87450| 274.47900|`(0/20)`|NEAT_speciationF0nislands5|Steady spikes overall, but prone to long periods of stagnation|
+| 23.|  62.84837| 172.29113| 157.24650| 318.19800|`(3/20)`|NEAT_speciationF1dissimPHENESTRUCTGREEDY|More moderate spikes over entire run, better progress in some runs, but still plateaus in first quarter pretty frequently|
+| 24.|  74.73547| 167.46403| 155.23850| 357.24000|`(0/20)`|NEAT_speciationF0dissimFITNESS||
+| 25.|  85.51423| 179.28712| 154.63700| 373.58200|`(0/10)`|rn_evalfn3_eaMuCommaLambda_algoeaMuCommaLambda_genf0_initf0XX_lbda500_pmut0635_pops500_pxov0365_tour6||
+| 26.|  63.03672| 158.54638| 154.61500| 315.77500|`(1/20)`|NEAT_speciationF1nislands5|Gets 1 big spike then plateaus/stagnates mostly|
+| 27.|  86.04574| 181.19127| 150.70550| 349.12000|`(0/20)`|AdaptMutF1initialgenotypeXX|A bit more unpredictable than the basic version, but still big stagnation|
+| 28.|  61.58722| 129.18333| 147.07950| 221.11400|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_lbda500_pmut08099999999999999_pops500_pxov019000000000000006_tour5||
+| 29.|  97.42668| 171.55590| 146.49150| 406.93200|`(0/20)`|eaSimpleF0|Very slow/stagnation in second half, but good enough growth in the first half|
+| 30.|  46.01961| 153.61436| 144.87000| 253.04200|`(0/10)`|rn_evalfn3_AdaptMut_algoAdaptMut_genf0_pmut0535_pops435_pxov048_tour4_xmut0||
+| 31.|  45.91179| 145.26954| 144.85750| 230.89800|`(0/20)`|eaMuPlusLambdaF0pmut08lbda100|Larger and generally more early spikes compared to Comma, but still stagnation|
+| 32.| 102.29949| 158.55645| 140.20150| 441.26800|`(0/20)`|AdaptMutF1|BIG STAGNATION in the second half, and in general|
+| 33.|  64.57591| 121.83612| 138.47600| 197.28800|`(0/10)`|rn_evalfn3_eaSimple_algoeaSimple_genf0_pmut0325_pops111_pxov004_tour9||
+| 34.|  42.67774| 142.36872| 132.55850| 262.88300|`(0/20)`|eaSimpleF0initialgenotype0_f0_basic2|Jumps in first third and one more moderate jump at 2/3|
+| 35.|  71.88942| 130.98950| 126.90950| 342.90200|`(0/20)`|eaSimpleF0initialgenotype0_f0_neurons|Faster initial growth, but less diversity I think (it tends to stagnate and has stable results (aka most runs arrive in the same fitness ballbark))|
+| 36.|  97.49192| 147.39023| 123.26300| 383.96800|`(0/20)`|AdaptMutF1initialgenotypeXXGGpartTSN|Less 'almost instant' fitness improvement, still stagnation|
+| 37.|  46.16849| 140.86175| 122.53750| 224.99800|`(0/20)`|eaMuCommaLambdaF0pmut08lbda100|Kinda hillclimber, but it can go down|
+| 38.|  47.05908| 116.59629| 119.23650| 242.66000|`(0/20)`|eaOnePlusLambdaLambdaF0pop1initialgenotype0||
+| 39.|  46.51430| 120.22287| 112.46950| 224.62600|`(0/20)`|eaMuCommaLambdaF0pmut08lbda350|Very slow warmup (eval budget go brrr)|
+| 40.|  68.52382| 129.94296| 109.77900| 332.84800|`(0/20)`|eaSimpleF0pmut08|Spikes happen later|
+| 41.|  72.13336| 122.41123| 105.47150| 293.15400|`(1/20)`|NEAT_speciationF1|Way lower increases per spike than f0|
+| 42.|  50.13103| 119.74849| 104.49100| 245.62800|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_initf0XX_lbda500_pmut084_pops365_pxov016000000000000003_tour10||
+| 43.|  71.52893| 126.27572|  95.65995| 321.39800|`(0/20)`|AdaptMutF1pmut08|Stagnation|
+| 44.|  45.07542| 100.32251|  94.20590| 204.39900|`(0/20)`|eaSimpleF1initialgenotypeXX|Even bigger stagnation|
+| 45.|  58.26179|  94.44432|  91.13255| 251.47300|`(0/20)`|eaSimpleF1pmut08|Not much difference with default pmut|
+| 46.|  66.95189| 122.10886|  89.82540| 279.38800|`(0/20)`|eaMuPlusLambdaF0pmut08lbda350|Disappointingly slow and steady, Comma looked better wrt. jitter|
+| 47.|  46.52943|  87.73373|  78.88120| 186.71600|`(0/20)`|eaSimpleF1|Lower fitness, big stagnation|
+| 48.|  39.10576|  81.30353|  77.50035| 176.81000|`(0/20)`|no_det_nodet_eaSimpleF1|Struggles to clear 100, big stagnation|
+| 49.|  53.30151|  89.18116|  73.74875| 222.89700|`(15/20)`|NEAT_speciationF1pop100nislands5|Struggles to clear 100, low fitness|
+| 50.|  42.89914|  73.12026|  67.67320| 204.55300|`(0/20)`|eaSimpleF1initialgenotypeXXGGpartTSN|Even BIGGER stagnation, not faster initial growth|
+| 51.|  47.04598|  74.61855|  66.99510| 194.15300|`(0/20)`|NEAT_speciationF1dissimGENELEVENSHTEIN|Struggles to clear 100 fitness|
+| 52.|  29.02296|  64.12219|  61.02105| 141.53600|`(0/20)`|eaMuCommaLambdaF1pmut08lbda350|Struggling very much, but much better than lbda100|
+| 53.|  56.08614|  60.04540|  57.69920| 226.25700|`(0/20)`|eaMuPlusLambdaF1pmut08lbda100|Infrequent jumps, low fitness|
+| 54.|  49.55113|  53.89931|  42.86660| 224.64700|`(0/20)`|eaMuCommaLambdaF1pmut08lbda100|Very bad ( #idea the F1 mutation/xover operators are weaker than F0)|
+| 55.|  33.83895|  39.37166|  19.75955| 126.18800|`(0/20)`|eaMuPlusLambdaF1pmut08lbda350|Even lower fitness, for some reason it struggles to get over 50 fitness|
+| 56.|  27.95409|  26.19581|  13.71005|  86.35990|`(20/20)`|NEAT_speciationF1dissimPHENEDENSITYFREQ|Gets close to 100 fitness, gets ~5000 evals before stopping|
+| 57.|  17.11060|  13.11953|   4.41728|  63.76950|`(20/20)`|NEAT_speciationF1dissimPHENEDENSITYCOUNT|Struggles to clear 50 fitness, gets ~1000 evals before stopping|
+| 58.|  25.35968|  11.21698|   3.47358| 119.45800|`(20/20)`|NEAT_speciationF1dissimPHENEDESCRIPTORS|Struggles to clear 20 fitness, gets ~200 evals before stopping|
+| 59.|   0.00000|   0.00000|   0.00000|   0.00000|`(0/10)`|rn_evalfn3_eaOnePlusLambdaLambda_algoeaOnePlusLambdaLambda_genf1_pmut067_pops1_pxov0275||
 
 ## Source Index
 

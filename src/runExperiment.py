@@ -1,3 +1,4 @@
+import random
 import argparse
 import os
 import sys
@@ -33,30 +34,38 @@ def frams_compute_crowding_distance(frams_lib, dissim_method, population: list[l
 	Should be called after evaluating the population, so we can compute the 'FITNESS' dissim method.
 	FIXME: CONTRADICTION: This is part of the fitness.
 	"""
-	if distance_matrix == None:
+	try:
+		crowding_idx_in_fitness = OPTIMIZATION_CRITERIA.index('crowding')
+	except ValueError:
+		# No crowding needed
+		return None
+	
+	if distance_matrix is None:
 		distance_matrix = frams_dissim(frams_lib, population, dissim_method)
-	# print(distance_matrix)
+	print(distance_matrix)
+
+	popaddrs = [id(geno) for geno in population]
 	for geno in population:
-		idx = population.index(geno)
-		print(geno, idx)
-		if geno[0]['evaluations'] is not None:
-				# Add the crowding distance as an evaluated fitness metric, if a dissim method was defined.
-				geno[0]['evaluations']['']['crowding'] = np.linalg.norm(distance_matrix[idx], ord=2)
+		idx = popaddrs.index(id(geno))
+		if geno.fitness.valid:
+				# Add the crowding distance as an evaluated fitness metric, if a dissim method was defined, by replacing the fitness altogether.
+				geno.fitness.values = tuple(np.linalg.norm(distance_matrix[idx], ord=2) / 1_000_000 if indx == crowding_idx_in_fitness else geno.fitness.values[indx] for indx in range(len(geno.fitness.values)))
 	return distance_matrix
 
 def frams_evaluate(frams_lib, individual, population=None, dissim_method=DissimMethod.GENE_LEVENSHTEIN):
 	FITNESS_CRITERIA_INFEASIBLE_SOLUTION = [FITNESS_VALUE_INFEASIBLE_SOLUTION] * len(OPTIMIZATION_CRITERIA)  # this special fitness value indicates that the solution should not be propagated via selection ("that genotype is invalid"). The floating point value is only used for compatibility with DEAP. If you implement your own optimization algorithm, instead of a negative value in this constant, use a special value like None to properly distinguish between feasible and infeasible solutions.
 	genotype = individual[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	data = frams_lib.evaluate([genotype])
-	if population:
-		# For crowding distance, 
-		frams_compute_crowding_distance(frams_lib, dissim_method, population)
+	# if population:
+	# 	# For crowding distance, 
+	# 	frams_compute_crowding_distance(frams_lib, dissim_method, population)
 	# print("{'genotype': \"" + genotype.replace('\n', '\\n') + "\", 'data': " + str(data) + "}", file=sys.stderr)
 	valid = True
 	try:
 		first_genotype_data = data[0]
 		evaluation_data = first_genotype_data["evaluations"]
 		default_evaluation_data = evaluation_data[""]
+		default_evaluation_data['crowding'] = 0.0 # Placeholder so crowding distance can be computed separately for each generation, without consuming an evaluation.
 		fitness = [default_evaluation_data[crit] for crit in OPTIMIZATION_CRITERIA]
 	except (KeyError, TypeError) as e:  # the evaluation may have failed for an invalid genotype (such as X[@][@] with "Don't simulate genotypes with warnings" option), or because the creature failed to stabilize, or for some other reason
 		valid = False
@@ -152,7 +161,6 @@ def selTournament_only_feasible(individuals, k, tournsize):
 		return tools.selTournament(individuals, k, tournsize=tournsize)
 	return tools.selTournament(feasible_individuals, k, tournsize=tournsize)
 
-
 def selNSGA2_only_feasible(individuals, k, toolboxclone):
 	feasible = select_feasible(individuals)
 	# tools.selNSGA2() is unfortunately unable to select more (k) from less (len(feasible)).
@@ -163,7 +171,6 @@ def selNSGA2_only_feasible(individuals, k, toolboxclone):
 		feasible = feasible + [toolboxclone(ind) for ind in feasible] # must copy (clone) individuals so we have independent instances in population, not multiple references to the same individuals
 	return tools.selNSGA2(feasible, k)
 
-
 def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_format, initial_genotype, dissim) -> base.Toolbox:
 	creator.create("FitnessMax", base.Fitness, weights=[1.0] * len(OPTIMIZATION_CRITERIA))
 	creator.create("Individual", list, fitness=creator.FitnessMax)  # would be nice to have "str" instead of unnecessary "list of str"
@@ -171,7 +178,12 @@ def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_fo
 	toolbox = base.Toolbox()
 	toolbox.register("attr_simplest_genotype", frams_getsimplest, frams_lib, genetic_format, initial_genotype)  # "Attribute generator"
 	toolbox.register("attr_random_genotype", frams_getrandomindividual, frams_lib, toolbox.attr_simplest_genotype())  # "Attribute generator"
-	toolbox.register("attr_random_genotype_with_initial", frams_getrandomindividual, frams_lib)  # "Attribute generator"
+	def attr_random_pop_from_genotype(frams_lib, init_geno, n):
+		pop = [tools.initRepeat(creator.Individual, lambda: frams_lib.getRandomGenotype(init_geno, 2, 100, 2, 100, random.randrange(0, 4), True), 1) for _ in range(n // 4)]
+		# Reinit with 1/4 best ind, 3/4 randoms.
+		return pop + [tools.initRepeat(creator.Individual, toolbox.attr_random_genotype, 1) for _ in range(n - len(pop))]
+
+	toolbox.register("attr_random_pop_from_genotype", attr_random_pop_from_genotype, frams_lib)  # "Attribute generator"
 	# (failed) struggle to have an individual which is a simple str, not a list of str
 	# toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_frams)
 	# https://stackoverflow.com/questions/51451815/python-deap-library-using-random-words-as-individuals
@@ -193,7 +205,7 @@ def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_fo
 	# 	toolbox.register("evaluate", frams_evaluate_with_crowding, frams_lib)
 	# else:
 	toolbox.register("evaluate", frams_evaluate, frams_lib)
-	toolbox.register("add_crowding_distance", frams_compute_crowding_distance, frams_lib)
+	toolbox.register("add_crowding_distance", frams_compute_crowding_distance, frams_lib, dissim)
 	toolbox.register("mate", frams_crossover, frams_lib)
 	toolbox.register("mutate", frams_mutate, frams_lib)
 	toolbox.register("dissimilarity", frams_dissim, frams_lib) # Open the door to dissimilarity-based methods. FIXME: Does this count as an evaluation? I hope not...
@@ -328,7 +340,7 @@ def main():
 				pop, log = adaptMut(
 							pop, toolbox,
 							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations, xmut_enabled=parsed_args.xmut_enabled,
-							# restart_method=parsed_args.restart_method, restart_patience=parsed_args.restart_patience,
+							restart_method=parsed_args.restart_method, restart_patience=parsed_args.restart_patience,
 							added_ind=parsed_args.added_ind,
 							stats=stats, halloffame=hof, verbose=True)
 			case "eaMuPlusLambda":
@@ -417,6 +429,8 @@ def main():
 				raise "Unknown algorithm"
 	except EOFError:
 		# Algorithm ended
+		pass
+	except KeyboardInterrupt:
 		pass
 	print('Best individuals:')
 	for ind in hof:

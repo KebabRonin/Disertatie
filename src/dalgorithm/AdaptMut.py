@@ -58,8 +58,9 @@ def varAnd(population, toolbox, cxpb, mutpb, mutstrength, xmut_enabled, added_in
 
     return offspring
 
-def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind, stats=None,
-             halloffame=None, verbose=__debug__):
+def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
+            restart_patience=15, restart_method='none',
+            stats=None, halloffame=None, verbose=__debug__):
     """
     Taken from deap, adapted for adaptMut
     """
@@ -85,26 +86,27 @@ def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind, st
 
     # Begin the generational process
     for gen in range(1, ngen + 1):
+        # Compute crowding distance for the current population.
+        toolbox.add_crowding_distance(population)
         # Select the next generation individuals
         offspring = toolbox.select(population, len(population))
-
+        if len(offspring[0].fitness.values) > 1:
+            print(f"======== Generation {gen} Chosed:")
+            for p in offspring:
+                print(f"{float(p.fitness.values[0]):10.5f} {float(p.fitness.values[1]):10.5f} | {str(p)[:40]}")
         # Vary the pool of individuals
         offspring = varAnd(offspring, toolbox, cxpb, mutpb, mutationStrength, xmut_enabled, added_ind=added_ind)
 
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
-        maxFit = float('-inf')
+
+        maxFit = (float('-inf'), '')
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
-            maxFit = max(maxFit, fit[0])
+            if fit[0] > maxFit[0]:
+                maxFit = (fit[0], toolbox.clone(ind))
         maxFits.append(maxFit)
-
-        if len(maxFits) > 4 and np.abs(maxFit - maxFits[-5]) < 0.01 * maxFits[-5]:
-            mutationStrength *= 1.1
-        else:
-            mutationStrength *= 0.9
-        mutationStrength = float(np.clip(mutationStrength, 1.0, 5.0))
 
         # Update the hall of fame with the generated individuals
         if halloffame is not None:
@@ -118,5 +120,50 @@ def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind, st
         logbook.record(gen=gen, nevals=len(invalid_ind), **record)
         if verbose:
             print(logbook.stream)
+
+        if len(maxFits) > 4:
+            bestFitPast = maxFits[-5]
+            # bestFitPast = sorted(maxFits[-5:], key=lambda x: x[0], reverse=True)[0]
+            if maxFit[0] - bestFitPast[0] < 0.01 * bestFitPast[0]:
+                mutationStrength *= 1.1
+            else:
+                mutationStrength *= 0.9
+            mutationStrength = float(np.clip(mutationStrength, 1.0, 5.0))
+            print("New mutation strength:", mutationStrength)
+
+        if restart_method != 'none' and len(maxFits) >= restart_patience:
+            consider_interval = maxFits[-restart_patience:-1]
+            bestFitPast = sorted(consider_interval, key=lambda x: x[0], reverse=True)[0]
+            ind = consider_interval.index(bestFitPast)
+            for mf in consider_interval:
+                print(f"({mf[0]:10.5f})")
+            print(len(consider_interval))
+            print(f"{maxFits[-1][0]} <= {bestFitPast[0]} and {ind} == {restart_patience}")
+            # bestFitPast = maxFits[-restart_patience:]
+            if maxFits[-1][0] <= bestFitPast[0] and ind == 0:
+                print(maxFits[-1][0], '<=', bestFitPast[0], ', doing a restart...')
+                if restart_method == 'soft_perturb_best':
+                    print("Restarting soft_perturb_best after", restart_patience, "gens with no improvement.")
+                    population = toolbox.attr_random_pop_from_genotype(bestFitPast[1][0], len(population))
+                elif restart_method == 'hard':
+                    print("Restarting hard after", restart_patience, "gens with no improvement.")
+                    population = toolbox.population(n=len(population))
+                
+                # Evaluate the individuals with an invalid fitness
+                invalid_ind = [ind for ind in population if not ind.fitness.valid]
+                fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+                for ind, fit in zip(invalid_ind, fitnesses):
+                    print(ind)
+                    ind.fitness.values = fit
+
+                if halloffame is not None:
+                    halloffame.update(population)
+
+                record = stats.compile(population) if stats else {}
+                logbook.record(gen=f"{gen}.restarting", nevals=len(invalid_ind), **record)
+                if verbose:
+                    print(logbook.stream)
+                
+                maxFits = []
 
     return population, logbook

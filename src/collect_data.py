@@ -86,6 +86,8 @@ def parse_algo_params(name: str):
     pp = re.findall(PARAM_PATT, parstr)
     for g in pp:
         params[g[0]] = g[1]
+    if 'population_initialization' in params:
+        params.pop('population_initialization')
     return params
 
 PARAM_PATT = re.compile(r'\b([\w0-9]+)=([\w0-9_\-\n \/.;:]+)')
@@ -96,7 +98,7 @@ def get_algo_params(name):
             'run_end': os.stat(os.path.join(EXPERIMENTS_PATH, name['runname'], f'results_{name['runidx']}.stdout')).st_ctime,
             'generations': int(name['generations']),
             'nonevalTime': None if name['nonevalTime'] is None else float(name['nonevalTime']),
-            'totalevals': float(name['totalevals']),
+            'totalevals': int(name['totalevals']),
             'evalTime': float(name['evalTime']),
         }
 
