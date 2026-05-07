@@ -97,61 +97,13 @@ runs_cfgs = [
         'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
         'genformat': 0, # [0, 1],
         'pmut': 0.8, # [None, 0.8, 0.5],
-        'pop': 100, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' -numworkers 10 -nruns 10 -continuerun ', # -nodet 1
-        'extra_cargs': f' -initialgenotype random -added_ind random -dissim PHENE_STRUCT_GREEDY -restart_method soft_perturb_best -restart_patience 10', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ', -dissim FITNESS -opt COGpath,vertpos 
-        'nameSuffix': '',
-        'namePrefix': '',
-    },
-    {
-        'convection': False, #[None, 'convection_'],
-        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-        'genformat': 0, # [0, 1],
-        'pmut': 0.8, # [None, 0.8, 0.5],
-        'pop': None, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' -numworkers 10 -nruns 10 -continuerun ', # -nodet 1
-        'extra_cargs': f' -initialgenotype random -added_ind random ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ', -dissim FITNESS -opt COGpath,vertpos 
-        'nameSuffix': '',
-        'namePrefix': '',
-    },
-    {
-        'convection': False, #[None, 'convection_'],
-        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-        'genformat': 0, # [0, 1],
-        'pmut': 0.8, # [None, 0.8, 0.5],
-        'pop': None, # [None, 100, 500],
+        'pop': 30, # [None, 100, 500],
         'lbda': None, # [100, 350]
         'extra': ' -numworkers 10 -nruns 20 ', # -nodet 1
         'extra_cargs': f' -initialgenotype random -added_ind random -dissim PHENE_STRUCT_GREEDY -restart_method soft_perturb_best -restart_patience 10', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ', -dissim FITNESS -opt COGpath,vertpos 
         'nameSuffix': '',
         'namePrefix': '',
     },
-    {
-        'convection': False, #[None, 'convection_'],
-        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-        'genformat': 0, # [0, 1],
-        'pmut': 0.8, # [None, 0.8, 0.5],
-        'pop': 250, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' -numworkers 10 -nruns 20 ', # -nodet 1
-        'extra_cargs': f' -initialgenotype random -added_ind random -dissim PHENE_STRUCT_GREEDY -restart_method soft_perturb_best -restart_patience 10', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ', -dissim FITNESS -opt COGpath,vertpos 
-        'nameSuffix': '',
-        'namePrefix': '',
-    },
-    # {
-    #     'convection': False, #[None, 'convection_'],
-    #     'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-    #     'genformat': 0, # [0, 1],
-    #     'pmut': 0.8, # [None, 0.8, 0.5],
-    #     'pop': None, # [None, 100, 500],
-    #     'lbda': None, # [100, 350]
-    #     'extra': ' -numworkers 10 -nruns 10 ', # -nodet 1
-    #     'extra_cargs': f' -initialgenotype random -added_ind random -dissim PHENE_STRUCT_GREEDY -restart_method soft_perturb_best -restart_patience 10', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ', -dissim FITNESS -opt COGpath,vertpos 
-    #     'nameSuffix': '',
-    #     'namePrefix': '',
-    # },
     ## TODO: Rerun the following in the weekend, when no other processes are running:
     # {
     #     'convection': None, #[None, 'convection_'],

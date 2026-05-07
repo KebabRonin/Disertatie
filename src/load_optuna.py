@@ -79,6 +79,9 @@ PARAM_DISTRIBUTIONS = {
   'xmut_enabled': optuna.distributions.CategoricalDistribution([0, 1]),
   # Lambda (eaMuPlusLambda, eaMuCommaLambda) parameters
   'lbda': optuna.distributions.IntDistribution(20, 500, step=5),
+  'restart_patience': optuna.distributions.IntDistribution(2, 100),
+  'restart_method': optuna.distributions.CategoricalDistribution(
+    ['none', 'hard', 'soft_perturb_best']),
 }
 
 DEFAULTS = {
@@ -179,6 +182,9 @@ def create_study_and_import(study: optuna.Study, algo_key: str, algo_data: dict)
     """Import a single algorithm's runs into Optuna as a study."""
     params = {} # copy.deepcopy(algo_data['params'])
     # Set the parameter values
+    if algo_data['params'].get('restart_method', None) == 'none' \
+        or algo_data['params'].get('restart_patience', None) == '100000000':
+      algo_data['params'].pop('restart_patience')
     print(algo_data['params'])
     for param_name in PARAM_DISTRIBUTIONS.keys():
       if param_name in ALGO_PARAMS[algo_data['params']['algorithm']]:

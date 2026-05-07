@@ -101,6 +101,7 @@ def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
 
+        # Only takes into account newly generated individuals. Old folks who persisted unchanged don't contribute to the history.
         maxFit = (float('-inf'), '')
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
@@ -148,6 +149,8 @@ def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
                 elif restart_method == 'hard':
                     print("Restarting hard after", restart_patience, "gens with no improvement.")
                     population = toolbox.population(n=len(population))
+                else:
+                    raise "Unimplemented restart method: " + restart_method
                 
                 # Evaluate the individuals with an invalid fitness
                 invalid_ind = [ind for ind in population if not ind.fitness.valid]

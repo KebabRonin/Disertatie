@@ -1,9 +1,17 @@
 import random
 from deap import tools
-import math
+import math, numpy as np
 
-def annealer(population, toolbox, lbda, ngen, autolambda=True,
-                   stats=None, halloffame=None, verbose=__debug__):
+EPS = 1e-20
+def s_int(x):
+    """Stochastic rounding"""
+    a = math.floor(x)
+    b = a + 1
+    return (np.random.choice([a, b], p=[b - x, x - a]))
+
+def annealer(population, toolbox, ngen, adaptMut=True, temp_schedule='constant', #'exponential',
+            adaptMutPatience=15, temperature = 100, cooling_rate=0.9997,
+            stats=None, halloffame=None, verbose=__debug__):
     logbook = tools.Logbook()
     logbook.header = ['gen', 'nevals'] + (stats.fields if stats else [])
 
@@ -23,84 +31,62 @@ def annealer(population, toolbox, lbda, ngen, autolambda=True,
     if verbose:
         print(logbook.stream)
 
+    mutationStrength = 1.0
+    hist = [population[0].fitness.values]
     # Begin the generational process
     for gen in range(1, ngen + 1):
-        print('pop', population)
-        print(list(map(id, population)))
         # The population only has one individual, so just mutate it lambda times.
-        # toolbox.mutate()[0] because it returns a tuple with one element, so we need to unwrap the deap.Individual
-        offspring = []
-        for _ in range(int(math.floor(lbda))):
-            offspring1, = toolbox.mutate(toolbox.clone(population[0]))
-            del offspring1.fitness.values
-            offspring.append(offspring1)
-        assert len(offspring) == math.floor(lbda), f"{len(offspring)} != {math.floor(lbda)}"
-        # Evaluate the individuals with an invalid fitness
-        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
-        for ind, fit in zip(invalid_ind, fitnesses):
-            ind.fitness.values = fit
-        print('osmut', offspring)
-        print(list(map(id, offspring)))
 
-        record = stats.compile(offspring) if stats is not None else {}
+        actualMutations = s_int(mutationStrength)
+        for _ in range(actualMutations):
+            # toolbox.mutate()[0] because it returns a tuple with one element, so we need to unwrap the deap.Individual
+            offspring, = toolbox.mutate(toolbox.clone(population[0]))
+        del offspring.fitness.values
+        # Evaluate the individuals with an invalid fitness
+        try:
+            offspring.fitness.values = toolbox.evaluate(offspring)
+        except ValueError as e:
+            print("Error evaluating individual, invalid genotype. Retrying ")
+
+        record = stats.compile([offspring]) if stats is not None else {}
         logbook.record(gen=f"{gen}.mutate", nevals=len(invalid_ind), **record)
 
-        offspring.sort(key=lambda ind: ind.fitness.values, reverse=True)
-        best_mutated_offspring = offspring[0]
-
         # Update the hall of fame with the generated individuals
         if halloffame is not None:
-            halloffame.update(offspring)
+            halloffame.update([offspring])
 
-        # The population only has one individual, so just mutate it lambda times.
-        offspring = []
-        for _ in range(math.floor(lbda)):
-            if len(offspring) == math.floor(lbda):
-                break
-            assert len(offspring) < math.floor(lbda)
+        new_cost = offspring.fitness.values[0]
+        cost = population[0].fitness.values[0]
 
-            offspring1, offspring2 = toolbox.mate(toolbox.clone(population[0]), toolbox.clone(best_mutated_offspring))
-            del offspring1.fitness.values, offspring2.fitness.values
+        # Boltzman distribution probability
+        print("Bolzman threshold: ", math.exp((new_cost - cost) / (temperature + EPS)))
+        #Maybe based on the distance from the initial genotype to this one?
+        accept_new = new_cost > cost or math.exp((new_cost - cost) / (temperature + EPS)) > random.random()
 
-            if math.floor(lbda) - len(offspring) == 1:
-                offspring.append(random.choice([offspring1, offspring2]))
-            else:
-                offspring.append(offspring1)
-                offspring.append(offspring2)
+        if accept_new:
+            if not new_cost > cost:
+                print('wooo')
+            population[0] = offspring
 
-        # Evaluate the individuals with an invalid fitness
-        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
-        for ind, fit in zip(invalid_ind, fitnesses):
-            ind.fitness.values = fit
+        hist.append(population[0].fitness.values)
 
-        print('osmate', offspring)
-        print(list(map(id, offspring)))
-        record = stats.compile(offspring) if stats is not None else {}
-        logbook.record(gen=f"{gen}.mate", nevals=len(invalid_ind), **record)
+        if adaptMut:
+            if len(hist) > adaptMutPatience:
+                bestFitPast = hist[-adaptMutPatience]
+                if hist[0] - bestFitPast[0] < 0.01 * bestFitPast[0]:
+                    mutationStrength *= 1.1
+                else:
+                    mutationStrength *= 0.9
+                mutationStrength = float(np.clip(mutationStrength, 1.0, 5.0))
+                print("New mutation strength:", mutationStrength)
 
-        offspring.append(best_mutated_offspring) # !!!
-        offspring.sort(key=lambda ind: ind.fitness.values, reverse=True)
-        best_mated_offspring = offspring[0]
-
-        # Update the hall of fame with the generated individuals
-        if halloffame is not None:
-            halloffame.update(offspring)
-
-        if autolambda:
-            prev_lbda = lbda
-            if best_mated_offspring.fitness.values > population[0].fitness.values:
-                lbda = lbda / F
-            else:
-                lbda = lbda * (F ** (1/4))
-            print(f"[Autolambda] Updated lambda value to be {lbda} (was {prev_lbda})")
-            lbda = max(1, lbda)
-        print(f'Comparing {best_mated_offspring.fitness.values} with {population[0].fitness.values}')
-        # Allow fitness-neutral improvements, otherwise you'll never leave the starting genotype.
-        if best_mated_offspring.fitness.values >= population[0].fitness.values:
-            print(f'Fitness {best_mated_offspring.fitness.values} was better than {population[0].fitness.values}, replacing...')
-            population[0] = best_mated_offspring
+        # Update temp
+        if temp_schedule == 'exponential':
+            temperature = np.clip(temperature * cooling_rate, 0.01, 1.0)
+        elif temp_schedule == 'constant':
+            pass
+        else:
+            raise "Unimplemented temp_schedule: " + temp_schedule
 
         # Update the statistics with the new population
         record = stats.compile(population) if stats is not None else {}
@@ -108,3 +94,4 @@ def annealer(population, toolbox, lbda, ngen, autolambda=True,
         if verbose:
             print(logbook.stream)
 
+    return population, logbook

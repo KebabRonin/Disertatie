@@ -231,7 +231,7 @@ def parseArguments():
 
 	parser.add_argument('-algorithm', required=True, choices=[
 		'eaSimple', 'eaOnePlusLambdaLambda', 'eaMuPlusLambda', 'eaMuCommaLambda',
-		'AdaptMut', 'convection_AdaptMut', 'convection_eaSimple',
+		'AdaptMut', 'convection_AdaptMut', 'convection_eaSimple', 'Annealer',
 		'NEAT_speciation'], help='The algorithm used in the run.')
 	parser.add_argument('-nislands', type=int, default=10, help="Number of islands (only for convection), default: 10.")
 	parser.add_argument('-island_eval_order', type=str, default='worstToBest', help="Order in which to evaluate islands (only for convection), could lead to minor performance boost for the last generation only, default: worstToBest")
@@ -318,11 +318,9 @@ def main():
 	hof = tools.HallOfFame(parsed_args.hof_size)
 	stats = tools.Statistics(lambda ind: ind.fitness.values)
 	# calculate statistics excluding infeasible solutions (by filtering out those with fitness containing FITNESS_VALUE_INFEASIBLE_SOLUTION)
-	filter_feasible_for_function = lambda function, fitness_criteria: (
-		function(list(filter(is_feasible_fitness_criteria, fitness_criteria)))
-		if any(is_feasible_fitness_criteria(fc) for fc in fitness_criteria)
-		else float('nan')
-	)
+	def filter_feasible_for_function(function, fitness_criteria):
+		filtered = list(filter(is_feasible_fitness_criteria, fitness_criteria))
+		return function(filtered) if len(filtered) > 0 else float('nan')
 	stats.register("avg", lambda fitness_criteria: filter_feasible_for_function(np.mean, fitness_criteria))
 	stats.register("stddev", lambda fitness_criteria: filter_feasible_for_function(np.std, fitness_criteria))
 	stats.register("min", lambda fitness_criteria: filter_feasible_for_function(np.min, fitness_criteria))
@@ -366,6 +364,15 @@ def main():
 				pop, log = algorithms.eaSimple(
 							pop, toolbox,
 							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations,
+							stats=stats, halloffame=hof, verbose=True)
+			case "Annealer":
+				print('Annealer')
+				from .dalgorithm import Annealer
+				pop, log = Annealer.annealer(
+							pop, toolbox,
+							ngen=parsed_args.generations,
+							adaptMut=parsed_args.xmut_enabled,
+							# adaptMutPatience=parsed_args.restart_patience,
 							stats=stats, halloffame=hof, verbose=True)
 			case "convection_eaSimple":
 				print('cv_ea')

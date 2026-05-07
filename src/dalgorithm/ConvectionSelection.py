@@ -82,7 +82,7 @@ def convectionSelection(population, toolbox, ngen, algo,
         # Perform R generations for each island
         for p in island_eval_order(len(populations)):
             print('starting island ', p)
-            new_pop, _logbook = algo(populations[p], toolbox, generations=reconvene_gen_interval,
+            new_pop, _logbook = algo(populations[p], toolbox, generations=reconvene_gen_interval, stats=stats,
                     halloffame=halloffame, verbose=verbose,)
                     # all_pops=populations, current_pop_index=p,) # In case some algo can impact other subpopulations
             populations[p] = new_pop

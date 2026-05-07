@@ -111,8 +111,8 @@ def main(params):
     os.chdir(get_disertatie_root())
     run_runs(params)
     # exit()
-    if not params['noredo']:
-        os.system("python -m src.collect_data --redo")
+    # if not params['noredo']:
+    os.system("python -m src.collect_data")
     print()
     print(' * '.center(100, '='))
     print()

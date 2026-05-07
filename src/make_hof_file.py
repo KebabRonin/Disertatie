@@ -19,6 +19,9 @@ for dr in os.listdir(PATH):
           ix = ff.find("Saved 'S2ViYWJSb25pblVBSUM=.results' (KebabRoninUAIC)\nBest individuals:")
           if ix > 0:
             ff = ff[ix:]
+          else:
+            print(f"Warning! No Saved individuals list in {dr} {runidx}")
+            continue
           ix = ff.find("VMNeuronManager.autoload")
           if ix > 0:
             ff = ff[:ix]

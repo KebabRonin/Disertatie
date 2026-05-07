@@ -316,6 +316,9 @@ def run_more(algorithm, params, test_func, n_runs, trial: optuna.Trial):
         data = json.load(f)
     run_fitnesses = data[runname]['runs']
 
+    if run_fitnesses is None:
+        raise f"No runs found in STATS_FILE for run {runname}"
+
     # Calculate metrics
     mean_fitness = np.mean(run_fitnesses)
     std_fitness = np.std(run_fitnesses)

@@ -164,6 +164,7 @@ def print_species_dashboard(new_species, delta):
 def speciation(population, toolbox,
                cxpb, mutpb, ngen, dissimilarity_metric, admission_delta,
                n_species=10, interspecies_cxpb=0.001, dynamic_delta_under=0.96, dynamic_delta_over=1.33,
+               restart_method='none', restart_patience=40,
                stagnant_horizon=15,
                min_species_size_for_champion_clone=5,
                stats=None, halloffame=None, verbose=__debug__):
@@ -372,5 +373,40 @@ def speciation(population, toolbox,
             print(logbook.stream)
 
         hist.append(max([p.fitness.values for p in new_pop]))
+
+        # if restart_method != 'none' and len(maxFits) >= restart_patience:
+        #     consider_interval = maxFits[-restart_patience:-1]
+        #     bestFitPast = sorted(consider_interval, key=lambda x: x[0], reverse=True)[0]
+        #     ind = consider_interval.index(bestFitPast)
+        #     for mf in consider_interval:
+        #         print(f"({mf[0]:10.5f})")
+        #     print(len(consider_interval))
+        #     print(f"{maxFits[-1][0]} <= {bestFitPast[0]} and {ind} == {restart_patience}")
+        #     # bestFitPast = maxFits[-restart_patience:]
+        #     if maxFits[-1][0] <= bestFitPast[0] and ind == 0:
+        #         print(maxFits[-1][0], '<=', bestFitPast[0], ', doing a restart...')
+        #         if restart_method == 'soft_perturb_best':
+        #             print("Restarting soft_perturb_best after", restart_patience, "gens with no improvement.")
+        #             population = toolbox.attr_random_pop_from_genotype(bestFitPast[1][0], len(population))
+        #         elif restart_method == 'hard':
+        #             print("Restarting hard after", restart_patience, "gens with no improvement.")
+        #             population = toolbox.population(n=len(population))
+                
+        #         # Evaluate the individuals with an invalid fitness
+        #         invalid_ind = [ind for ind in population if not ind.fitness.valid]
+        #         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+        #         for ind, fit in zip(invalid_ind, fitnesses):
+        #             print(ind)
+        #             ind.fitness.values = fit
+
+        #         if halloffame is not None:
+        #             halloffame.update(population)
+
+        #         record = stats.compile(population) if stats else {}
+        #         logbook.record(gen=f"{gen}.restarting", nevals=len(invalid_ind), **record)
+        #         if verbose:
+        #             print(logbook.stream)
+                
+        #         maxFits = []
 
     return new_pop, logbook

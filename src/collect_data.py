@@ -92,7 +92,6 @@ def parse_algo_params(name: str):
 
 PARAM_PATT = re.compile(r'\b([\w0-9]+)=([\w0-9_\-\n \/.;:]+)')
 def get_algo_params(name):
-    print(name)
     return {
             'run_start': os.stat(os.path.join(EXPERIMENTS_PATH, name['runname'], f'results_{name['runidx']}.stdout')).st_mtime,
             'run_end': os.stat(os.path.join(EXPERIMENTS_PATH, name['runname'], f'results_{name['runidx']}.stdout')).st_ctime,
@@ -303,6 +302,7 @@ def parse_data(rs=None):
                 species_dicts.append(species_dict)
         rs[d] = {
             'params': args,
+            'run_idx': i,
             'mx_arrs': mx_arrs,
             'mn_arrs': mn_arrs,
             'avg_arrs': avg_arrs,
@@ -348,11 +348,11 @@ def boxplots(names, order_fn=order_fn_median):
     for idx, n in enumerate(ordered_names):
         if len(names[n]['runs']) < 20:
             HIGHLIGHT[n] = 'blue'
-        plt.scatter([idx+1] * len(names[n]['runs']), names[n]['runs'], color=get_algo_color(n), label=n, alpha=0.2)
-    plt.boxplot([names[n]['runs'] for n in ordered_names], showmeans=True)
-    plt.xticks(range(1, len(names)+1), ordered_names, rotation=45, ha='right')
+        plt.scatter(names[n]['runs'], [idx+1] * len(names[n]['runs']), color=get_algo_color(n), label=n, alpha=0.2)
+    plt.boxplot([names[n]['runs'] for n in ordered_names], showmeans=True, orientation='horizontal')
+    plt.yticks(range(1, len(names)+1), ordered_names, rotation=0, ha='right')
     ax = plt.gca()
-    for tick in ax.get_xticklabels():
+    for tick in ax.get_yticklabels():
         if tick.get_text() in HIGHLIGHT:
             tick.set_color(HIGHLIGHT[tick.get_text()])
     # t-test to see if better solutions are statistically significant
@@ -367,13 +367,12 @@ def boxplots(names, order_fn=order_fn_median):
 
             # Output the results
             if p_value < SIGLVL:
-                print(f" {BASELINE} vs {on} ".center(90, '='))
-                print(f"t-statistic: {t_statistic}")
-                print(f"P-value: {p_value} ({'significant change' if p_value < SIGLVL else 'insignificant change'} for {SIGLVL} significance level)")
+                print(f"P-value: {p_value:.6f} {on} ")
+                # print(f"t-statistic: {t_statistic}")
 
+HOF_SCORE = re.compile(f"\\nCOGpath:{rgx}\\n")
 def show_runs(rs: dict, d, example_idx, plot=True, printout=False, arr_to_plot=ARR_TO_PLOT, replaceplot=False):
     res = []
-    idx = list(rs.keys()).index(d)
     if plot:
         plotname = os.path.join(IMG_SAVE_PATH, f'{d}_run_{example_idx}.png')
         if replaceplot or not os.path.exists(plotname):
@@ -443,7 +442,25 @@ def show_runs(rs: dict, d, example_idx, plot=True, printout=False, arr_to_plot=A
             plt.tight_layout(pad=0.2)
             plt.savefig(plotname)
             plt.close()
-    res.append((d, max(map(lambda x: x[1], rs[d][arr_to_plot][example_idx])), rs[d], example_idx))
+    # actual_idx = rs[d]['run_idx']
+    # with open(os.path.join(get_experiments_dir(), d, f"hof_{actual_idx}.txt"), 'r') as f:
+    #     content = f.read()
+    #     m = re.findall(HOF_SCORE, content)
+    #     print(m, d, actual_idx)
+    #     if len(m) > 0:
+    #         best_val_hof = float(m[0])
+    #     else:
+    #         print("[Warning] Empty hof file? For ", example_idx, d)
+    #         best_val_hof = -1
+    best_val = max(map(lambda x: x[1], rs[d][arr_to_plot][example_idx]))
+    if 'islands' in rs[d]:
+        islbests = []
+        for isl in rs[d]['islands'][example_idx]:
+            islbests += list(map(lambda x: x[1], rs[d]['islands'][example_idx][isl][arr_to_plot]))
+        best_val = max(best_val, max(islbests))
+    # if f"{best_val:.3f}" != f"{best_val_hof:.3f}":
+    #     print(f"[Warning] Best mismatch between hof ({best_val_hof:.6f}) and my parsed best ({best_val:.6f}) For ", example_idx, d)
+    res.append((d, max(best_val, best_val), rs[d], example_idx))
     if printout:
         print(f" run {example_idx:>2} ".center(90, '='))
         print(f"{'Rank':>4}  {'Name':<50} {'Score':<10}")
@@ -490,6 +507,9 @@ def print_clasament(names):
     print('=' * 120)
     print(f'|{"idx":>3}.|{"std":<10}|{"mean":<10}|{"median":<10}|{"max":<10}|{"overtime":<10}|{"name":<10}|{"comment":<10}|')
     print('|----' + ('|' + '-' * 10) * 7 + '|')
+    if len(names) == 0:
+        print('No such runs')
+        return
 
     names_sorted = list(names.keys())
     names = {n: names[n] for n in names_sorted} # Ensure different evalfns are not listed together
@@ -523,7 +543,7 @@ def print_clasament(names):
             + f'|{np.std(names[n]['runs']):10.5f}|{mean}|{median}|{maxx}'
             + f'|`({runs_time_exceeded}/{len(names[n]['runs'])})`|{n}|{comment}|')
 
-FIGSIZE=(25,10)
+FIGSIZE=(25,13)
 if __name__ == '__main__':
     # sc = get_best_genotype_over_all_runs()
     # for s in sc[-3:]:# filter(lambda x: x[0] == '4', sc):
@@ -621,18 +641,18 @@ if __name__ == '__main__':
     print(' By median '.center(90, '*'))
     boxplots(names, order_fn=order_fn_median)
     plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by median value')
-    # plt.tight_layout(pad=0.2)
+    plt.tight_layout(pad=0.2)
     plt.savefig(os.path.join(get_disertatie_root(), f'Run_results_boxplot_{ARR_TO_PLOT}_ordermedian.png'))
 
     print(' By mean '.center(90, '*'))
     boxplots(names, order_fn=order_fn_mean)
     plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by mean value')
-    # plt.tight_layout(pad=0.2)
+    plt.tight_layout(pad=0.2)
     plt.savefig(os.path.join(get_disertatie_root(), f'Run_results_boxplot_{ARR_TO_PLOT}_ordermean.png'))
 
     print(' By max '.center(90, '*'))
     boxplots(names, order_fn=order_fn_max)
     plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by maximum value')
-    # plt.tight_layout(pad=0.2)
+    plt.tight_layout(pad=0.2)
     plt.savefig(os.path.join(get_disertatie_root(), f'Run_results_boxplot_{ARR_TO_PLOT}_ordermax.png'))
     exit()
