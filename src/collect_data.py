@@ -86,8 +86,6 @@ def parse_algo_params(name: str):
     pp = re.findall(PARAM_PATT, parstr)
     for g in pp:
         params[g[0]] = g[1]
-    if 'population_initialization' in params:
-        params.pop('population_initialization')
     return params
 
 PARAM_PATT = re.compile(r'\b([\w0-9]+)=([\w0-9_\-\n \/.;:]+)')
@@ -555,7 +553,7 @@ if __name__ == '__main__':
         print = lambda *x, **kw: x
     if parsedargs.redo:
         os.system(f'rm {DATA_FILE}')
-        os.system(f'rm {STATS_FILE}')
+    os.system(f'rm {STATS_FILE}')
     if not os.path.exists(STATS_FILE):
         if not os.path.exists(DATA_FILE):
             print('Parsing results...')

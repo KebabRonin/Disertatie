@@ -136,9 +136,9 @@ def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
             consider_interval = maxFits[-restart_patience:-1]
             bestFitPast = sorted(consider_interval, key=lambda x: x[0], reverse=True)[0]
             ind = consider_interval.index(bestFitPast)
-            for mf in consider_interval:
-                print(f"({mf[0]:10.5f})")
-            print(len(consider_interval))
+            # for mf in consider_interval:
+            #     print(f"({mf[0]:10.5f})")
+            # print(len(consider_interval))
             print(f"{maxFits[-1][0]} <= {bestFitPast[0]} and {ind} == {restart_patience}")
             # bestFitPast = maxFits[-restart_patience:]
             if maxFits[-1][0] <= bestFitPast[0] and ind == 0:

@@ -82,7 +82,7 @@ def annealer(population, toolbox, ngen, adaptMut=True, temp_schedule='constant',
 
         # Update temp
         if temp_schedule == 'exponential':
-            temperature = np.clip(temperature * cooling_rate, 0.01, 1.0)
+            temperature = np.clip(temperature * cooling_rate, 5, 40)
         elif temp_schedule == 'constant':
             pass
         else:

@@ -87,6 +87,11 @@ for s in range(15):
 	print(offspring.genotype)
 frams.GenMan.f1_nmNeu = 0.5
 print('oops')
+for s in range(15):
+	step()  # first step performs selection and revives one genotype according to standard.expdef rules
+	creature = frams.Populations[0][0]  # FramScript Creature object
+	offspring = frams.GenMan.mutate(frams.Geno.newFromString(creature.genotype))
+	print(offspring.genotype)
 creature_orig = str((frams.Populations[0][0]).genotype)
 print('=', creature_orig)
 import copy, random
@@ -110,7 +115,7 @@ def frams_dissim(frams_lib: FramsticksLib, individuals: list, dissim_method:Diss
 	# print(individuals)
 	return frams_lib.dissimilarity(individuals, method=dissim_method)
 FramsticksLib.DETERMINISTIC = False
-fsl = FramsticksLib('I:\Disertatie\Framsticks', None, 'eval-allcriteria.sim;deterministic.sim;recording-body-coords.sim')
+fsl = FramsticksLib('../../Framsticks54', None, 'eval-allcriteria.sim;deterministic.sim;recording-body-coords.sim')
 violations={dm: {'triangle': 0, 'sim': 0, 'time': 0} for dm in DissimMethod}
 import numpy as np, time
 

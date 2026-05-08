@@ -118,7 +118,13 @@ def frams_getsimplest(frams_lib: FramsticksLib, genetic_format, initial_genotype
 	return initial_genotype if initial_genotype is not None else frams_lib.getSimplest(genetic_format)
 
 def frams_getrandomindividual(frams_lib: FramsticksLib, initial_genotype):
-	ind = frams_lib.getRandomGenotype(initial_genotype, 2, 100, 2, 100, 100, True)
+	ind = frams_lib.getRandomGenotype(initial_genotype, 
+			2,
+				min(parsed_args.max_numparts if parsed_args.max_numparts is not None else 10000000000000000000, 100),
+			# Movement should require at least 2 neurons: A muscle and a sensor
+			min(parsed_args.max_numneurons if parsed_args.max_numneurons is not None else 10000000000000000000, 2),
+				min(parsed_args.max_numneurons if parsed_args.max_numneurons is not None else 10000000000000000000, 100),
+			100, True)
 	return ind
 
 
@@ -179,7 +185,14 @@ def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_fo
 	toolbox.register("attr_simplest_genotype", frams_getsimplest, frams_lib, genetic_format, initial_genotype)  # "Attribute generator"
 	toolbox.register("attr_random_genotype", frams_getrandomindividual, frams_lib, toolbox.attr_simplest_genotype())  # "Attribute generator"
 	def attr_random_pop_from_genotype(frams_lib, init_geno, n):
-		pop = [tools.initRepeat(creator.Individual, lambda: frams_lib.getRandomGenotype(init_geno, 2, 100, 2, 100, random.randrange(0, 4), True), 1) for _ in range(n // 4)]
+		pop = [tools.initRepeat(creator.Individual, lambda: frams_lib.getRandomGenotype(init_geno,
+				2,
+					min(parsed_args.max_numparts if parsed_args.max_numparts is not None else 10000000000000000000, 100),
+				# Movement should require at least 2 neurons: A muscle and a sensor
+				min(parsed_args.max_numneurons if parsed_args.max_numneurons is not None else 10000000000000000000, 2),
+					min(parsed_args.max_numneurons if parsed_args.max_numneurons is not None else 10000000000000000000, 100),
+				random.randrange(0, 4), True)
+			, 1) for _ in range(n // 4)]
 		# Reinit with 1/4 best ind, 3/4 randoms.
 		return pop + [tools.initRepeat(creator.Individual, toolbox.attr_random_genotype, 1) for _ in range(n - len(pop))]
 

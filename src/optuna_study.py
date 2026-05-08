@@ -143,6 +143,8 @@ N_JOBS = 10  # Change to 10 for parallel execution
 # ============================================================================
 
 SIMPLEST_GENOTYPE = {
+    'f1_random': 'random',
+    'f0_random': 'random',
     'f1_simplest':None,
     'f0_simplest':None,
     'f1_XX':'XX',
@@ -183,7 +185,7 @@ def get_algorithm_specific_params(trial: optuna.Trial, algorithm: str) -> dict:
     params["algorithm"] = algorithm
     params["genformat"] = trial.suggest_categorical("genformat", [0, 1])
     params["pmut"] = trial.suggest_float("pmut", 0.1, 1.0, step=0.005)
-    params["initialgenotype"] = trial.suggest_categorical("initialgenotype", ["simplest", "XX", "XXneurons"])
+    params["initialgenotype"] = trial.suggest_categorical("initialgenotype", ["simplest", "XX", "XXneurons", "random"])
 
     # Algorithm-specific parameters
     if algorithm == 'eaOnePlusLambdaLambda':

@@ -1,4 +1,104 @@
+"""
+Genman:
+ * genoper_f0 "Operators for f0" type="d 0 0 ~Default" flags=65 group=1 help=""
+ * genoper_f1 "Operators for f1" type="d 0 0 ~Default" flags=65 group=1 help=""
 
+ neuadd_* ....
+The selection params shouldn't be used, since the mutation/selection/xover are handled as part of the competition submission:
+------------------- Group #1: Experiment: Parameters: Selection -------------------
+ * p_nop "Unchanged" type="f 0 100 20" flags=192 group=1 help=""
+ * p_mut "Mutated" type="f 0 100 64" flags=192 group=1 help=""
+ * p_xov "Crossed over" type="f 0 100 16" flags=192 group=1 help=""
+ * xov_mins "Minimal similarity" type="f 0 9999 0" flags=192 group=1 help="Only genotypes with dissimilarity below this threshold will be crossed over.
+Value of 0 means no crossover restrictions."
+ * selrule "Selection rule" type="d 0 5 3 ~Random~Fitness-proportional (roulette)~Tournament (2 genotypes)~Tournament (3 genotypes)~Tournament (4 genotypes)~Tournament (5 genotypes)" flags=192 group=1 help="Positive selection: how to choose genotypes for cloning/mutation/crossover"
+ * delrule "Delete genotypes" type="d 0 2 ~Randomly~Inverse-proportionally to fitness~Only the worst" flags=192 group=1 help="Negative selection: which genotypes should be removed when we need room for new genotypes in the gene pool.
+If multiple-criteria NSGA-II is set as positive selection, this setting is ignored and "worst rank and crowding distance" is used as negative selection."
+
+------------------- Group #2: Experiment: Parameters: Fitness -------------------
+ * cr_c "Constant" type="f -10000 10000 0" flags=192 group=2 help="Constant value added to total fitness"
+ * cr_life "Life span" type="f -10000 10000 0" flags=192 group=2 help="Weight of life span in total fitness"
+ * cr_v "Velocity" type="f -10000 10000 0" flags=192 group=2 help="Weight of horizontal velocity in total fitness"
+ * cr_gl "Body parts" type="f -10000 10000 0" flags=192 group=2 help="Weight of body size (number of parts) in total fitness"
+ * cr_joints "Body joints" type="f -10000 10000 0" flags=192 group=2 help="Weight of structure size (number of joints) in total fitness"
+ * cr_nnsiz "Brain neurons" type="f -10000 10000 0" flags=192 group=2 help="Weight of brain size (number of neurons) in total fitness"
+ * cr_nncon "Brain connections" type="f -10000 10000 0" flags=192 group=2 help="Weight of brain connections in total fitness"
+ * cr_di "Distance" type="f -10000 10000 0" flags=192 group=2 help="Weight of distance in total fitness"
+ * cr_vpos "Vertical position" type="f -10000 10000 0" flags=192 group=2 help="Weight of vertical position in total fitness"
+ * cr_vvel "Vertical velocity" type="f -10000 10000 0" flags=192 group=2 help="Weight of vertical velocity in total fitness"
+ * cr_norm "Criteria normalization" type="d 0 1 0" flags=192 group=2 help="Normalize each criterion to 0..1 interval before weighting"
+ * cr_simi "Similarity speciation" type="d 0 1 0" flags=192 group=2 help="If enabled, fitness of each genotype will be reduced by its phenotypic similarity to all other genotypes in the gene pool"
+ * cr_nsga "NSGA-II for multiple criteria" type="d 0 1 0" flags=192 group=2 help="If enabled, fitness will be replaced with Pareto ranks from NSGA-II (Non-dominated Sorting Genetic Algorithm) method.
+Using tournament selection is recommended.
+This setting also forces negative selection to be "worst rank and crowding distance" independently from the negative selection setting."
+"""
+
+"""
+------------------- Group #3: Genetics: f0 -------------------
+ * f0_nodel_tag "Respect the 'delete inhibit' tag" type="d 0 1 1" flags=0 group=3 help="You can tag elements using their 'i' field and the i="mi=d" tag.
+Mutations will not delete such elements.
+The i="mi=dm" combination is allowed."
+ * f0_nomod_tag "Respect the 'modify inhibit' tag" type="d 0 1 1" flags=0 group=3 help="You can tag elements using their 'i' field and the i="mi=m" tag.
+Mutations will not modify properties of such elements.
+The i="mi=md" combination is allowed."
+
+------------------- Group #4: Genetics: f0: Parts -------------------
+ * f0_p_new "New part" type="f 0 100 4" flags=0 group=4 help=""
+ * f0_p_del "Delete part" type="f 0 100 4" flags=0 group=4 help=""
+ * f0_p_swp "Swap parts" type="f 0 100 1" flags=0 group=4 help=""
+ * f0_p_pos "Position" type="f 0 100 4" flags=0 group=4 help=""
+ * f0_p_den "Density" type="f 0 100 0" flags=0 group=4 help="Density only has an influence under water"
+ * f0_p_frc "Friction" type="f 0 100 1" flags=0 group=4 help=""
+ * f0_p_ing "Ingestion" type="f 0 100 0" flags=0 group=4 help=""
+ * f0_p_asm "Assimilation" type="f 0 100 0" flags=0 group=4 help="The interpretation and influence of this property must be implemented by the experiment definition"
+ * f0_p_color "Visual only: color" type="f 0 100 0.01" flags=0 group=4 help="If this value is above zero, apart from this mutation occurring, the color of every newly created gray Part will be mutated on creation"
+
+------------------- Group #5: Genetics: f0: Joints -------------------
+ * f0_j_new "New joint" type="f 0 100 4" flags=0 group=5 help=""
+ * f0_j_del "Delete joint" type="f 0 100 1" flags=0 group=5 help=""
+ * f0_j_stm "Stamina" type="f 0 100 0" flags=0 group=5 help="The interpretation and influence of this property must be implemented by the experiment definition"
+ * f0_j_stf "Stiffness" type="f 0 100 0" flags=0 group=5 help=""
+ * f0_j_rsf "Rotational stiffness" type="f 0 100 0" flags=0 group=5 help=""
+ * f0_j_color "Visual only: color" type="f 0 100 0.01" flags=0 group=5 help="If this value is above zero, apart from this mutation occurring, every newly created Joint will be assigned a color that is the average color of both joined Parts"
+
+------------------- Group #6: Genetics: f0: Neurons -------------------
+ * f0_n_new "New neuron" type="f 0 100 3" flags=0 group=6 help=""
+ * f0_n_del "Delete neuron" type="f 0 100 3" flags=0 group=6 help=""
+ * f0_n_prp "Change properties" type="f 0 100 1" flags=0 group=6 help=""
+
+------------------- Group #7: Genetics: f0: Connections -------------------
+ * f0_c_new "New connection" type="f 0 100 2" flags=0 group=7 help=""
+ * f0_c_del "Delete connection" type="f 0 100 2" flags=0 group=7 help=""
+ * f0_c_wei "Change weight" type="f 0 100 1" flags=0 group=7 help=""
+"""
+"""
+------------------- Group #13: Genetics: f1 -------------------
+ * f1_xo_propor "Proportional crossover" type="d 0 1 1" flags=0 group=13 help="Cross over (exchange) corresponding segments of the two parent genotypes?
+
+f1 uses a two-point crossing over.
+If this option is turned on, cut points will be selected proportionally to neural genes in both parents, and a similar number of characters will be exchanged if possible.
+Thus, if both parents have the same number of neurons, then this will be preserved in their children."
+
+------------------- Group #14: Genetics: f1: Morphology -------------------
+ * f1_smX "Add/remove a stick X" type="f 0 100 4" flags=0 group=14 help=""
+ * f1_smJunct "Add/remove a branch ( )" type="f 0 100 1" flags=0 group=14 help=""
+ * f1_smComma "Add/remove a comma ," type="f 0 100 1" flags=0 group=14 help=""
+ * f1_smModif "Add/remove a modifier" type="f 0 100 4" flags=0 group=14 help="Modifiers: LlRrCcQqFfMmEeWwSsAaIiDdGgBb"
+ * f1_smModifiers "Allowed modifiers" type="s 0 100" flags=0 group=14 help="Modifier symbols that will be added or deleted during mutation
+(from the full set: LlRrCcQqFfMmEeWwSsAaIiDdGgBb).
+
+You may use the extended syntax: after every allowed symbol, you may include its probability value in parentheses.
+Without parentheses, all allowed symbols behave as if they had (1.0) appended.
+If you include (0.0) after a symbol, this bans that symbol as if it was not present in this string."
+
+------------------- Group #15: Genetics: f1: Neuron net -------------------
+ * f1_nmNeu "Add/remove a neuron" type="f 0 100 4" flags=0 group=15 help="Adds a (connected) neuron or removes a neuron"
+ * f1_nmConn "Add/remove neural connection" type="f 0 100 2" flags=0 group=15 help=""
+ * f1_nmProp "Add/remove neuron property setting" type="f 0 100 1" flags=0 group=15 help=""
+ * f1_nmWei "Change connection weight" type="f 0 100 1" flags=0 group=15 help=""
+ * f1_nmVal "Change property value" type="f 0 100 1" flags=0 group=15 help=""
+"""
+# These values are taken from eval-allcriteria.sim, but it would be better to load them on Framsticks initialization.
 BODY_MUT = {
   "0":  {
 # Mutation weights pertaining to body parts/joints,
@@ -45,8 +145,8 @@ NEURO_MUT = {
     "f1_xo_propor": 1, # point crossover will cut so the same amount of neurons is in both cut parts
     "f1_nmNeu": 0.05,
     "f1_nmConn": 0.1,
-    "f1_nmProp": 0.1, # ??
-    "f1_nmWei": 1.0, # ??
+    "f1_nmProp": 0.1,
+    "f1_nmWei": 1.0,
     "f1_nmVal": 0.05,
   },
   "generic": {
@@ -89,16 +189,35 @@ NEURO_MUT = {
   }
 }
 
-DEFAULTS = {
-
+# TBD What parameter groups are useful to take together.
+SHORTCUTS = {
+  'add_thing': [
+    'f0_n_new', 'f0_c_new',
+    'f1_nmNeu', 'f1_nmConn', 'f1_nmProp',
+    # ????
+  ],
 }
+
+def setExpProperty(name, value):
+  exec(f"frams.GenMan.{name} = {value}")
+
+def getExpProperty(name):
+  rval = None # So compiler doesn't complain
+  exec(f"rval = frams.GenMan.{name}")
+  return rval
 
 def set_general_weights(framsLib, w_body, w_neuro):
   pass
 
+def get_all_prop_names(genetic_repr = None):
+  return list(NEURO_MUT["0"].keys() if genetic_repr != '1' else []) + list(NEURO_MUT["1"].keys() if genetic_repr != '0' else []) + list(NEURO_MUT["generic"].keys()) + \
+    list(BODY_MUT["0"].keys() if genetic_repr != '1' else []) + list(BODY_MUT["0"].keys() if genetic_repr != '0' else [])
+
 def get_current_weights(framsLib, genetic_repr):
-  pass
-  return {}
+  d = {}
+  for prop in get_all_prop_names():
+    d[prop] = getExpProperty(prop)
+  return d
 
 def set_weights(framsLib, genetic_repr, settings=DEFAULTS):
   pass

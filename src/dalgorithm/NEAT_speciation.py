@@ -18,10 +18,7 @@ class Species:
     def __init__(self, pop: list):
         self.pop = pop
         self.past_fitnesses = []
-
-    @property
-    def uid(self):
-        return id(self) % UID_P10
+        self.uid = id(self) % UID_P10
 
     @property
     def age(self):

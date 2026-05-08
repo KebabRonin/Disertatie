@@ -13,6 +13,7 @@ CONFIG = load_config()
 DB_PATH = get_database_path(CONFIG)
 
 SIMPLEST_GENOTYPE = {
+    '_random': 'random',
     '_simplest':'None',
     'f1_XX':'XX',
     # In order: @rotation muscle, |bending muscle, Gyroscope, Gpart (Tilt), Muscle, Touch, Smell, Neuron(sigmoid), *constant
@@ -53,7 +54,7 @@ PARAM_DISTRIBUTIONS = {
   ]),
   'nodet': optuna.distributions.CategoricalDistribution([0, 1]),
   'genformat': optuna.distributions.CategoricalDistribution([0, 1]),
-  'initialgenotype': optuna.distributions.CategoricalDistribution(['simplest', 'XX', 'XXneurons']),
+  'initialgenotype': optuna.distributions.CategoricalDistribution(['simplest', 'XX', 'XXneurons', 'random']),
   # EA parameters
   'popsize': optuna.distributions.IntDistribution(1, 500, step=1),
   'tournament': optuna.distributions.IntDistribution(2, 20),
@@ -126,7 +127,10 @@ def try_cast(value: str, type):
 
 def from_str_to_type(algo_data_param, param_name: str):
   value = algo_data_param.get(param_name)
-  if param_name == 'initialgenotype' and value in SIMPLEST_GENOTYPE.values():
+  if param_name == 'initialgenotype':
+    if value not in SIMPLEST_GENOTYPE.values():
+      print("Oops, not valid initialgenotype: ", value)
+      exit(0)
     cval = [k for k,v in SIMPLEST_GENOTYPE.items() if v == value][0]
     print('cval', cval)
     if cval.startswith('f0'):
@@ -185,10 +189,16 @@ def create_study_and_import(study: optuna.Study, algo_key: str, algo_data: dict)
     if algo_data['params'].get('restart_method', None) == 'none' \
         or algo_data['params'].get('restart_patience', None) == '100000000':
       algo_data['params'].pop('restart_patience')
+    print('baba', algo_data['params'].get('population_initialization', None))
+    if algo_data['params'].get('population_initialization', None) == 'random':
+      algo_data['params']['initialgenotype'] = 'random'
+    if algo_data['params'].get('population_initialization', None) is not None:
+      algo_data['params'].pop('population_initialization')
     print(algo_data['params'])
     for param_name in PARAM_DISTRIBUTIONS.keys():
       if param_name in ALGO_PARAMS[algo_data['params']['algorithm']]:
         params[param_name] = DEFAULTS[param_name] if param_name not in algo_data['params'] or algo_data['params'][param_name] == 'None' else from_str_to_type(algo_data['params'], param_name)
+    print(params)
 
     meta_list = algo_data['meta']
     runs = algo_data['runs']

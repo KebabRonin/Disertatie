@@ -110,18 +110,30 @@ Novelty stage > Evolution stage > Annealing stage
 https://github.com/CodeReclaimers/neat-python
 https://github.com/marcovirgolin/GP-GOMEA
 
+#### For prof next time
+
+- [ ] I implemented Annealer, but solution quickly deteriorates in small tests (1000 evals)
+	- [ ] Find better params first
+- [ ] Ask about Memetic algorithms (passing the mutation params as part of the genotype)
+- [ ] Can I use 'altering mutation params dynamically' as part of some algorithm?
+	- [ ] (i.e. mutation schedules like: body(add) for 5 gens, mutate brain(add/modify) for 2 gens, body(modify/remove) 5 gens, etc..)
+
 #### Observations/Takeaways
 
 * `eaOnePlusLambdaLambda` - allow fitness-neutral improvements, otherwise you'll never leave the starting genotype
 * Most final solutions of a run have a lot of neurons which are unused
-  * So set the starting genotype not as the simplest possible, but the simplest given the problem at hand (i.e. We need movement -> a solution will have at least 2 bones and some neurons) 
+* So set the starting genotype not as the simplest possible, but the simplest given the problem at hand (i.e. We need movement -> a solution will have at least 2 bones and some neurons) 
   * [ ] TODO: Add some guards so you can't use the neuron initial genotype when the simulator has maxnumneuros = 0
+  * [ ] NOT FOR COMPETITION (GPU-based NN method): Use https://snap.stanford.edu/frequent-subgraph-mining/ to identify frequent sub-graphs aka. Building Blocks 
 
 #### TODO
 
 _Roughly ordered by difficulty/impact_
 
 * [ ] GOMEA ([2025 competition entry description here](https://www.framsticks.com/filebrowser/download/341) - it relies on f1)
+	* [ ] Create f0 -> GP tree parser
+	* [ ] Figure out linkage models for graphs
+* [ ] Augument `soft_perturb_best` restart by pruning useless neurons first, then mutating? Most neurons are not connected to anything
 * [ ] Add soft restarts to more algorithms
 	* [x] AdaptMut
 	* [ ] eaSimple
@@ -663,13 +675,17 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 	- Implementations: [PecanPy](https://github.com/krishnanlab/PecanPy) [node2vec](https://github.com/eliorc/node2vec)
 
 [^gomea-building-block]: [Scalable Genetic Programming by Gene-Pool Optimal Mixing and Input-Space Entropy-Based Building-Block Learning](https://dl.acm.org/doi/epdf/10.1145/3071178.3071287) (Jul 2017, GECCO)
-	#toresee
 	- GP-GOMEA: Algorithm has no parameters
 	- Has a way to build library of best sub-solutions
 	- Input-space Entropy-based Building-block Learning (IEBL)
 		- Uses heuristics to identify BBs
 			- I didn't understand how BBs are identified (Section 3.1)
-		- #stub-article[Ramped half-and-half generation](https://www.researchgate.net/publication/220743001_Ramped_Half-n-Half_Initialisation_Bias_in_GP)
+			- Take 2 for understanding it:
+				- Generate a population of small solutions
+					- The frequency of building blocks shouldn't be different between first and last generation in pop (so they say)
+				- #stub-article[Ramped half-and-half generation](https://www.researchgate.net/publication/220743001_Ramped_Half-n-Half_Initialisation_Bias_in_GP)
+					- Each ind has access to some subset of all possible nodes, to increase redundancy
+				- Afterwards, add each BB as a node type for the population to use (remove duplicates and low-entropy/complexity BBs)
 	- Interleaved Multistart Scheme - every g generations of the main GOMEA, run a generation of a pop_size\*2 GOMEA (global_best is global between populations)
 	- GOMEA 1 + log10 (|pop_size|) = patience for improvement; afterwards introduce global_best into the donor pool
 	- #advice Keep repository of all evaluated genotypes, to reduce amount of fitness evaluation
