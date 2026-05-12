@@ -50,6 +50,7 @@ def parseArgs():
     parser = argparse.ArgumentParser(description='This script will run multiple experiments in parallel, and save the results.')
     parser.add_argument('-s', '--silent', action='store_true', help='To output or not to output')
     parser.add_argument('--redo', action='store_true', help='To output or not to output')
+    parser.add_argument('--latex', action='store_true', help='To output the leaderboard in latex format')
     return parser.parse_args()
 
 def running_stat(arr, fn, radius=50):
@@ -387,16 +388,16 @@ def show_runs(rs: dict, d, example_idx, plot=True, printout=False, arr_to_plot=A
                         continue
                     isl = rs[d]['islands'][example_idx][islid]
                     y_vals = [x[0] for x in isl['avg_arrs']]
-                    x_vals = [x[1] for x in isl['avg_arrs']]
-                    x_vals_mn = [x[1] for x in isl['mn_arrs']]
-                    x_vals_mx = [x[1] for x in isl['mx_arrs']]
+                    x_vals = [x[1] if x[1] else 0 for x in isl['avg_arrs']]
+                    x_vals_mn = [x[1] if x[1] else 0 for x in isl['mn_arrs']]
+                    x_vals_mx = [x[1] if x[1] else 0 for x in isl['mx_arrs']]
                     plt.plot(y_vals, x_vals, label=f'{d} avg', color=color, linewidth=1.5)
                     plt.fill_between(y_vals, x_vals_mn, x_vals_mx, color=color, alpha=0.15)
                     break
                 y_vals = [x[0] for x in rs[d]['avg_arrs'][example_idx]]
-                x_vals = [x[1] for x in rs[d]['avg_arrs'][example_idx]]
-                x_vals_mn = [x[1] for x in rs[d]['mn_arrs'][example_idx]]
-                x_vals_mx = [x[1] for x in rs[d]['mx_arrs'][example_idx]]
+                x_vals = [x[1] if x[1] else 0 for x in rs[d]['avg_arrs'][example_idx]]
+                x_vals_mn = [x[1] if x[1] else 0 for x in rs[d]['mn_arrs'][example_idx]]
+                x_vals_mx = [x[1] if x[1] else 0 for x in rs[d]['mx_arrs'][example_idx]]
                 plt.plot(y_vals, x_vals, label=f'{d} avg', color='black', linewidth=1.5)
                 plt.fill_between(y_vals, x_vals_mn, x_vals_mx, color='black', alpha=0.15)
             elif 'species' in rs[d]:
@@ -409,29 +410,29 @@ def show_runs(rs: dict, d, example_idx, plot=True, printout=False, arr_to_plot=A
                         continue
                     isl = rs[d]['species'][example_idx][isl_name]
                     y_vals = [x[0] for x in isl['avg_arrs']]
-                    x_vals = [x[1] for x in isl['avg_arrs']]
-                    x_vals_mn = [x[1] for x in isl['mn_arrs']]
-                    x_vals_mx = [x[1] for x in isl['mx_arrs']]
+                    x_vals = [x[1] if x[1] else 0 for x in isl['avg_arrs']]
+                    x_vals_mn = [x[1] if x[1] else 0 for x in isl['mn_arrs']]
+                    x_vals_mx = [x[1] if x[1] else 0 for x in isl['mx_arrs']]
                     plt.plot(y_vals, x_vals, label=f'{d} avg', color=color, linewidth=1.5)
                     # plt.fill_between(y_vals, x_vals_mn, x_vals_mx, color=color, alpha=0.15)
                 y_vals = [x[0] for x in rs[d]['avg_arrs'][example_idx]]
-                x_vals = [x[1] for x in rs[d]['avg_arrs'][example_idx]]
-                x_vals_mn = [x[1] for x in rs[d]['mn_arrs'][example_idx]]
-                x_vals_mx = [x[1] for x in rs[d]['mx_arrs'][example_idx]]
+                x_vals = [x[1] if x[1] else 0 for x in rs[d]['avg_arrs'][example_idx]]
+                x_vals_mn = [x[1] if x[1] else 0 for x in rs[d]['mn_arrs'][example_idx]]
+                x_vals_mx = [x[1] if x[1] else 0 for x in rs[d]['mx_arrs'][example_idx]]
                 plt.plot(y_vals, x_vals, label=f'{d} avg', color='black', linewidth=1.5)
                 plt.fill_between(y_vals, x_vals_mn, x_vals_mx, color='black', alpha=0.15)
             else:
                 # Do one plot for it
                 print(d, plotname)
                 y_vals = [x[0] for x in rs[d]['avg_arrs'][example_idx]]
-                x_vals = [x[1] for x in rs[d]['avg_arrs'][example_idx]]
-                x_vals_mn = [x[1] for x in rs[d]['mn_arrs'][example_idx]]
-                x_vals_mx = [x[1] for x in rs[d]['mx_arrs'][example_idx]]
+                x_vals = [x[1] if x[1] else 0 for x in rs[d]['avg_arrs'][example_idx]]
+                x_vals_mn = [x[1] if x[1] else 0 for x in rs[d]['mn_arrs'][example_idx]]
+                x_vals_mx = [x[1] if x[1] else 0 for x in rs[d]['mx_arrs'][example_idx]]
                 plt.plot(y_vals, x_vals, label=f'{d} avg', color=color, linewidth=1.5)
                 plt.fill_between(y_vals, x_vals_mn, x_vals_mx, color=color, alpha=0.15)
             match rs[d]['params'].get('evalfn', '3'):
                 case '5':
-                    plt.ylim(975, 1000)
+                    plt.ylim(990, 1000)
                 case '4':
                     plt.ylim(0, 500)
                 case '3':
@@ -450,11 +451,11 @@ def show_runs(rs: dict, d, example_idx, plot=True, printout=False, arr_to_plot=A
     #     else:
     #         print("[Warning] Empty hof file? For ", example_idx, d)
     #         best_val_hof = -1
-    best_val = max(map(lambda x: x[1], rs[d][arr_to_plot][example_idx]))
+    best_val = max(map(lambda x: x[1] if x[1] else 0, rs[d][arr_to_plot][example_idx]))
     if 'islands' in rs[d]:
         islbests = []
         for isl in rs[d]['islands'][example_idx]:
-            islbests += list(map(lambda x: x[1], rs[d]['islands'][example_idx][isl][arr_to_plot]))
+            islbests += list(map(lambda x: x[1] if x[1] else 0, rs[d]['islands'][example_idx][isl][arr_to_plot]))
         best_val = max(best_val, max(islbests))
     # if f"{best_val:.3f}" != f"{best_val_hof:.3f}":
     #     print(f"[Warning] Best mismatch between hof ({best_val_hof:.6f}) and my parsed best ({best_val:.6f}) For ", example_idx, d)
@@ -499,7 +500,7 @@ def make_gif_th(th_idx):
     make_gif([os.path.join(IMG_SAVE_PATH, f'{d}_run_{idx}.png') for idx in get_finished_runs(d)], os.path.join(GIF_SAVE_PATH, f'{d}_anim.gif'))
 
 
-def print_clasament(names):
+def print_clasament(names, latex):
     print('=' * 120)
     print(f' Global clasament of {ARR_TO_PLOT} '.center(120, '='))
     print('=' * 120)
@@ -511,7 +512,7 @@ def print_clasament(names):
 
     names_sorted = list(names.keys())
     names = {n: names[n] for n in names_sorted} # Ensure different evalfns are not listed together
-    names_sorted.sort(key=lambda x: np.median(names[x]['runs']), reverse=True)
+    names_sorted.sort(key=lambda x: np.mean(names[x]['runs']), reverse=True)
     comments = json.load(open(os.path.join(get_disertatie_root(), 'algo_comments.json'), 'r'))
 
     best_max = [(n, np.max(names[n]['runs'])) for n in names_sorted]
@@ -527,19 +528,25 @@ def print_clasament(names):
     for idx, n in enumerate(names_sorted):
         mean = f'{np.mean(names[n]['runs']):10.5f}'
         if n == best_mean:
-            mean = f'**{mean.strip()}**'
+            mean = f'**{mean.strip()}**' if not latex else '\\textbf{' + mean.strip() + '}'
         median = f'{np.median(names[n]['runs']):10.5f}'
         if n == best_median:
-            median = f'**{median.strip()}**'
+            median = f'**{median.strip()}**' if not latex else '\\textbf{' + median.strip() + '}'
         maxx = f'{np.max(names[n]['runs']):10.5f}'
         if n == best_max:
-            maxx = f'**{maxx.strip()}**'
+            maxx = f'**{maxx.strip()}**' if not latex else '\\textbf{' + maxx.strip() + '}'
         comment = comments[n] if n in comments else ''
         runs_time_exceeded = len(list(filter(lambda x: x['nonevalTime'] is not None and x['nonevalTime'] > 3600, names[n]['meta'])))
-        print(
-            f'|{idx+1:>3}.'
-            + f'|{np.std(names[n]['runs']):10.5f}|{mean}|{median}|{maxx}'
-            + f'|`({runs_time_exceeded}/{len(names[n]['runs'])})`|{n}|{comment}|')
+        if latex:
+            print(
+                f'{idx+1:>3}.'
+                + f'&{np.std(names[n]['runs']):10.5f}&{mean}&{median}&{maxx}'
+                + f'&({runs_time_exceeded}/{len(names[n]['runs'])})&\\seqsplit{"{"}{n.replace('_', '\\_')}{"}"}\\\\ \\hline')
+        else:
+            print(
+                f'|{idx+1:>3}.'
+                + f'|{np.std(names[n]['runs']):10.5f}|{mean}|{median}|{maxx}'
+                + f'|`({runs_time_exceeded}/{len(names[n]['runs'])})`|{n}|{comment}|')
 
 FIGSIZE=(25,13)
 if __name__ == '__main__':
@@ -627,13 +634,13 @@ if __name__ == '__main__':
     # # plt.show()
     # plt.savefig(BASE_PATH + 'Run_results_violin.png')
     print(' Evalfn4 '.center(130, '*'))
-    print_clasament({n: names[n] for n in names.keys() if 'evalfn4' in n})
+    print_clasament({n: names[n] for n in names.keys() if 'evalfn4' in n}, parsedargs.latex)
     print(' Evalfn5 '.center(130, '*'))
-    print_clasament({n: names[n] for n in names.keys() if 'evalfn5' in n})
+    print_clasament({n: names[n] for n in names.keys() if 'evalfn5' in n}, parsedargs.latex)
     print(' Evalfn3 '.center(130, '*'))
     names = {n: names[n] for n in names.keys() if 'evalfn5' not in n and 'evalfn4' not in n}
     # print_clasament({n: names[n] for n in names.keys() if 'evalfn5' not in n and 'evalfn4' not in n})
-    print_clasament(names)
+    print_clasament(names, parsedargs.latex)
 
 
     print(' By median '.center(90, '*'))
