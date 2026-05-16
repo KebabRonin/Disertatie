@@ -90,11 +90,17 @@ def main(params):
             from . import collect_data
             params['commandargs'] = collect_data.parse_algo_params(params['runname'])
             params_str = ''
+
+            if 'population_initialization' in params['commandargs'] and params['commandargs']['population_initialization'] == 'random':
+                params['commandargs']['initialgenotype'] = 'random'
+            params['commandargs'].pop('population_initialization')
+            if 'dissim' in params['commandargs'] and params['commandargs']['dissim'].startswith('DissimMethod.'):
+                params['commandargs']['dissim'] = params['commandargs']['dissim'][len('DissimMethod.'):]
+
             for pname in params['commandargs']:
                 if params['commandargs'][pname] != 'None':
-                    if pname == 'dissim' and params['commandargs'][pname].startswith('DissimMethod.'):
-                        params['commandargs'][pname] = params['commandargs'][pname][len('DissimMethod.'):]
                     params_str += f' -{pname} "{params['commandargs'][pname]}"'
+            print(params_str)
             params['commandargs'] = params_str
             params['runindexes'] = []
             i = -1

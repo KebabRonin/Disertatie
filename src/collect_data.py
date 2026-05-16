@@ -118,7 +118,11 @@ def get_algo_dict(rk):
 
 def get_finished_runs(runname):
     files = os.listdir(os.path.join(EXPERIMENTS_PATH, runname))
-    finished_runs = [i for i in range(N_RUNS) if f'hof_{i}.txt' in files or f'hof_{i}_is_missing.txt' in files]
+    finished_runs = []
+    for f in files:
+        g = re.match('hof_(\d+).txt', f)
+        if g:
+            finished_runs.append(int(g.groups()[0]))
     return finished_runs
 
 
@@ -150,6 +154,7 @@ def get_best_genotype_over_all_runs() -> list[list]:
 GEN_REGEX = re.compile(f'^([0-9]+){sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}?{sp}?$')
 GEN_REGEX_SPECIES = re.compile(f'^([0-9]+)\\.([0-9]+){sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}{sp}{rgx}?{sp}?$')
 GEN_REGEX_ISLAND_START = r'^starting island\s+(\d+)\s+$'
+GEN_REGEX_INVALID_GENOS = r'^Selection: ignoring (\d+) infeasible solution in a population of size (\d+)$'
 def parse_data(rs=None):
     if rs is None:
         rs = {}
@@ -180,6 +185,7 @@ def parse_data(rs=None):
         evalTime_arr = []
         species_dicts = []
         islands_arrs = []
+        invalid_genos_arr_count = []
         for i in finished_runs:
             mx_arr = []
             mn_arr = []
@@ -187,6 +193,7 @@ def parse_data(rs=None):
             std_arr = []
             species_dict = {}
             islands = {}
+            invalid_genos_count = 0
             with open(os.path.join(EXPERIMENTS_PATH, d, f'results_{i}.stdout'), 'r') as f:
                 # First line tells us the arguments the run had.
                 argvalues = f.readline()
@@ -205,6 +212,7 @@ def parse_data(rs=None):
                     m_species = re.match(GEN_REGEX_SPECIES, l)
                     m_species_end = re.match(r"^Removed species (\d+).*$", l)
                     m_island  = re.match(GEN_REGEX_ISLAND_START, l)
+                    m_invalid = re.match(GEN_REGEX_INVALID_GENOS, l)
                     if m:
                         gen, nevals, avg, stdev, mn, mx, totalevals, evalTime, nonevalTime = m.groups()
                         if totalevals == prevTevals:
@@ -268,6 +276,9 @@ def parse_data(rs=None):
                         species_dict[species_id]['mn_arrs'] += [(int(totalevals), float(mn) if mn != 'nan' else None)]
                         species_dict[species_id]['avg_arrs'] += [(int(totalevals), float(avg) if avg != 'nan' else None)]
                         species_dict[species_id]['std_arrs'] += [(int(totalevals), float(stdev) if stdev != 'nan' else None)]
+                    elif m_invalid:
+                        invalid_genos, popsize_invalid = m_invalid.groups()
+                        invalid_genos_count += int(invalid_genos)
                     prevTevals = totalevals
                     last_totalevals = totalevals if totalevals is not None else last_totalevals
                 if 'Lambda' in d:
@@ -295,6 +306,7 @@ def parse_data(rs=None):
             mn_arrs.append(mn_arr)
             avg_arrs.append(avg_arr)
             std_arrs.append(std_arr)
+            invalid_genos_arr_count.append(invalid_genos_count)
             if len(islands) > 0:
                 islands_arrs.append(islands)
             if len(species_dict) > 0:
@@ -306,6 +318,7 @@ def parse_data(rs=None):
             'mn_arrs': mn_arrs,
             'avg_arrs': avg_arrs,
             'generations': gens_arr,
+            'invalid_genos': invalid_genos_arr_count,
             'nonevalTime': nonevalTime_arr,
             'totalevals': totalevals_arr,
             'evalTime': evalTime_arr,
@@ -550,11 +563,11 @@ def print_clasament(names, latex):
 
 FIGSIZE=(25,13)
 if __name__ == '__main__':
-    # sc = get_best_genotype_over_all_runs()
-    # for s in sc[-3:]:# filter(lambda x: x[0] == '4', sc):
-    #     print(s[:5])
-    #     print()
-    #     print(s[5])
+    sc = get_best_genotype_over_all_runs()
+    for s in sc[-1:]:# filter(lambda x: x[0] == '4', sc):
+        print(s[:5])
+        print()
+        print(s[5])
     parsedargs = parseArgs()
     if parsedargs.silent:
         print = lambda *x, **kw: x
@@ -573,9 +586,11 @@ if __name__ == '__main__':
             if modified:
                 pickle.dump(rs, open(DATA_FILE, 'wb'))
         print('Results finished loading/parsing...')
+
         ress = []
         for d in tqdm.tqdm(list(rs.keys()), position=0, desc="Experiments"):
             finished_runs = get_finished_runs(d)
+            print(d, rs[d]['invalid_genos'])
             for i in tqdm.trange(len(finished_runs), position=1, desc="Runs"):
                 ress += show_runs(rs, d, i, arr_to_plot=ARR_TO_PLOT)
         ress.sort(key=lambda x: x[1], reverse=True)

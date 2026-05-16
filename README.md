@@ -1,8 +1,8 @@
 # **GECCO 2026: Automated Design Competition**
 
-[Working Area](#working-area)
-
 [Competition](#competition)
+
+[Working Area](#working-area)
 
 [Results](#results)
 
@@ -24,211 +24,6 @@ python -m src.optuna_study
 python -m src.collect_data --redo
 ```
 
-
-## Working Area
-
-Instalation instructions: See [The competition page](https://www.framsticks.com/gecco-competition)
-
-*Some folder paths are hardcoded, so you might have to edit some of the code*
-
-_Development was done primarily on linux mint, so you might have some issues if running on another OS_
-
-[Wikipedia :- Neoevolutionism](https://en.wikipedia.org/wiki/Sociocultural_evolution#Neoevolutionism)
-
-Talcott Parsons, author of _Societies: Evolutionary and Comparative Perspectives_ (1966) and _The System of Modern Societies_ (1971) divided evolution into four subprocesses:
-1. **division**, which creates functional subsystems from the main system; 
-2. **adaptation**, where those systems evolve into more efficient versions;
-3. **inclusion of elements previously excluded** from the given systems;
-4. **generalization** of values, increasing the legitimization of the ever more complex system.
-
-**NotebookLM** for generating diagrams for the pptx
-
-Baseline (adaptMut with default FramsticksEvolution): 286 MB (14.01% of RAM budget)
-
-With pandas data collection for each evaluation:      462 MB (22.56% of RAM budget) \[+8.55%\]
-
-DISTANCE METRICS ARE NOT SYMMETRICAL: (is it ok to use with NEAT?)
-
-```
-Aggregated over 100 runs.
-SIMET = % of time when matrix symmetry is broken
-TRIANG = % of time when the triangle inequality is broken
-DELTA - Allow for small inconsistencies without counting them as breakages
-
-                  NAME                                       SIMET TRIANG TIME
-DissimMethod.GENE_LEVENSHTEIN                                0.000 0.000, 0.00021892040997045114
-DissimMethod.PHENE_STRUCT_GREEDY                             0.070 0.120, 0.005150963429732655
-DissimMethod.PHENE_STRUCT_OPTIM                              0.000 0.090, 0.004576076149824075
-DissimMethod.PHENE_DESCRIPTORS                               0.750 0.040, 3.0980271047098724
-DissimMethod.PHENE_DENSITY_COUNT                             0.960 0.230, 1.727437051560155
-DissimMethod.PHENE_DENSITY_FREQ                              0.960 0.310, 0.673924016669771
-DissimMethod.FITNESS                                         0.000 0.000, 0.0 # NOT TESTED
-/\/\/\ DELTA = 0
-\/\/\/ DELTA = 1e-15
-DissimMethod.GENE_LEVENSHTEIN                                0.000 0.000, 0.00024976237014925575
-DissimMethod.PHENE_STRUCT_GREEDY                             0.000 0.030, 0.006702936069777934
-DissimMethod.PHENE_STRUCT_OPTIM                              0.000 0.000, 0.006201135500086821
-DissimMethod.PHENE_DESCRIPTORS                               0.000 0.010, 4.111773694620279
-DissimMethod.PHENE_DENSITY_COUNT                             0.000 0.160, 2.2583790871499514
-DissimMethod.PHENE_DENSITY_FREQ                              0.000 0.310, 0.8478708705900498
-DissimMethod.FITNESS                                         0.000 0.000, 0.0 # NOT TESTED
-```
-
-
-[Competition website](https://www.framsticks.com/gecco-competition)
-
-[GECCO competition link](https://gecco-2026.sigevo.org/Competition?itemId=8259)
-
-[Disertation presentation slides](https://docs.google.com/presentation/d/1LQFmr2H28BHL-tTbk1Y-5kiM2AudMlV4DHNNDb9gkyQ/edit?usp=sharing)
-
-### Notes
-
-#### Prima
-
-GOMEA - de vazut, algo puternic, complicat de implementat
-
-de vazut AdaptMut
-
-CMA-ES algo
-
-Simulated Annealer
-
-Risto Miikkulainen - hyena simulation complexifying, diversity search
-
-#### Doua
-
-NOVELTY
-
-Hyena + NEAT novelty ce a folosit autorul, cum a lucrat
-
-NU hillclimbing, ci CMA, novelty, sim annealing
-
-Novelty stage > Evolution stage > Annealing stage
-
-#### Libraries
-
-https://github.com/CodeReclaimers/neat-python
-https://github.com/marcovirgolin/GP-GOMEA
-
-#### For prof next time
-
-- [ ] I implemented Annealer, but solution quickly deteriorates in small tests (1000 evals)
-	- [ ] Find better params first
-- [ ] Ask about Memetic algorithms (passing the mutation params as part of the genotype)
-- [ ] Can I use 'altering mutation params dynamically' as part of some algorithm?
-	- [ ] (i.e. mutation schedules like: body(add) for 5 gens, mutate brain(add/modify) for 2 gens, body(modify/remove) 5 gens, etc..)
-
-#### Observations/Takeaways
-
-* `eaOnePlusLambdaLambda` - allow fitness-neutral improvements, otherwise you'll never leave the starting genotype
-* Most final solutions of a run have a lot of neurons which are unused
-* So set the starting genotype not as the simplest possible, but the simplest given the problem at hand (i.e. We need movement -> a solution will have at least 2 bones and some neurons) 
-  * [ ] TODO: Add some guards so you can't use the neuron initial genotype when the simulator has maxnumneuros = 0
-  * [ ] NOT FOR COMPETITION (GPU-based NN method): Use https://snap.stanford.edu/frequent-subgraph-mining/ to identify frequent sub-graphs aka. Building Blocks 
-	  * [ ] Installation doesn't work, last updated 5 years ago. Seems I was duped
-
-#### TODO
-https://pmc.ncbi.nlm.nih.gov/articles/PMC12238971/pdf/nihms-2059158.pdf
-_Roughly ordered by difficulty/impact_
-
-* [ ] GOMEA ([2025 competition entry description here](https://www.framsticks.com/filebrowser/download/341) - it relies on f1)
-	* [ ] Create f0 -> GP tree parser
-	* [ ] Figure out linkage models for graphs (see NN-based https://snap.stanford.edu/frequent-subgraph-mining/ ?)
-* [ ] Augument `soft_perturb_best` restart by pruning useless neurons first, then mutating? Most neurons are not connected to anything
-* [ ] Add soft restarts to more algorithms
-	* [x] AdaptMut
-	* [ ] eaSimple
-	* [ ] NEAT_speciation (might be counterproductive)
-	* [ ] convection
-	* [ ] Annealer
-* [ ] Add an annealing step at the end, where only neurons are modified (weights with p=0.9, add/remove with p=0.1)
-* [ ] That speciation algorithm (niching by similarity, and encouraging exploration) - this is Novelty Search
-* [ ] Self-adaptive EA (aka. store the strategy parameters, such as the mutation step sizes, as part of individuals)
-* [ ] Alter selection (something other than tournament)
-* [ ] Alter the mutation/selection:
-	* [ ] Mutation: Adding a part is 0.1, removing is 0.15, modifying is rest (overall body mutation=0.3, neuromutation=0.7)
-	* [ ] Selection: Tournament size, selection method
-* [x] Implement NEAT Speciation/Clustering
-	* [x] Test the Framsticks dissimilarity metric to get more familiar with it
-		* Dissimilarity is an actually almost symmetric, but not quite
-	* [ ] Add recessive/disabled genes (if I can add comments in the genotype)
-		* Framsticks doesn't support comments inside the genotype, but maybe I can parse my own
-	* [ ] Touch the neuron/body mutation probabilities once a population matures/plateaus
-		* `setMutationProbabilities(mutate_brain)` in `evolution_demo.expdef`
-* [ ] Add Mutation scheme: Duplicate some part of the genotype (for f0 and f1)
-	* Use the swap mutation as inspiration
-	* Alternatively, the operator could be added in python, working on strings only: find 2 positions to cut(copy), and one to paste into.
-	* Alternatively, it could maybe be crossover(ind, ind) ?
-	* It could be made as a framsticks script, stored as a string in python, and evaluated in the FramsticksLib
-* [ ] Implement NEAT complexification/ gene alignment
-	* Need to find a way to define 'dimensions' in Framsticks: (in NEAT dimension = nr. hidden layers)
-		* Genotype length (needs to be robust to possibly hard-coded parameters in the evaluation phase)?
-		* (f1) Available gene modifiers?
-* [ ] Compute % of time spent in stagnation, for each algorithm
-* [ ] #idea Make mutation probabilities dynamic (with CMA-ES or some fitness-dependent measure)
-	* Outline:
-		* All mutation probabilities start equal (prob body is mutated, prob neuron is mutated, and their sub-probabilities (add/remove/swap for each connection/part/neuron type))
-		* Recompute the probabilities based on the fitness increase of individuals which used a certain kind of mutation
-			* eg. individuals which removed a part performed better than those which added a part
-			* so proportionally reduce the probability of adding and increase the probability of reducing
-	* Alternatively, pre-training the probabilities on a plethora of setups, and using those trained probabilities in the final algorithm
-* [ ] Use the dissimilarity metric somehow?
-	* [ ] Compute some `aux_fitness` score which rewards distance from other solutions, to increase exploration?
-	* [ ] First option: Convection?
-	* [x] NEAT speciation
-	* [ ] CMA-ES
-	> PyEMD: If you use this code, please cite the papers listed at the end of the README
-
-
-* [x] Add an additional test map (some heightfield + water, instead of superflat) (**Is this worth it for the paper/algorithm?**)
-	* Even better, the example comes with 3 evaluation functions
-* [x] Investigate Building Block algorithms
-	* Don't, speciation already kinda does this
-* [x] Alter tournament size
-* [x] Use optuna for the hyperparameters
-* [x] Do some runs with determinism turned off
-* [x] More EA variants: [(μ/ρ +, λ), (1+(λ, λ)), (μ, λ), (μ+λ), (μ+1), (1+1)](https://algorithmafternoon.com/strategies/mu_slash_rho_plus_lambda_evolution_strategy/), ...
-* [x] Try AdaptMut Convection without `simplest genotype insertion` mutation
-* [x] Variate popsize (25, 50, 100)
-* [x] Convection Selection (Island-based, split by fitness score)
-* [x] AdaptMut (Same as Simple EA, but stronger mutation)
-* [x] Simple EA (TODO: more details here)
-* [x] Implement Self-adaptive (1 + (λ, λ))
-* [x] Random init
-* [x] Different initializations:
-	* [x] Random init: The first generation should already contain different individuals
-		- Don't evaluate the first generation, which is filled with identical genotypes, clones of the simplest genotype - since all individuals are identical, fitness isn't a good measure for selection (since it is equivalent to a random selection)
-		- Option 1: Use the built-in `get_random_individual()` function in Framsticks
-		- Option 2: Init with initial genotype, and run a round of mutation/crossover before starting
-	* [x] Have the initial genotype be 'XX' instead of 'X'
-		* Two parts and a Joint
-		* This is the simplest genotype which is potentially capable of movement (if neurons are properly added)
-		* Could also try to have one of the parts contain all possible neuron types, so evolution can only focus on adding some connections at first
-			* ! Highest performing solutions already contain most possible neuron types (even if they aren't used), so this might speed things up
-
-For competition:
-* [ ] Create standalone Python file (containing all the code, and which creates the necessary dependencies (.sim files, etc), also include a TOC and file sections as comments)
-* [ ] Write email
-
-For disertation:
-* [ ] Write the paper [overleaf link](https://www.overleaf.com/read/rghmrhnrdqdd#cce283)
-
-**Questions**:
-
-* [x] Can I touch the **mutation operator**? It might have some `p_mutate_neurons` or `p_mutate_body` to fine-tune.
-	* `If needed, parameter values and probabilities of mutation and crossover may be modified and adjusted by participants.` - so **YES**
-* [x] Since the example experiment setup has randomness turned off, can I rely on that to be the case at evaluation time? Can I 'cheat' by **not re-evaluating genotypes which were seen before**?
-	* I'd say that I can't rely on randomness being turned off, so **NO**
-* [x] How many pages for thesis? 100? 40?
-	* Aim for ~50
-* [x] Do I use the GECCO template for the paper? The UAIC template?
-	* **GECCO**
-* [ ] Are dissimilarity metric computations counted as evaluations? (I hope not)
-* [ ] Should I focus more on finding and applying other methods, or should I try to create an ensemble method (eg. NEAT + AdaptMut + end with annealing step + finetuned probabilities)?
-* [ ] What stats are interesting to compute? (average run fitness plot? average 'biggest fitness jump' generation? Plotting a GIF of the population over the run?)
-	* **I need help, idk what to interpret about the results**
-* [ ] What could I change from the [2025 GOMEA entry](https://www.framsticks.com/filebrowser/download/341) to improve it?
-  * I could substitute the island migrations for the Convection Selection Scheme
 
 ## Competition
 
@@ -344,6 +139,224 @@ neuadd_Thr:0
 
 </details>
 
+## Working Area
+
+Instalation instructions: See [The competition page](https://www.framsticks.com/gecco-competition)
+
+*Some folder paths are hardcoded, so you might have to edit some of the code*
+
+_Development was done primarily on linux mint, so you might have some issues if running on another OS_
+
+[Wikipedia :- Neoevolutionism](https://en.wikipedia.org/wiki/Sociocultural_evolution#Neoevolutionism)
+
+Talcott Parsons, author of _Societies: Evolutionary and Comparative Perspectives_ (1966) and _The System of Modern Societies_ (1971) divided evolution into four subprocesses:
+1. **division**, which creates functional subsystems from the main system; 
+2. **adaptation**, where those systems evolve into more efficient versions;
+3. **inclusion of elements previously excluded** from the given systems;
+4. **generalization** of values, increasing the legitimization of the ever more complex system.
+
+**NotebookLM** for generating diagrams for the pptx
+
+Baseline (adaptMut with default FramsticksEvolution): 286 MB (14.01% of RAM budget)
+
+With pandas data collection for each evaluation:      462 MB (22.56% of RAM budget) \[+8.55%\]
+
+DISTANCE METRICS ARE NOT SYMMETRICAL: (is it ok to use with NEAT?)
+
+```
+Aggregated over 100 runs.
+SIMET = % of time when matrix symmetry is broken
+TRIANG = % of time when the triangle inequality is broken
+DELTA - Allow for small inconsistencies without counting them as breakages
+
+                  NAME                                       SIMET TRIANG TIME
+DissimMethod.GENE_LEVENSHTEIN                                0.000 0.000, 0.00021892040997045114
+DissimMethod.PHENE_STRUCT_GREEDY                             0.070 0.120, 0.005150963429732655
+DissimMethod.PHENE_STRUCT_OPTIM                              0.000 0.090, 0.004576076149824075
+DissimMethod.PHENE_DESCRIPTORS                               0.750 0.040, 3.0980271047098724
+DissimMethod.PHENE_DENSITY_COUNT                             0.960 0.230, 1.727437051560155
+DissimMethod.PHENE_DENSITY_FREQ                              0.960 0.310, 0.673924016669771
+DissimMethod.FITNESS                                         0.000 0.000, 0.0 # NOT TESTED
+/\/\/\ DELTA = 0
+\/\/\/ DELTA = 1e-15
+DissimMethod.GENE_LEVENSHTEIN                                0.000 0.000, 0.00024976237014925575
+DissimMethod.PHENE_STRUCT_GREEDY                             0.000 0.030, 0.006702936069777934
+DissimMethod.PHENE_STRUCT_OPTIM                              0.000 0.000, 0.006201135500086821
+DissimMethod.PHENE_DESCRIPTORS                               0.000 0.010, 4.111773694620279
+DissimMethod.PHENE_DENSITY_COUNT                             0.000 0.160, 2.2583790871499514
+DissimMethod.PHENE_DENSITY_FREQ                              0.000 0.310, 0.8478708705900498
+DissimMethod.FITNESS                                         0.000 0.000, 0.0 # NOT TESTED
+```
+
+
+[Competition website](https://www.framsticks.com/gecco-competition)
+
+[GECCO competition link](https://gecco-2026.sigevo.org/Competition?itemId=8259)
+
+[Disertation presentation slides](https://docs.google.com/presentation/d/1LQFmr2H28BHL-tTbk1Y-5kiM2AudMlV4DHNNDb9gkyQ/edit?usp=sharing)
+
+### Notes
+
+#### Prima
+
+GOMEA - de vazut, algo puternic, complicat de implementat
+
+de vazut AdaptMut
+
+CMA-ES algo
+
+Simulated Annealer
+
+Risto Miikkulainen - hyena simulation complexifying, diversity search
+
+#### Doua
+
+NOVELTY
+
+Hyena + NEAT novelty ce a folosit autorul, cum a lucrat
+
+NU hillclimbing, ci CMA, novelty, sim annealing
+
+Novelty stage > Evolution stage > Annealing stage
+
+#### Libraries
+
+https://github.com/CodeReclaimers/neat-python
+https://github.com/marcovirgolin/GP-GOMEA
+
+#### For prof next time
+
+- [ ] Is it ok to change the evaluation method provided by the competition? (skipping evaluation if invalid phenotype)
+- [ ] I implemented Annealer, but solution quickly deteriorates in small tests (1000 evals)
+	- [ ] Find better params first
+- [ ] Crowding distance/NSGA-II: What measures to use?
+	- [ ] I'd need some measure that is absolute (eg. numparts, numneurons) - but don't actually optimize it?
+	- [ ] I could compute `crowd[i] = max([dissim[i][j] for j in range(len(individuals))])` - distance to closest point
+		- [ ] **Maybe compute it between species, to encourage drifting away?**
+- [ ] Ask about passing the mutation params as part of the genotype
+- [ ] Can I use 'altering mutation params dynamically' as part of some algorithm?
+	- [ ] (i.e. mutation schedules like: body(add) for 5 gens, mutate brain(add/modify) for 2 gens, body(modify/remove) 5 gens, etc..)
+	- [ ] There was a past submission using this CaSPO, wasn't really that good.
+		- [ ] Maybe use that schedule for Speciation?
+
+#### Observations/Takeaways
+
+* `eaOnePlusLambdaLambda` - allow fitness-neutral improvements, otherwise you'll never leave the starting genotype
+* Most final solutions of a run have a lot of neurons which are unused
+* So set the starting genotype not as the simplest possible, but the simplest given the problem at hand (i.e. We need movement -> a solution will have at least 2 bones and some neurons) 
+  * [ ] NOT FOR COMPETITION (GPU-based NN method): Use https://snap.stanford.edu/frequent-subgraph-mining/ to identify frequent sub-graphs aka. Building Blocks 
+	  * [ ] Installation doesn't work, last updated 5 years ago. Seems I was duped
+
+#### TODO
+https://pmc.ncbi.nlm.nih.gov/articles/PMC12238971/pdf/nihms-2059158.pdf
+_Roughly ordered by difficulty/impact_
+
+- [ ] Add species history taken into account when computing dissim, so alive species avoid dead species
+* [ ] GOMEA ([2025 competition entry description here](https://www.framsticks.com/filebrowser/download/341) - it relies on f1)
+	* [ ] Create f0 -> GP tree parser
+	* [ ] Figure out linkage models for graphs (see NN-based https://snap.stanford.edu/frequent-subgraph-mining/ ?)
+* [ ] Augument `soft_perturb_best` restart by pruning useless neurons first, then mutating? Most neurons are not connected to anything
+* [ ] Add soft restarts to more algorithms
+	* [x] AdaptMut
+	* [ ] eaSimple
+	* [x] NEAT_speciation (might be counterproductive)
+	* [ ] convection
+	* [ ] Annealer
+* [ ] Add an annealing step at the end, where only neurons are modified (weights with p=0.9, add/remove with p=0.1)
+* [ ] That speciation algorithm (niching by similarity, and encouraging exploration) - this is Novelty Search
+* [ ] A speciation algorithm as follows:
+	* Start with one population of 30
+	* Every generation, probe the population:
+		* If there are some clear outliers wrt. dissimilarity, pick those to start a new species (initial )
+* [ ] Crowding
+* [ ] Self-adaptive EA (aka. store the strategy parameters, such as the mutation step sizes, as part of individuals)
+* [ ] Alter the mutation/selection:
+	* [ ] Mutation: Adding a part is 0.1, removing is 0.15, modifying is rest (overall body mutation=0.3, neuromutation=0.7)
+	* [ ] Selection: Tournament size, selection method
+* [x] Implement NEAT Speciation/Clustering
+	* [x] Test the Framsticks dissimilarity metric to get more familiar with it
+		* Dissimilarity is an actually almost symmetric, but not quite
+	* [ ] Add recessive/disabled genes (if I can add comments in the genotype)
+		* Framsticks doesn't support comments inside the genotype, but maybe I can parse my own
+	* [ ] Touch the neuron/body mutation probabilities once a population matures/plateaus
+		* `setMutationProbabilities(mutate_brain)` in `evolution_demo.expdef`
+* [ ] Add Mutation scheme: Duplicate some part of the genotype (for f0 and f1)
+	* Use the swap mutation as inspiration
+	* Alternatively, the operator could be added in python, working on strings only: find 2 positions to cut(copy), and one to paste into.
+	* Alternatively, it could maybe be crossover(ind, ind) ?
+	* It could be made as a framsticks script, stored as a string in python, and evaluated in the FramsticksLib
+* [ ] Implement NEAT complexification/ gene alignment
+	* Need to find a way to define 'dimensions' in Framsticks: (in NEAT dimension = nr. hidden layers)
+		* Genotype length (needs to be robust to possibly hard-coded parameters in the evaluation phase)?
+		* (f1) Available gene modifiers?
+* [ ] Compute % of time spent in stagnation, for each algorithm
+* [ ] #idea Make mutation probabilities dynamic (with CMA-ES or some fitness-dependent measure)
+	* Outline:
+		* All mutation probabilities start equal (prob body is mutated, prob neuron is mutated, and their sub-probabilities (add/remove/swap for each connection/part/neuron type))
+		* Recompute the probabilities based on the fitness increase of individuals which used a certain kind of mutation
+			* eg. individuals which removed a part performed better than those which added a part
+			* so proportionally reduce the probability of adding and increase the probability of reducing
+	* Alternatively, pre-training the probabilities on a plethora of setups, and using those trained probabilities in the final algorithm
+* [ ] Use the dissimilarity metric somehow?
+	* [ ] Compute some `aux_fitness` score which rewards distance from other solutions, to increase exploration?
+	* [ ] First option: Convection?
+	* [x] NEAT speciation
+	* [ ] CMA-ES
+	> PyEMD: If you use this code, please cite the papers listed at the end of the README
+
+
+* [x] TODO: Add some guards so you can't use the neuron initial genotype when the simulator has maxnumneuros = 0
+* [x] Add an additional test map (some heightfield + water, instead of superflat) (**Is this worth it for the paper/algorithm?**)
+	* Even better, the example comes with 3 evaluation functions
+* [x] Investigate Building Block algorithms
+	* Don't, speciation already kinda does this
+* [x] Alter tournament size
+* [x] Use optuna for the hyperparameters
+* [x] Do some runs with determinism turned off
+* [x] More EA variants: [(μ/ρ +, λ), (1+(λ, λ)), (μ, λ), (μ+λ), (μ+1), (1+1)](https://algorithmafternoon.com/strategies/mu_slash_rho_plus_lambda_evolution_strategy/), ...
+* [x] Try AdaptMut Convection without `simplest genotype insertion` mutation
+* [x] Alter selection (something other than tournament)
+* [x] Variate popsize (25, 50, 100)
+* [x] Convection Selection (Island-based, split by fitness score)
+* [x] AdaptMut (Same as Simple EA, but stronger mutation)
+* [x] Simple EA (TODO: more details here)
+* [x] Implement Self-adaptive (1 + (λ, λ))
+* [x] Random init
+* [x] Different initializations:
+	* [x] Random init: The first generation should already contain different individuals
+		- Don't evaluate the first generation, which is filled with identical genotypes, clones of the simplest genotype - since all individuals are identical, fitness isn't a good measure for selection (since it is equivalent to a random selection)
+		- Option 1: Use the built-in `get_random_individual()` function in Framsticks
+		- Option 2: Init with initial genotype, and run a round of mutation/crossover before starting
+	* [x] Have the initial genotype be 'XX' instead of 'X'
+		* Two parts and a Joint
+		* This is the simplest genotype which is potentially capable of movement (if neurons are properly added)
+		* Could also try to have one of the parts contain all possible neuron types, so evolution can only focus on adding some connections at first
+			* ! Highest performing solutions already contain most possible neuron types (even if they aren't used), so this might speed things up
+
+For competition:
+* [ ] Create standalone Python file (containing all the code, and which creates the necessary dependencies (.sim files, etc), also include a TOC and file sections as comments)
+* [ ] Write email
+
+For disertation:
+* [ ] Write the paper [overleaf link](https://www.overleaf.com/read/rghmrhnrdqdd#cce283)
+
+**Questions**:
+
+* [x] Can I touch the **mutation operator**? It might have some `p_mutate_neurons` or `p_mutate_body` to fine-tune.
+	* `If needed, parameter values and probabilities of mutation and crossover may be modified and adjusted by participants.` - so **YES**
+* [x] Since the example experiment setup has randomness turned off, can I rely on that to be the case at evaluation time? Can I 'cheat' by **not re-evaluating genotypes which were seen before**?
+	* I'd say that I can't rely on randomness being turned off, so **NO**
+* [x] How many pages for thesis? 100? 40?
+	* Aim for ~50
+* [x] Do I use the GECCO template for the paper? The UAIC template?
+	* **GECCO**
+* [ ] Are dissimilarity metric computations counted as evaluations? (I hope not)
+* [x] Should I focus more on finding and applying other methods, or should I try to create an ensemble method (eg. NEAT + AdaptMut + end with annealing step + finetuned probabilities)?
+	* More methods
+* [ ] What stats are interesting to compute? (average run fitness plot? average 'biggest fitness jump' generation? Plotting a GIF of the population over the run?)
+	* **I need help, idk what to interpret about the results**
+* [ ] What could I change from the [2025 GOMEA entry](https://www.framsticks.com/filebrowser/download/341) to improve it?
+  * I could substitute the island migrations for the Convection Selection Scheme
 ## Experiments
 #### Setup
 
@@ -396,106 +409,112 @@ Fitness functions examples (included in the Competition example):
 
 |idx.|std       |mean      |median    |max       |overtime  |name      |comment   |
 |----|----------|----------|----------|----------|----------|----------|----------|
-|  1.| 111.97438|**331.45400**| 304.09750| 550.99900|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
-|  2.| 102.77578| 330.52145| 320.04050| 548.32400|`(0/20)`|AdaptMutF0pmut08pop30initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
-|  3.| 127.99047| 321.78560| 318.27450|**601.47700**|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0675_pops20_pxov0675_restsoftperturbbest_rest77_tour12_xmut0||
-|  4.| 129.28282| 312.24010| 254.83250| 535.15500|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0705_pops121_pxov055_restsoftperturbbest_rest80_tour4_xmut0||
-|  5.|  84.49988| 309.37380| 302.49750| 468.78500|`(0/20)`|AdaptMutF0pmut08lbda25added_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
+|  1.| 128.03199|**342.58060**|**326.74850**|**608.65300**|`(0/20)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0675_pops20_pxov0675_restsoftperturbbest_rest77_tour12_xmut0||
+|  2.| 111.97438| 331.45400| 304.09750| 550.99900|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
+|  3.| 102.77578| 330.52145| 320.04050| 548.32400|`(0/20)`|AdaptMutF0pmut08pop30initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
+|  4.|  84.49988| 309.37380| 302.49750| 468.78500|`(0/20)`|AdaptMutF0pmut08lbda25added_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
+|  5.|  97.59817| 305.53770| 259.04250| 586.95500|`(0/20)`|AdaptMutF0initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10pxov0||
 |  6.| 103.15403| 293.27265| 266.98850| 518.02800|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandom||
-|  7.| 117.91553| 292.09340| 277.63300| 524.85500|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut065_pops24_pxov0645_restsoftperturbbest_rest81_tour9_xmut0||
-|  8.| 106.87032| 290.43345|**325.88800**| 521.60900|`(0/20)`|AdaptMutF0pmut08pop100initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
+|  7.| 106.87032| 290.43345| 325.88800| 521.60900|`(0/20)`|AdaptMutF0pmut08pop100initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
+|  8.| 114.94601| 286.66845| 267.44150| 524.85500|`(0/20)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut065_pops24_pxov0645_restsoftperturbbest_rest81_tour9_xmut0||
 |  9.|  79.87178| 285.36440| 272.86650| 528.28200|`(0/20)`|AdaptMutF0|Intermittent drops in fitness are soft restarts, stagnation is hard to notice (if it exists at all)|
-| 10.|  42.24519| 284.40340| 281.64800| 356.24500|`(0/10)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_pmut073_pops6_pxov042_restsoftperturbbest_rest75_tour6_xmut0||
-| 11.|  99.18738| 266.63089| 249.66900| 486.33400|`(0/20)`|AdaptMutF0pmut08pop25|Way more jittery|
-| 12.|  97.43668| 261.37300| 256.43800| 466.64000|`(0/20)`|AdaptMutF0pmut08pop250initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10_1778029637.9376051||
-| 13.|  77.44917| 255.56100| 235.15650| 471.95000|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut049_pops11_pxov0665_restsoftperturbbest_rest81_tour4_xmut0||
-| 14.|  76.19516| 252.28110| 238.67850| 400.73700|`(0/20)`|no_det_nodet_convection_AdaptMutF0pop500|Steady-ish progress|
+| 10.|  99.18738| 266.63089| 249.66900| 486.33400|`(0/20)`|AdaptMutF0pmut08pop25|Way more jittery|
+| 11.|  97.43668| 261.37300| 256.43800| 466.64000|`(0/20)`|AdaptMutF0pmut08pop250initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10_1778029637.9376051||
+| 12.|  51.76372| 259.74575| 262.11900| 356.24500|`(0/20)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_pmut073_pops6_pxov042_restsoftperturbbest_rest75_tour6_xmut0||
+| 13.|  76.19516| 252.28110| 238.67850| 400.73700|`(0/20)`|no_det_nodet_convection_AdaptMutF0pop500|Steady-ish progress|
+| 14.|  60.06200| 250.20824| 265.23500| 326.23300|`(0/20)`|NEAT_speciationF0pop75initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDY||
 | 15.| 102.88860| 249.01476| 243.49050| 509.24100|`(0/20)`|AdaptMutF0pmut08added_indrandom||
-| 16.|  36.97173| 247.55820| 259.28150| 300.14500|`(0/10)`|NEAT_speciationF0pop75initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDY||
+| 16.|  87.02664| 246.97250| 224.06150| 487.45100|`(0/20)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut049_pops11_pxov0665_restsoftperturbbest_rest81_tour4_xmut0||
 | 17.|  78.98754| 246.03290| 244.72550| 393.94200|`(0/20)`|AdaptMutF0pmut08pop250initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
 | 18.|  37.99645| 243.98940| 246.59150| 301.13400|`(0/10)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_initf0XX_pmut072_pops59_pxov0395_resthard_rest27_tour7_xmut0||
 | 19.|  83.07671| 240.69130| 237.80850| 469.03600|`(0/20)`|AdaptMutF0initialgenotype0_f0_basic2|Slightly more prone to break good solutions|
 | 20.|  74.61531| 238.77660| 215.04150| 363.58400|`(0/10)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_pmut06849999999999999_pops25_pxov041000000000000003_tour12_xmut0||
 | 21.|  94.69579| 237.20980| 263.34450| 430.82200|`(0/20)`|AdaptMutF0initialgenotype0_f0_neurons|Almost instant fitness increase, no prolonged warmup time, but more stagnant overall ( #idea maybe use the genotype to init population, but for replacement mutation still use the X genotype)|
-| 22.|  56.81495| 234.88810| 252.02800| 319.20200|`(0/10)`|convection_eaSimpleF0initialgenotyperandomadded_indrandom||
+| 22.|  74.61175| 234.95620| 211.40550| 447.50900|`(1/20)`|NEAT_speciationF0popsize100nislands10dissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience15initialgenotyperandom||
 | 23.| 110.93452| 234.14576| 235.27100| 543.96200|`(0/20)`|AdaptMutF0pmut08|Long periods of stagnation, with little drops but no improvements|
 | 24.|  76.21921| 231.36780| 214.71050| 382.48100|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut06_pops21_pxov0665_restsoftperturbbest_rest96_tour13_xmut0||
 | 25.|  88.12868| 229.04553| 240.24650| 337.70500|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_pmut07_pops135_pxov0015_tour5_xmut0||
 | 26.|  99.34002| 228.31046| 222.26500| 444.28900|`(0/20)`|no_det_nodet_convection_eaSimpleF1pop100|A couple of moderate jumps, but long periods with no improvement|
-| 27.|  65.45451| 228.12980| 229.77300| 314.20400|`(0/10)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf1_initf1random_pmut071_pops56_pxov058_restsoftperturbbest_rest77_tour5_xmut0||
-| 28.|  82.98468| 222.51854| 206.76750| 415.99400|`(0/20)`|AdaptMutF0pmut08pop100|More stable, but slow, small improvement|
-| 29.|  96.47617| 218.16910| 183.35400| 373.00300|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf1_initf1random_pmut065_pops106_pxov063_restsoftperturbbest_rest69_tour12_xmut0||
-| 30.|  80.11475| 209.76748| 224.81550| 415.27300|`(0/20)`|no_det_nodet_AdaptMutF0pmut08|More consistently gets better results|
-| 31.|  93.26182| 206.14497| 168.68200| 410.86000|`(0/20)`|NEAT_speciationF0pop100|Big potential for spikes, but can also get stuck in stagnation|
-| 32.| 105.09188| 205.27519| 192.79650| 554.37200|`(0/20)`|no_det_nodet_AdaptMutF0|Strangely stable with frequent small jitter, but lower fitness overall|
-| 33.|  39.61738| 205.06860| 197.89600| 274.77600|`(0/10)`|convection_AdaptMutF0initialgenotyperandomadded_indrandom||
-| 34.|  88.87222| 203.85120| 206.40350| 374.26500|`(0/10)`|rn_evalfn3_eaSimple_algoeaSimple_genf0_initf1random_pmut07_pops158_pxov05700000000000001_tour2||
-| 35.|  73.01028| 193.69287| 174.94050| 324.67000|`(0/20)`|NEAT_speciationF0|Good initial growth, decent jitter, steady increase|
-| 36.|  40.83007| 190.73325| 182.97050| 309.40200|`(0/20)`|NEAT_speciationF0pop200nislands15|More stagnant ( #advice maybe less generations per run, not enough time for species to mature)|
-| 37.|  57.04898| 189.49424| 180.27850| 303.23000|`(0/20)`|NEAT_speciationF0dissimPHENESTRUCTGREEDY|A bit more stable than the default|
-| 38.|  86.04574| 181.19127| 150.70550| 349.12000|`(0/20)`|AdaptMutF1initialgenotypeXX|A bit more unpredictable than the basic version, but still big stagnation|
-| 39.|  85.51423| 179.28712| 154.63700| 373.58200|`(0/10)`|rn_evalfn3_eaMuCommaLambda_algoeaMuCommaLambda_genf0_initf0XX_lbda500_pmut0635_pops500_pxov0365_tour6||
-| 40.|  51.59143| 176.70240| 154.11850| 269.15600|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0715_pops124_pxov059_restsoftperturbbest_rest81_tour2_xmut0||
-| 41.|  42.74749| 176.14970| 186.08450| 245.84500|`(0/10)`|rn_evalfn3_eaSimple_algoeaSimple_genf0_pmut0615_pops33_pxov0015_tour3||
-| 42.|  42.59994| 175.14930| 164.95400| 267.44600|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_initf1random_lbda245_pmut066_pops120_pxov033999999999999997_tour8||
-| 43.|  62.84837| 172.29113| 157.24650| 318.19800|`(3/20)`|NEAT_speciationF1dissimPHENESTRUCTGREEDY|More moderate spikes over entire run, better progress in some runs, but still plateaus in first quarter pretty frequently|
-| 44.|  97.42668| 171.55590| 146.49150| 406.93200|`(0/20)`|eaSimpleF0|Very slow/stagnation in second half, but good enough growth in the first half|
-| 45.|  61.32771| 169.08129| 159.87450| 274.47900|`(0/20)`|NEAT_speciationF0nislands5|Steady spikes overall, but prone to long periods of stagnation|
-| 46.|  74.73547| 167.46403| 155.23850| 357.24000|`(0/20)`|NEAT_speciationF0dissimFITNESS||
-| 47.|  60.30816| 163.28717| 166.47900| 334.73300|`(0/20)`|NEAT_speciationF0pop100nislands5|Noticeably lower fitness overall, more stable and slow-ish increase|
-| 48.|  74.96505| 161.70664| 168.61600| 297.67400|`(0/10)`|rn_evalfn3_eaMuCommaLambda_algoeaMuCommaLambda_genf0_initf1random_lbda230_pmut069_pops115_pxov031000000000000005_tour9||
-| 49.| 102.29949| 158.55645| 140.20150| 441.26800|`(0/20)`|AdaptMutF1|BIG STAGNATION in the second half, and in general|
-| 50.|  63.03672| 158.54638| 154.61500| 315.77500|`(1/20)`|NEAT_speciationF1nislands5|Gets 1 big spike then plateaus/stagnates mostly|
-| 51.|  60.96562| 156.05513| 155.73000| 259.63200|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut06849999999999999_pops116_pxov074_restsoftperturbbest_rest76_tour8_xmut0||
-| 52.|  46.01961| 153.61436| 144.87000| 253.04200|`(0/10)`|rn_evalfn3_AdaptMut_algoAdaptMut_genf0_pmut0535_pops435_pxov048_tour4_xmut0||
-| 53.|  97.49192| 147.39023| 123.26300| 383.96800|`(0/20)`|AdaptMutF1initialgenotypeXXGGpartTSN|Less 'almost instant' fitness improvement, still stagnation|
-| 54.|  76.95924| 146.69567| 135.20300| 316.40900|`(0/10)`|NEAT_speciationF1dissimFITNESS||
-| 55.|  45.91179| 145.26954| 144.85750| 230.89800|`(0/20)`|eaMuPlusLambdaF0pmut08lbda100|Larger and generally more early spikes compared to Comma, but still stagnation|
-| 56.|  28.74714| 144.45570| 134.20250| 206.65400|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_islabestToWorst_migr41_nisl81_pmut069_pops491_pxov044_tour9||
-| 57.|  42.67774| 142.36872| 132.55850| 262.88300|`(0/20)`|eaSimpleF0initialgenotype0_f0_basic2|Jumps in first third and one more moderate jump at 2/3|
-| 58.|  46.16849| 140.86175| 122.53750| 224.99800|`(0/20)`|eaMuCommaLambdaF0pmut08lbda100|Kinda hillclimber, but it can go down|
-| 59.|  71.88942| 130.98950| 126.90950| 342.90200|`(0/20)`|eaSimpleF0initialgenotype0_f0_neurons|Faster initial growth, but less diversity I think (it tends to stagnate and has stable results (aka most runs arrive in the same fitness ballbark))|
-| 60.|  68.52382| 129.94296| 109.77900| 332.84800|`(0/20)`|eaSimpleF0pmut08|Spikes happen later|
-| 61.|  61.58722| 129.18333| 147.07950| 221.11400|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_lbda500_pmut08099999999999999_pops500_pxov019000000000000006_tour5||
-| 62.|  71.52893| 126.27572|  95.65995| 321.39800|`(0/20)`|AdaptMutF1pmut08|Stagnation|
-| 63.|  72.13336| 122.41123| 105.47150| 293.15400|`(1/20)`|NEAT_speciationF1|Way lower increases per spike than f0|
-| 64.|  66.95189| 122.10886|  89.82540| 279.38800|`(0/20)`|eaMuPlusLambdaF0pmut08lbda350|Disappointingly slow and steady, Comma looked better wrt. jitter|
-| 65.|  64.57591| 121.83612| 138.47600| 197.28800|`(0/10)`|rn_evalfn3_eaSimple_algoeaSimple_genf0_pmut0325_pops111_pxov004_tour9||
-| 66.|  46.51430| 120.22287| 112.46950| 224.62600|`(0/20)`|eaMuCommaLambdaF0pmut08lbda350|Very slow warmup (eval budget go brrr)|
-| 67.|  50.13103| 119.74849| 104.49100| 245.62800|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_initf0XX_lbda500_pmut084_pops365_pxov016000000000000003_tour10||
-| 68.|  47.05908| 116.59629| 119.23650| 242.66000|`(0/20)`|eaOnePlusLambdaLambdaF0pop1initialgenotype0||
-| 69.|  45.07542| 100.32251|  94.20590| 204.39900|`(0/20)`|eaSimpleF1initialgenotypeXX|Even bigger stagnation|
-| 70.|  58.26179|  94.44432|  91.13255| 251.47300|`(0/20)`|eaSimpleF1pmut08|Not much difference with default pmut|
-| 71.|  53.30151|  89.18116|  73.74875| 222.89700|`(15/20)`|NEAT_speciationF1pop100nislands5|Struggles to clear 100, low fitness|
-| 72.|  46.52943|  87.73373|  78.88120| 186.71600|`(0/20)`|eaSimpleF1|Lower fitness, big stagnation|
-| 73.|  39.10576|  81.30353|  77.50035| 176.81000|`(0/20)`|no_det_nodet_eaSimpleF1|Struggles to clear 100, big stagnation|
-| 74.|  47.04598|  74.61855|  66.99510| 194.15300|`(0/20)`|NEAT_speciationF1dissimGENELEVENSHTEIN|Struggles to clear 100 fitness|
-| 75.|  42.89914|  73.12026|  67.67320| 204.55300|`(0/20)`|eaSimpleF1initialgenotypeXXGGpartTSN|Even BIGGER stagnation, not faster initial growth|
-| 76.|  29.02296|  64.12219|  61.02105| 141.53600|`(0/20)`|eaMuCommaLambdaF1pmut08lbda350|Struggling very much, but much better than lbda100|
-| 77.|  74.91810|  60.89176|  40.37395| 283.34200|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_islabestToWorst_migr7_nisl17_pmut01_pops407_pxov08300000000000001_tour2||
-| 78.|  56.08614|  60.04540|  57.69920| 226.25700|`(0/20)`|eaMuPlusLambdaF1pmut08lbda100|Infrequent jumps, low fitness|
-| 79.|  49.55113|  53.89931|  42.86660| 224.64700|`(0/20)`|eaMuCommaLambdaF1pmut08lbda100|Very bad ( #idea the F1 mutation/xover operators are weaker than F0)|
-| 80.|  33.83895|  39.37166|  19.75955| 126.18800|`(0/20)`|eaMuPlusLambdaF1pmut08lbda350|Even lower fitness, for some reason it struggles to get over 50 fitness|
-| 81.|   7.43011|  34.52932|  33.92020|  44.64750|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf1random_islabestToWorst_migr28_nisl59_pmut0515_pops86_pxov078_tour15||
-| 82.|  27.95409|  26.19581|  13.71005|  86.35990|`(20/20)`|NEAT_speciationF1dissimPHENEDENSITYFREQ|Gets close to 100 fitness, gets ~5000 evals before stopping|
-| 83.|  17.11060|  13.11953|   4.41728|  63.76950|`(20/20)`|NEAT_speciationF1dissimPHENEDENSITYCOUNT|Struggles to clear 50 fitness, gets ~1000 evals before stopping|
-| 84.|  25.35968|  11.21698|   3.47358| 119.45800|`(20/20)`|NEAT_speciationF1dissimPHENEDESCRIPTORS|Struggles to clear 20 fitness, gets ~200 evals before stopping|
-| 85.|   0.00000|   0.00000|   0.00000|   0.00000|`(0/10)`|rn_evalfn3_eaOnePlusLambdaLambda_algoeaOnePlusLambdaLambda_genf1_pmut067_pops1_pxov0275||
+| 27.|  56.32415| 228.25305| 222.77950| 322.31200|`(0/20)`|convection_eaSimpleF0initialgenotyperandomadded_indrandom||
+| 28.|  65.45451| 228.12980| 229.77300| 314.20400|`(0/10)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf1_initf1random_pmut071_pops56_pxov058_restsoftperturbbest_rest77_tour5_xmut0||
+| 29.|  82.98468| 222.51854| 206.76750| 415.99400|`(0/20)`|AdaptMutF0pmut08pop100|More stable, but slow, small improvement|
+| 30.|  96.47617| 218.16910| 183.35400| 373.00300|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf1_initf1random_pmut065_pops106_pxov063_restsoftperturbbest_rest69_tour12_xmut0||
+| 31.|  80.11475| 209.76748| 224.81550| 415.27300|`(0/20)`|no_det_nodet_AdaptMutF0pmut08|More consistently gets better results|
+| 32.|  93.26182| 206.14497| 168.68200| 410.86000|`(0/20)`|NEAT_speciationF0pop100|Big potential for spikes, but can also get stuck in stagnation|
+| 33.| 105.09188| 205.27519| 192.79650| 554.37200|`(0/20)`|no_det_nodet_AdaptMutF0|Strangely stable with frequent small jitter, but lower fitness overall|
+| 34.|  39.61738| 205.06860| 197.89600| 274.77600|`(0/10)`|convection_AdaptMutF0initialgenotyperandomadded_indrandom||
+| 35.| 159.60074| 194.10133| 221.57700| 535.15500|`(0/30)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0705_pops121_pxov055_restsoftperturbbest_rest80_tour4_xmut0||
+| 36.|  73.01028| 193.69287| 174.94050| 324.67000|`(0/20)`|NEAT_speciationF0|Good initial growth, decent jitter, steady increase|
+| 37.|  40.83007| 190.73325| 182.97050| 309.40200|`(0/20)`|NEAT_speciationF0pop200nislands15|More stagnant ( #advice maybe less generations per run, not enough time for species to mature)|
+| 38.|  57.04898| 189.49424| 180.27850| 303.23000|`(0/20)`|NEAT_speciationF0dissimPHENESTRUCTGREEDY|A bit more stable than the default|
+| 39.| 103.76094| 188.69955| 189.65600| 474.34500|`(0/20)`|rn_evalfn3_eaSimple_algoeaSimple_genf0_initf1random_pmut07_pops158_pxov05700000000000001_tour2||
+| 40.|  86.04574| 181.19127| 150.70550| 349.12000|`(0/20)`|AdaptMutF1initialgenotypeXX|A bit more unpredictable than the basic version, but still big stagnation|
+| 41.|  85.51423| 179.28712| 154.63700| 373.58200|`(0/10)`|rn_evalfn3_eaMuCommaLambda_algoeaMuCommaLambda_genf0_initf0XX_lbda500_pmut0635_pops500_pxov0365_tour6||
+| 42.|  51.59143| 176.70240| 154.11850| 269.15600|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0715_pops124_pxov059_restsoftperturbbest_rest81_tour2_xmut0||
+| 43.|  42.74749| 176.14970| 186.08450| 245.84500|`(0/10)`|rn_evalfn3_eaSimple_algoeaSimple_genf0_pmut0615_pops33_pxov0015_tour3||
+| 44.|  42.59994| 175.14930| 164.95400| 267.44600|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_initf1random_lbda245_pmut066_pops120_pxov033999999999999997_tour8||
+| 45.|  62.84837| 172.29113| 157.24650| 318.19800|`(3/20)`|NEAT_speciationF1dissimPHENESTRUCTGREEDY|More moderate spikes over entire run, better progress in some runs, but still plateaus in first quarter pretty frequently|
+| 46.|  97.42668| 171.55590| 146.49150| 406.93200|`(0/20)`|eaSimpleF0|Very slow/stagnation in second half, but good enough growth in the first half|
+| 47.|  61.32771| 169.08129| 159.87450| 274.47900|`(0/20)`|NEAT_speciationF0nislands5|Steady spikes overall, but prone to long periods of stagnation|
+| 48.|  74.73547| 167.46403| 155.23850| 357.24000|`(0/20)`|NEAT_speciationF0dissimFITNESS||
+| 49.|  60.30816| 163.28717| 166.47900| 334.73300|`(0/20)`|NEAT_speciationF0pop100nislands5|Noticeably lower fitness overall, more stable and slow-ish increase|
+| 50.|  74.96505| 161.70664| 168.61600| 297.67400|`(0/10)`|rn_evalfn3_eaMuCommaLambda_algoeaMuCommaLambda_genf0_initf1random_lbda230_pmut069_pops115_pxov031000000000000005_tour9||
+| 51.| 102.29949| 158.55645| 140.20150| 441.26800|`(0/20)`|AdaptMutF1|BIG STAGNATION in the second half, and in general|
+| 52.|  63.03672| 158.54638| 154.61500| 315.77500|`(1/20)`|NEAT_speciationF1nislands5|Gets 1 big spike then plateaus/stagnates mostly|
+| 53.|  60.96562| 156.05513| 155.73000| 259.63200|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut06849999999999999_pops116_pxov074_restsoftperturbbest_rest76_tour8_xmut0||
+| 54.|  46.01961| 153.61436| 144.87000| 253.04200|`(0/10)`|rn_evalfn3_AdaptMut_algoAdaptMut_genf0_pmut0535_pops435_pxov048_tour4_xmut0||
+| 55.|  97.49192| 147.39023| 123.26300| 383.96800|`(0/20)`|AdaptMutF1initialgenotypeXXGGpartTSN|Less 'almost instant' fitness improvement, still stagnation|
+| 56.|  76.95924| 146.69567| 135.20300| 316.40900|`(0/10)`|NEAT_speciationF1dissimFITNESS||
+| 57.|  45.91179| 145.26954| 144.85750| 230.89800|`(0/20)`|eaMuPlusLambdaF0pmut08lbda100|Larger and generally more early spikes compared to Comma, but still stagnation|
+| 58.|  28.74714| 144.45570| 134.20250| 206.65400|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_islabestToWorst_migr41_nisl81_pmut069_pops491_pxov044_tour9||
+| 59.|  42.67774| 142.36872| 132.55850| 262.88300|`(0/20)`|eaSimpleF0initialgenotype0_f0_basic2|Jumps in first third and one more moderate jump at 2/3|
+| 60.|  46.16849| 140.86175| 122.53750| 224.99800|`(0/20)`|eaMuCommaLambdaF0pmut08lbda100|Kinda hillclimber, but it can go down|
+| 61.|  71.88942| 130.98950| 126.90950| 342.90200|`(0/20)`|eaSimpleF0initialgenotype0_f0_neurons|Faster initial growth, but less diversity I think (it tends to stagnate and has stable results (aka most runs arrive in the same fitness ballbark))|
+| 62.|  68.52382| 129.94296| 109.77900| 332.84800|`(0/20)`|eaSimpleF0pmut08|Spikes happen later|
+| 63.|  61.58722| 129.18333| 147.07950| 221.11400|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_lbda500_pmut08099999999999999_pops500_pxov019000000000000006_tour5||
+| 64.|  71.52893| 126.27572|  95.65995| 321.39800|`(0/20)`|AdaptMutF1pmut08|Stagnation|
+| 65.|  72.13336| 122.41123| 105.47150| 293.15400|`(1/20)`|NEAT_speciationF1|Way lower increases per spike than f0|
+| 66.|  66.95189| 122.10886|  89.82540| 279.38800|`(0/20)`|eaMuPlusLambdaF0pmut08lbda350|Disappointingly slow and steady, Comma looked better wrt. jitter|
+| 67.|  64.57591| 121.83612| 138.47600| 197.28800|`(0/10)`|rn_evalfn3_eaSimple_algoeaSimple_genf0_pmut0325_pops111_pxov004_tour9||
+| 68.|  46.51430| 120.22287| 112.46950| 224.62600|`(0/20)`|eaMuCommaLambdaF0pmut08lbda350|Very slow warmup (eval budget go brrr)|
+| 69.|  50.13103| 119.74849| 104.49100| 245.62800|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_initf0XX_lbda500_pmut084_pops365_pxov016000000000000003_tour10||
+| 70.|  47.05908| 116.59629| 119.23650| 242.66000|`(0/20)`|eaOnePlusLambdaLambdaF0pop1initialgenotype0||
+| 71.|  45.07542| 100.32251|  94.20590| 204.39900|`(0/20)`|eaSimpleF1initialgenotypeXX|Even bigger stagnation|
+| 72.|  58.26179|  94.44432|  91.13255| 251.47300|`(0/20)`|eaSimpleF1pmut08|Not much difference with default pmut|
+| 73.|  53.30151|  89.18116|  73.74875| 222.89700|`(15/20)`|NEAT_speciationF1pop100nislands5|Struggles to clear 100, low fitness|
+| 74.|  46.52943|  87.73373|  78.88120| 186.71600|`(0/20)`|eaSimpleF1|Lower fitness, big stagnation|
+| 75.|  39.10576|  81.30353|  77.50035| 176.81000|`(0/20)`|no_det_nodet_eaSimpleF1|Struggles to clear 100, big stagnation|
+| 76.|  47.04598|  74.61855|  66.99510| 194.15300|`(0/20)`|NEAT_speciationF1dissimGENELEVENSHTEIN|Struggles to clear 100 fitness|
+| 77.|  42.89914|  73.12026|  67.67320| 204.55300|`(0/20)`|eaSimpleF1initialgenotypeXXGGpartTSN|Even BIGGER stagnation, not faster initial growth|
+| 78.|  24.80531|  71.30608|  65.28875| 153.88800|`(0/20)`|AdaptMutF0pmut08selMethodbestinitialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
+| 79.|  29.02296|  64.12219|  61.02105| 141.53600|`(0/20)`|eaMuCommaLambdaF1pmut08lbda350|Struggling very much, but much better than lbda100|
+| 80.|  74.91810|  60.89176|  40.37395| 283.34200|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_islabestToWorst_migr7_nisl17_pmut01_pops407_pxov08300000000000001_tour2||
+| 81.|  56.08614|  60.04540|  57.69920| 226.25700|`(0/20)`|eaMuPlusLambdaF1pmut08lbda100|Infrequent jumps, low fitness|
+| 82.|  49.55113|  53.89931|  42.86660| 224.64700|`(0/20)`|eaMuCommaLambdaF1pmut08lbda100|Very bad ( #idea the F1 mutation/xover operators are weaker than F0)|
+| 83.|  33.83895|  39.37166|  19.75955| 126.18800|`(0/20)`|eaMuPlusLambdaF1pmut08lbda350|Even lower fitness, for some reason it struggles to get over 50 fitness|
+| 84.|   7.43011|  34.52932|  33.92020|  44.64750|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf1random_islabestToWorst_migr28_nisl59_pmut0515_pops86_pxov078_tour15||
+| 85.|  27.95409|  26.19581|  13.71005|  86.35990|`(20/20)`|NEAT_speciationF1dissimPHENEDENSITYFREQ|Gets close to 100 fitness, gets ~5000 evals before stopping|
+| 86.|  17.11060|  13.11953|   4.41728|  63.76950|`(20/20)`|NEAT_speciationF1dissimPHENEDENSITYCOUNT|Struggles to clear 50 fitness, gets ~1000 evals before stopping|
+| 87.|  25.35968|  11.21698|   3.47358| 119.45800|`(20/20)`|NEAT_speciationF1dissimPHENEDESCRIPTORS|Struggles to clear 20 fitness, gets ~200 evals before stopping|
+| 88.|   0.00000|   0.00000|   0.00000|   0.00000|`(0/10)`|rn_evalfn3_eaOnePlusLambdaLambda_algoeaOnePlusLambdaLambda_genf1_pmut067_pops1_pxov0275||
 
 ```
 *************************************** By median ****************************************
-Performing T-test between AdaptMutF0pmut08added_indrandom and (17) algorithms
-P-value: 0.019324 AdaptMutF0pmut08pop30initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10
-P-value: 0.023383 AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10
+Performing T-test between AdaptMutF0pmut08added_indrandom and (16) algorithms
+P-value: 0.017777 rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0675_pops20_pxov0675_restsoftperturbbest_rest77_tour12_xmut0 
+P-value: 0.019324 AdaptMutF0pmut08pop30initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10 
+P-value: 0.023383 AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10 
 
 **************************************** By mean *****************************************
 Performing T-test between AdaptMutF0pmut08added_indrandom and (14) algorithms
-P-value: 0.023383 AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10
+P-value: 0.017777 rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0675_pops20_pxov0675_restsoftperturbbest_rest77_tour12_xmut0 
+P-value: 0.023383 AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10 
 P-value: 0.019324 AdaptMutF0pmut08pop30initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10
 
 ***************************************** By max *****************************************
-Performing T-test between AdaptMutF0pmut08added_indrandom and (10) algorithms
-P-value: 0.023383 AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10
+Performing T-test between AdaptMutF0pmut08added_indrandom and (11) algorithms
+P-value: 0.017777 rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0675_pops20_pxov0675_restsoftperturbbest_rest77_tour12_xmut0 
+P-value: 0.023383 AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10 
 P-value: 0.019324 AdaptMutF0pmut08pop30initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10
 ```
 
@@ -900,3 +919,5 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 [^maciej-physics]: [On the influence of design parameters on the performance of the dielectric elastomer actuator with a permanent magnet](https://www.nature.com/articles/s41598-025-21993-5?error=server_error) (Oct 2025, ?)
 	- Maciej
 	- Looks like more of a physiscs experiment, so ignore; no GA
+[^game-homology]: [Persistent homology and the shape of evolutionary games](https://www.sciencedirect.com/science/article/pii/S0022519321003222)
+	- Some way to interpret game runs, using **Persistent Homology** (extract the number of holes in a multi-dimensional shape, and observe over time)

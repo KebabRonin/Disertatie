@@ -197,7 +197,7 @@ def speciation(population, toolbox,
         logbook.record(gen=f"0.{sp.uid}", nevals=len(sp.pop), **record)
     if verbose:
         print(logbook.stream)
-    hist = [max([p.fitness.values for p in new_pop])]
+    maxFits = [max([p.fitness.values for p in new_pop])]
     # Begin the generational process
     for gen in range(1, ngen + 1):
         old_species = new_species
@@ -337,10 +337,16 @@ def speciation(population, toolbox,
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in new_pop if not ind.fitness.valid]
         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+        
+        maxFit = (float('-inf'), '')
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
+            if fit[0] > maxFit[0]:
+                maxFit = (fit[0], toolbox.clone(ind))
+        maxFits.append(maxFit)
         for sp in new_species:
             sp.compute_fitness(distance_matrix=distance_matrix, admission_delta=delta)
+
 
         # Split in species
         distance_matrix = get_distance_matrix(toolbox, new_pop, dissimilarity_metric)
@@ -369,41 +375,57 @@ def speciation(population, toolbox,
         if verbose:
             print(logbook.stream)
 
-        hist.append(max([p.fitness.values for p in new_pop]))
-
-        # if restart_method != 'none' and len(maxFits) >= restart_patience:
-        #     consider_interval = maxFits[-restart_patience:-1]
-        #     bestFitPast = sorted(consider_interval, key=lambda x: x[0], reverse=True)[0]
-        #     ind = consider_interval.index(bestFitPast)
-        #     for mf in consider_interval:
-        #         print(f"({mf[0]:10.5f})")
-        #     print(len(consider_interval))
-        #     print(f"{maxFits[-1][0]} <= {bestFitPast[0]} and {ind} == {restart_patience}")
-        #     # bestFitPast = maxFits[-restart_patience:]
-        #     if maxFits[-1][0] <= bestFitPast[0] and ind == 0:
-        #         print(maxFits[-1][0], '<=', bestFitPast[0], ', doing a restart...')
-        #         if restart_method == 'soft_perturb_best':
-        #             print("Restarting soft_perturb_best after", restart_patience, "gens with no improvement.")
-        #             population = toolbox.attr_random_pop_from_genotype(bestFitPast[1][0], len(population))
-        #         elif restart_method == 'hard':
-        #             print("Restarting hard after", restart_patience, "gens with no improvement.")
-        #             population = toolbox.population(n=len(population))
+        if restart_method != 'none' and len(maxFits) >= restart_patience:
+            consider_interval = maxFits[-restart_patience:-1]
+            bestFitPast = sorted(consider_interval, key=lambda x: x[0], reverse=True)[0]
+            ind = consider_interval.index(bestFitPast)
+            for mf in consider_interval:
+                print(f"({mf[0]:10.5f})")
+            print(len(consider_interval))
+            print(f"{maxFits[-1][0]} <= {bestFitPast[0]} and {ind} == {restart_patience}")
+            # bestFitPast = maxFits[-restart_patience:]
+            if maxFits[-1][0] <= bestFitPast[0] and ind == 0:
+                print(maxFits[-1][0], '<=', bestFitPast[0], ', doing a restart...')
+                if restart_method == 'soft_perturb_best':
+                    print("Restarting soft_perturb_best after", restart_patience, "gens with no improvement.")
+                    print(bestFitPast)
+                    new_pop = toolbox.attr_random_pop_from_genotype(bestFitPast[1][0], len(new_pop))
+                elif restart_method == 'hard':
+                    print("Restarting hard after", restart_patience, "gens with no improvement.")
+                    new_pop = toolbox.population(n=len(new_pop))
                 
-        #         # Evaluate the individuals with an invalid fitness
-        #         invalid_ind = [ind for ind in population if not ind.fitness.valid]
-        #         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
-        #         for ind, fit in zip(invalid_ind, fitnesses):
-        #             print(ind)
-        #             ind.fitness.values = fit
+                # Evaluate the individuals with an invalid fitness
+                invalid_ind = [ind for ind in new_pop if not ind.fitness.valid]
+                fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+                for ind, fit in zip(invalid_ind, fitnesses):
+                    print(ind)
+                    ind.fitness.values = fit
 
-        #         if halloffame is not None:
-        #             halloffame.update(population)
+                # Split in species
+                distance_matrix = get_distance_matrix(toolbox, new_pop, dissimilarity_metric)
+                new_species = split_in_species(previous_species=new_species, distance_matrix=distance_matrix, admission_delta=delta)
 
-        #         record = stats.compile(population) if stats else {}
-        #         logbook.record(gen=f"{gen}.restarting", nevals=len(invalid_ind), **record)
-        #         if verbose:
-        #             print(logbook.stream)
+                if len(new_species) < n_species:
+                    delta *= dynamic_delta_under
+                elif len(new_species) > n_species:
+                    delta *= dynamic_delta_over
+
+                print_species_dashboard(new_species, delta)
                 
-        #         maxFits = []
+                # print('total inds:', sum([len(sp.pop) for sp in new_species]))
+                if sum([len(sp.pop) for sp in new_species]) != popsize:
+                    exit(0)
+
+                if halloffame is not None:
+                    halloffame.update(new_pop)
+
+                assert_nonempty_species(new_species, 'logbook')
+                record = stats.compile(new_pop) if stats else {}
+                logbook.record(gen=f"{gen}.restarting", nevals=len(invalid_ind), **record)
+
+                if verbose:
+                    print(logbook.stream)
+                
+                maxFits = []
 
     return new_pop, logbook

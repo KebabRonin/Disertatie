@@ -54,6 +54,10 @@ def frams_compute_crowding_distance(frams_lib, dissim_method, population: list[l
 
 def frams_evaluate(frams_lib, individual, population=None, dissim_method=DissimMethod.GENE_LEVENSHTEIN):
 	FITNESS_CRITERIA_INFEASIBLE_SOLUTION = [FITNESS_VALUE_INFEASIBLE_SOLUTION] * len(OPTIMIZATION_CRITERIA)  # this special fitness value indicates that the solution should not be propagated via selection ("that genotype is invalid"). The floating point value is only used for compatibility with DEAP. If you implement your own optimization algorithm, instead of a negative value in this constant, use a special value like None to properly distinguish between feasible and infeasible solutions.
+	# if not frams_lib.isValidCreature([individual[0]])[0]:
+	# 	# Short circuit if invalid genotype.
+	# 	# individual.fitness.values = (FITNESS_CRITERIA_INFEASIBLE_SOLUTION,)
+	# 	return FITNESS_CRITERIA_INFEASIBLE_SOLUTION
 	genotype = individual[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	data = frams_lib.evaluate([genotype])
 	# if population:
@@ -82,13 +86,31 @@ def frams_evaluate(frams_lib, individual, population=None, dissim_method=DissimM
 		fitness = FITNESS_CRITERIA_INFEASIBLE_SOLUTION
 	return fitness
 
+def fix_geno(frams_lib: FramsticksLib, fix_invalid: str, individual: str) -> str:
+	"""
+		Given a genotype (str), get back a fixed str
+	"""
+	match fix_invalid:
+		case 'mutate':
+			while not frams_lib.isValidCreature([individual])[0]:
+				individual = frams_lib.mutate([individual])[0]
+			return individual
+		case _:
+			return individual
 
 def frams_crossover(frams_lib: FramsticksLib, individual1, individual2):
 	geno1 = individual1[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	geno2 = individual2[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	individual1[0] = frams_lib.crossOver(geno1, geno2)
 	individual2[0] = frams_lib.crossOver(geno1, geno2)
+	individual1[0] = fix_geno(frams_lib, parsed_args.fix_invalid, individual1[0])
+	individual2[0] = fix_geno(frams_lib, parsed_args.fix_invalid, individual2[0])
 	return individual1, individual2
+
+def frams_mutate(frams_lib: FramsticksLib, individual):
+	individual[0] = frams_lib.mutate([individual[0]])[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
+	individual[0] = fix_geno(frams_lib, parsed_args.fix_invalid, individual[0])
+	return individual,
 
 def fitness_dissim(individuals):
   n = len(individuals)
@@ -108,11 +130,11 @@ def frams_dissim(frams_lib: FramsticksLib, individuals: list, dissim_method:Diss
 	else:
 		return frams_lib.dissimilarity(ind_genos, method=dissim_method)
 
+def frams_isValid(frams_lib: FramsticksLib, individual):
+	return frams_lib.isValid([individual[0]])[0]
 
-def frams_mutate(frams_lib: FramsticksLib, individual):
-	individual[0] = frams_lib.mutate([individual[0]])[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
-	return individual,
-
+def frams_isValidCreature(frams_lib: FramsticksLib, individual):
+	return frams_lib.isValidCreature([individual[0]])[0]
 
 def frams_getsimplest(frams_lib: FramsticksLib, genetic_format, initial_genotype):
 	return initial_genotype if initial_genotype is not None else frams_lib.getSimplest(genetic_format)
@@ -159,6 +181,19 @@ def select_feasible(individuals):
 		print("Selection: ignoring %d infeasible solution%s in a population of size %d" % (count_infeasible, 's' if count_infeasible > 1 else '', count_all))
 	return feasible_individuals
 
+def selRoulette_only_feasible(individuals, k):
+	feasible_individuals = select_feasible(individuals)
+	if len(feasible_individuals) == 0:
+		print("Selection: no feasible solution in the population of size %d, so selecting from all individuals (including infeasible solutions with special fitness value %s)" % (len(individuals), FITNESS_VALUE_INFEASIBLE_SOLUTION))
+		return tools.selRoulette(individuals, k)
+	return tools.selRoulette(feasible_individuals, k)
+
+def selBest_only_feasible(individuals, k):
+	feasible_individuals = select_feasible(individuals)
+	if len(feasible_individuals) == 0:
+		print("Selection: no feasible solution in the population of size %d, so selecting from all individuals (including infeasible solutions with special fitness value %s)" % (len(individuals), FITNESS_VALUE_INFEASIBLE_SOLUTION))
+		return tools.selBest(individuals, k)
+	return tools.selBest(feasible_individuals, k)
 
 def selTournament_only_feasible(individuals, k, tournsize):
 	feasible_individuals = select_feasible(individuals)
@@ -217,6 +252,7 @@ def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_fo
 	# if 'crowding' in parsed_args.opt:
 	# 	toolbox.register("evaluate", frams_evaluate_with_crowding, frams_lib)
 	# else:
+	toolbox.register("isValid", frams_isValidCreature, frams_lib) # frams_isValidCreature frams_isValid
 	toolbox.register("evaluate", frams_evaluate, frams_lib)
 	toolbox.register("add_crowding_distance", frams_compute_crowding_distance, frams_lib, dissim)
 	toolbox.register("mate", frams_crossover, frams_lib)
@@ -224,7 +260,16 @@ def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_fo
 	toolbox.register("dissimilarity", frams_dissim, frams_lib) # Open the door to dissimilarity-based methods. FIXME: Does this count as an evaluation? I hope not...
 	if len(OPTIMIZATION_CRITERIA) <= 1:
 		# toolbox.register("select", tools.selTournament, tournsize=tournament_size) # without explicitly filtering out infeasible solutions - eliminating/discriminating infeasible solutions during selection would only rely on their relatively poor fitness value
-		toolbox.register("select", selTournament_only_feasible, tournsize=tournament_size)
+		match parsed_args.selMethod:
+			case 'tournament':
+				toolbox.register("select", selTournament_only_feasible, tournsize=tournament_size)
+			case 'roulette':
+				toolbox.register("select", selRoulette_only_feasible)
+			case 'best':
+				toolbox.register("select", selBest_only_feasible)
+			case _:
+				print('[ERROR]: Unsupported selection type: ', parsed_args.selMethod)
+				exit(1)
 	else:
 		# toolbox.register("select", selNSGA2) # without explicitly filtering out infeasible solutions - eliminating/discriminating infeasible solutions during selection would only rely on their relatively poor fitness value
 		toolbox.register("select", selNSGA2_only_feasible, toolboxclone=toolbox.clone)
@@ -242,13 +287,17 @@ def parseArguments():
 	parser.add_argument('-initialgenotype', required=False, help='The genotype used to seed the initial population. If given, the -genformat argument is ignored.')
 	parser.add_argument('-skipinitialgenotype', type=int, default=0, help='If 1, set the fitness of the simplest genotype to 0.0, without evaluating it. Should slightly increase the amount of evaluated genotypes')
 
+	parser.add_argument('-selMethod', choices=['tournament', 'roulette', 'best'], default='tournament')
 	parser.add_argument('-algorithm', required=True, choices=[
 		'eaSimple', 'eaOnePlusLambdaLambda', 'eaMuPlusLambda', 'eaMuCommaLambda',
 		'AdaptMut', 'convection_AdaptMut', 'convection_eaSimple', 'Annealer',
+		'RandomMutationCount',
 		'NEAT_speciation'], help='The algorithm used in the run.')
 	parser.add_argument('-nislands', type=int, default=10, help="Number of islands (only for convection), default: 10.")
 	parser.add_argument('-island_eval_order', type=str, default='worstToBest', help="Order in which to evaluate islands (only for convection), could lead to minor performance boost for the last generation only, default: worstToBest")
 	parser.add_argument('-migrate_after', type=int, default=10, help="Number of generations to execute for each island before migrating all islands (only for convection), default: 10.")
+	parser.add_argument('-maxmutationsperstep', type=int, default=5, help="Number of mutations to perform when an individual is selected for mutation, default: 5.")
+	parser.add_argument('-fix_invalid', choices=['none', 'mutate'], default='none', help="What to do with invalid solutions.")
 	parser.add_argument('-xmut_enabled', type=bool, default=1, help="0/1 If to enable mutation = replace with simple individual (only for AdaptMut), default: 1.")
 	parser.add_argument('-restart_patience', type=int, default=20, help=r"After how many generations of no improvement greater than 1% in the max fitness to do a restart.")
 	parser.add_argument('-restart_method', choices=['hard', 'soft_perturb_best', 'none'], default='none', help="Restart hard (so reinit pop from scratch), or soft (by applying some mutations to the best ind from the run that is ending and continuing the run)")
@@ -345,6 +394,15 @@ def main():
 	print('Max time set to:', FramsticksLibCompetition.MAX_TIME)
 	try:
 		match parsed_args.algorithm:
+			case "RandomMutationCount":
+				print('jazz')
+				from .dalgorithm.RandomMutationCount import randomMutationCount
+				pop, log = randomMutationCount(
+							pop, toolbox,
+							maxmutationsperstep=parsed_args.maxmutationsperstep,
+							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations,
+							restart_method=parsed_args.restart_method, restart_patience=parsed_args.restart_patience,
+							stats=stats, halloffame=hof, verbose=True)
 			case "AdaptMut":
 				print('am')
 				from .dalgorithm.AdaptMut import adaptMut
@@ -443,7 +501,7 @@ def main():
 						dynamic_delta_under=parsed_args.delta_under_mult,
 						dynamic_delta_over=parsed_args.delta_over_mult,
 						cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, dissimilarity_metric=parsed_args.dissim,
-						# restart_method=parsed_args.restart_method, restart_patience=parsed_args.restart_patience,
+						restart_method=parsed_args.restart_method, restart_patience=parsed_args.restart_patience,
 						stats=stats, halloffame=hof, verbose=True)
 			case _:
 				raise "Unknown algorithm"
