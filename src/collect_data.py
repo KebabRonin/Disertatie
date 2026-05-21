@@ -5,7 +5,7 @@ from collections import defaultdict
 import pickle, argparse
 from PIL import Image
 import concurrent.futures, tqdm
-import matplotlib
+import matplotlib, time
 import random
 # Import configuration loader
 from .config_loader import get_disertatie_root, load_config, get_experiments_dir
@@ -13,12 +13,14 @@ from .config_loader import get_disertatie_root, load_config, get_experiments_dir
 # Remove warnings from console, but disable interactive plots
 matplotlib.use('agg')
 
-BASELINE = 'AdaptMutF0pmut08added_indrandom'
+# BASELINE = 'AdaptMutF0pmut08added_indrandom'
+BASELINE = 'AdaptMutF0pmut08'
 ARR_TO_PLOT = 'mx_arrs' # 'avg_arrs' #
 
 HIGHLIGHT = {
     'eaSimpleF1': 'red',
     'AdaptMutF0pmut08added_indrandom': 'red',
+    'AdaptMutF0pmut08': 'red',
     BASELINE: 'red'
 }
 COLORS = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'magenta']
@@ -73,13 +75,23 @@ def order_fn_max(names):
 
 def parse_algo_params(name: str):
     params = {}
-    file_name = os.path.join(EXPERIMENTS_PATH, name, 'results_0.stdout')
-    with open(file_name, 'r') as f:
-        parstr = ''
-        currstr = f.readline()
-        while not currstr.startswith('Using Framsticks version'):
-            parstr += currstr
-            currstr = f.readline()
+    ook = False
+    for file_name in [p for p in os.listdir(os.path.join(EXPERIMENTS_PATH, name)) if re.match(r'^results_\d+\.stdout$', p)]:
+        with open(os.path.join(EXPERIMENTS_PATH, name, file_name), 'r') as f:
+            parstr = ''
+            ok = False
+            for currstr in f.readlines():
+                if currstr.startswith('Using Framsticks version'):
+                    ok = True
+                    break
+                parstr += currstr
+                currstr = f.readline()
+            if not ok:
+                continue
+            ook = True
+            break
+    if ook == False:
+        raise ("No valid files in folder " + name)
     parstr = parstr.strip()
     nextarg = ', skipinitialgenotype=' if parstr.split(', initialgenotype=')[1].find(', skipinitialgenotype=') != -1 else ', algorithm='
     params['initialgenotype'] = parstr.split(', initialgenotype=')[1].split(nextarg)[0]
@@ -95,6 +107,7 @@ def get_algo_params(name):
             'run_start': os.stat(os.path.join(EXPERIMENTS_PATH, name['runname'], f'results_{name['runidx']}.stdout')).st_mtime,
             'run_end': os.stat(os.path.join(EXPERIMENTS_PATH, name['runname'], f'results_{name['runidx']}.stdout')).st_ctime,
             'generations': int(name['generations']),
+            'invalid_genos': int(name['invalid_genos']),
             'nonevalTime': None if name['nonevalTime'] is None else float(name['nonevalTime']),
             'totalevals': int(name['totalevals']),
             'evalTime': float(name['evalTime']),
@@ -120,7 +133,7 @@ def get_finished_runs(runname):
     files = os.listdir(os.path.join(EXPERIMENTS_PATH, runname))
     finished_runs = []
     for f in files:
-        g = re.match('hof_(\d+).txt', f)
+        g = re.match(r'hof_(\d+).txt', f)
         if g:
             finished_runs.append(int(g.groups()[0]))
     return finished_runs
@@ -159,8 +172,8 @@ def parse_data(rs=None):
     if rs is None:
         rs = {}
     modified = False
-    print("I already have these:", rs.keys())
-    for idx, d in enumerate(sorted(os.listdir(EXPERIMENTS_PATH))):
+    # print("I already have these:", rs.keys())
+    for idx, d in enumerate(tqdm.tqdm(sorted(os.listdir(EXPERIMENTS_PATH)), desc="Parsing algos")):
         # if ('convection' not in d):
         #     continue
         finished_runs = get_finished_runs(d)
@@ -311,6 +324,7 @@ def parse_data(rs=None):
                 islands_arrs.append(islands)
             if len(species_dict) > 0:
                 species_dicts.append(species_dict)
+        print(d)
         rs[d] = {
             'params': args,
             'run_idx': i,
@@ -388,13 +402,13 @@ def show_runs(rs: dict, d, example_idx, plot=True, printout=False, arr_to_plot=A
     if plot:
         plotname = os.path.join(IMG_SAVE_PATH, f'{d}_run_{example_idx}.png')
         if replaceplot or not os.path.exists(plotname):
-            print(f'Making plot for {plotname}')
+            # print(f'Making plot for {plotname}')
             color = get_algo_color(d)
             # Plot run means as a thinner line on same axes
             plt.figure(figsize=(12,6))
             plt.title(f'Evolution of {d} at run {example_idx:>3}')
             if 'islands' in rs[d]:
-                print(d, example_idx)
+                # print(d, example_idx)
                 for islid in rs[d]['islands'][example_idx]:
                     if islid != 9:
                         # Only plot best island, to reduce clutter
@@ -416,8 +430,8 @@ def show_runs(rs: dict, d, example_idx, plot=True, printout=False, arr_to_plot=A
             elif 'species' in rs[d]:
                 FILTER_SPECIES_AGE = 10
                 shown_species = list(filter(lambda x: len(rs[d]['species'][example_idx][x]['avg_arrs']) >= FILTER_SPECIES_AGE, rs[d]['species'][example_idx]))
-                print(len(rs[d]['species'][example_idx]))
-                print(len(shown_species))
+                # print(len(rs[d]['species'][example_idx]))
+                # print(len(shown_species))
                 for i, isl_name in enumerate(shown_species):
                     if len(rs[d]['species'][example_idx][isl_name]['avg_arrs']) < FILTER_SPECIES_AGE:
                         continue
@@ -436,7 +450,7 @@ def show_runs(rs: dict, d, example_idx, plot=True, printout=False, arr_to_plot=A
                 plt.fill_between(y_vals, x_vals_mn, x_vals_mx, color='black', alpha=0.15)
             else:
                 # Do one plot for it
-                print(d, plotname)
+                # print(d, plotname)
                 y_vals = [x[0] for x in rs[d]['avg_arrs'][example_idx]]
                 x_vals = [x[1] if x[1] else 0 for x in rs[d]['avg_arrs'][example_idx]]
                 x_vals_mn = [x[1] if x[1] else 0 for x in rs[d]['mn_arrs'][example_idx]]
@@ -590,8 +604,7 @@ if __name__ == '__main__':
         ress = []
         for d in tqdm.tqdm(list(rs.keys()), position=0, desc="Experiments"):
             finished_runs = get_finished_runs(d)
-            print(d, rs[d]['invalid_genos'])
-            for i in tqdm.trange(len(finished_runs), position=1, desc="Runs"):
+            for i, idxxx in enumerate(finished_runs):
                 ress += show_runs(rs, d, i, arr_to_plot=ARR_TO_PLOT)
         ress.sort(key=lambda x: x[1], reverse=True)
         run_ths(make_gif_th, len(rs.keys()), title='Making gifs...')
@@ -603,9 +616,10 @@ if __name__ == '__main__':
             global_clasament.append({
                 'runname': f[0],
                 'fitness': f[1],
-                'runidx': i,
+                'runidx': f[2]['run_idx'],
                 'generations': f[2]['generations'][i],
                 'nonevalTime': f[2]['nonevalTime'][i],
+                'invalid_genos': f[2]['invalid_genos'][i],
                 'totalevals': f[2]['totalevals'][i],
                 'evalTime': f[2]['evalTime'][i],
             })

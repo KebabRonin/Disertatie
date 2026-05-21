@@ -76,5 +76,6 @@
 	"eaMuPlusLambdaF1pmut08lbda350": "Even lower fitness, for some reason it struggles to get over 50 fitness",
 	"NEAT_speciationF1dissimPHENEDESCRIPTORS": "Struggles to clear 20 fitness, gets ~200 evals before stopping",
 	"NEAT_speciationF1dissimPHENEDENSITYFREQ": "Gets close to 100 fitness, gets ~5000 evals before stopping",
-	"NEAT_speciationF1dissimPHENEDENSITYCOUNT": "Struggles to clear 50 fitness, gets ~1000 evals before stopping"
+	"NEAT_speciationF1dissimPHENEDENSITYCOUNT": "Struggles to clear 50 fitness, gets ~1000 evals before stopping",
+	"rn_evalfn3_eaOnePlusLambdaLambda_algoeaOnePlusLambdaLambda_genf1_pmut067_pops1_pxov0275": "No fitness neutral mutations are chosen, so the algorithm stagnates with the first generated genotype. An improvement would be to generate lambda individuals with more than one mutation."
 }

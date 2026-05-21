@@ -3,6 +3,7 @@ from deap import tools
 import math
 
 def eaOnePlusLambdaLambda(population, toolbox, lbda, ngen, autolambda=True,
+                   maxmutationsperstep=1,
                    stats=None, halloffame=None, verbose=__debug__):
     logbook = tools.Logbook()
     logbook.header = ['gen', 'nevals'] + (stats.fields if stats else [])
@@ -35,8 +36,10 @@ def eaOnePlusLambdaLambda(population, toolbox, lbda, ngen, autolambda=True,
         # toolbox.mutate()[0] because it returns a tuple with one element, so we need to unwrap the deap.Individual
         offspring = []
         for _ in range(int(math.floor(lbda))):
-            offspring1, = toolbox.mutate(toolbox.clone(population[0]))
+            offspring1 = toolbox.clone(population[0])
             del offspring1.fitness.values
+            for _ in range(random.randint(1, maxmutationsperstep)):
+                offspring1, = toolbox.mutate(offspring1)
             offspring.append(offspring1)
         assert len(offspring) == math.floor(lbda), f"{len(offspring)} != {math.floor(lbda)}"
         # Evaluate the individuals with an invalid fitness

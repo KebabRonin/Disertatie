@@ -54,10 +54,10 @@ def frams_compute_crowding_distance(frams_lib, dissim_method, population: list[l
 
 def frams_evaluate(frams_lib, individual, population=None, dissim_method=DissimMethod.GENE_LEVENSHTEIN):
 	FITNESS_CRITERIA_INFEASIBLE_SOLUTION = [FITNESS_VALUE_INFEASIBLE_SOLUTION] * len(OPTIMIZATION_CRITERIA)  # this special fitness value indicates that the solution should not be propagated via selection ("that genotype is invalid"). The floating point value is only used for compatibility with DEAP. If you implement your own optimization algorithm, instead of a negative value in this constant, use a special value like None to properly distinguish between feasible and infeasible solutions.
-	# if not frams_lib.isValidCreature([individual[0]])[0]:
-	# 	# Short circuit if invalid genotype.
-	# 	# individual.fitness.values = (FITNESS_CRITERIA_INFEASIBLE_SOLUTION,)
-	# 	return FITNESS_CRITERIA_INFEASIBLE_SOLUTION
+	if not frams_lib.isValidCreature([individual[0]])[0]:
+		# Short circuit if invalid genotype.
+		# individual.fitness.values = (FITNESS_CRITERIA_INFEASIBLE_SOLUTION,)
+		return FITNESS_CRITERIA_INFEASIBLE_SOLUTION
 	genotype = individual[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	data = frams_lib.evaluate([genotype])
 	# if population:
@@ -429,6 +429,7 @@ def main():
 				from .dalgorithm.eaOnePlusLambdaLambda import eaOnePlusLambdaLambda
 				pop, log = eaOnePlusLambdaLambda(
 							pop, toolbox, lbda=parsed_args.lbda, ngen=parsed_args.generations,
+							maxmutationsperstep=parsed_args.maxmutationsperstep,
 							stats=stats, halloffame=hof, verbose=True)
 			case "eaSimple":
 				print('ea')
