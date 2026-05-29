@@ -192,10 +192,10 @@ def get_algorithm_specific_params(trial: optuna.Trial, algorithm: str) -> dict:
         params["popsize"] = trial.suggest_int("popsize", 1, 1)
     else:
         params["popsize"] = trial.suggest_int("popsize", 1, 500)
-        params["tournament"] = trial.suggest_int("tournament", 2, 20) # FIXME This doesn't help in OnePlusLambdaLambda
+        params["tournament"] = trial.suggest_int("tournament", 2, min(50, params["popsize"])) # FIXME This doesn't help in OnePlusLambdaLambda
 
     if algorithm in ['eaMuPlusLambda', 'eaMuCommaLambda']:
-        params["lbda"] = trial.suggest_int("lbda", params['popsize'], 500, step=5)
+        params["lbda"] = trial.suggest_int("lbda", params['popsize'], 500, step=1)
         # They require the sum of pmut and pxov to be 1 for some reason...
         params["pxov"] = trial.suggest_float('pxov', 1 - params['pmut'], 1 - params['pmut'], step=0.005)
     else:
@@ -203,7 +203,7 @@ def get_algorithm_specific_params(trial: optuna.Trial, algorithm: str) -> dict:
 
     if "convection" in algorithm:
         # convection_eaSimple, convection_AdaptMut
-        params["nislands"] = trial.suggest_int("nislands", 2, 100)
+        params["nislands"] = trial.suggest_int("nislands", 2, min(100, params["popsize"]))
         params["migrate_after"] = trial.suggest_int("migrate_after", 1, 50)
         params["island_eval_order"] = "bestToWorst"
 

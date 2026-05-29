@@ -12,6 +12,7 @@ import traceback
 from scipy.spatial import distance
 # Note: this may be less efficient than running the evolution directly in Framsticks, so if performance is key, compare both options.
 
+from .other.FramsticksLibCompetitionWithHistory import FramsticksLibCompetitionWithHistory
 
 FITNESS_VALUE_INFEASIBLE_SOLUTION = -999999.0  # DEAP expects fitness to always be a real value (not None), so this special value indicates that a solution is invalid, incorrect, or infeasible. [Related: https://github.com/DEAP/deap/issues/30 ]. Using float('-inf') or -sys.float_info.max here causes DEAP to silently exit. If you are not using DEAP, set this constant to None, float('nan'), or another special/non-float value to avoid clashing with valid real fitness values, and handle such solutions appropriately as a separate case.
 
@@ -59,6 +60,12 @@ def frams_evaluate(frams_lib, individual, population=None, dissim_method=DissimM
 		# individual.fitness.values = (FITNESS_CRITERIA_INFEASIBLE_SOLUTION,)
 		return FITNESS_CRITERIA_INFEASIBLE_SOLUTION
 	genotype = individual[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
+	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory) and frams_lib.getCached(genotype) is not None:
+		assert frams_lib.getCached(genotype)['eval_fit'] is not None
+		frams_lib.updateCMA_ES(individual, frams_lib.getCached(genotype)['eval_fit'])
+		individual.past_fitness = frams_lib.getCached(genotype)['eval_fit']
+		individual.past_operations = []
+		return frams_lib.getCached(genotype)['eval_fit']
 	data = frams_lib.evaluate([genotype])
 	# if population:
 	# 	# For crowding distance, 
@@ -84,6 +91,13 @@ def frams_evaluate(frams_lib, individual, population=None, dissim_method=DissimM
 		valid &= genotype_within_constraint(genotype, default_evaluation_data, 'numgenocharacters', parsed_args.max_numgenochars)
 	if not valid:
 		fitness = FITNESS_CRITERIA_INFEASIBLE_SOLUTION
+	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory):
+		frams_lib.updateCached(genotype, eval_fit=fitness)
+		# Update CMA-ES statistics
+		frams_lib.updateCMA_ES(individual, fitness)
+		# print(f'Consumed {individual.past_operations} for "{individual[0][:25].replace('\n','\\n')}"')
+		individual.past_fitness = fitness
+		individual.past_operations = []
 	return fitness
 
 def fix_geno(frams_lib: FramsticksLib, fix_invalid: str, individual: str) -> str:
@@ -102,14 +116,23 @@ def frams_crossover(frams_lib: FramsticksLib, individual1, individual2):
 	geno1 = individual1[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	geno2 = individual2[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	individual1[0] = frams_lib.crossOver(geno1, geno2)
-	individual2[0] = frams_lib.crossOver(geno1, geno2)
 	individual1[0] = fix_geno(frams_lib, parsed_args.fix_invalid, individual1[0])
+	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory):
+		individual1.past_operations += frams_lib.get_last_performed_operations()
+	individual2[0] = frams_lib.crossOver(geno1, geno2)
 	individual2[0] = fix_geno(frams_lib, parsed_args.fix_invalid, individual2[0])
+	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory):
+		individual2.past_operations += frams_lib.get_last_performed_operations()
 	return individual1, individual2
 
 def frams_mutate(frams_lib: FramsticksLib, individual):
+	# if isinstance(frams_lib, FramsticksLibCompetitionWithHistory):
+	# 	# Ensure a clean slate.
+	# 	frams_lib.get_last_performed_operations()
 	individual[0] = frams_lib.mutate([individual[0]])[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	individual[0] = fix_geno(frams_lib, parsed_args.fix_invalid, individual[0])
+	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory):
+		individual.past_operations += frams_lib.get_last_performed_operations()
 	return individual,
 
 def fitness_dissim(individuals):
@@ -214,12 +237,19 @@ def selNSGA2_only_feasible(individuals, k, toolboxclone):
 
 def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_format, initial_genotype, dissim) -> base.Toolbox:
 	creator.create("FitnessMax", base.Fitness, weights=[1.0] * len(OPTIMIZATION_CRITERIA))
-	creator.create("Individual", list, fitness=creator.FitnessMax)  # would be nice to have "str" instead of unnecessary "list of str"
+	# Added:
+	# * past_operations: A list of all genetic operations performed on this Individual since the last evaluation
+	# * past_fitness: The result of the last evaluated parent of this Individual. It's a float just to have a
+	# 		placeholder while the Individual has not been evaluated. 'Real' fitness values are base.Fitness (aka. lists)
+	creator.create("Individual", list, fitness=creator.FitnessMax, past_operations=list, past_fitness=float)  # would be nice to have "str" instead of unnecessary "list of str"
 
 	toolbox = base.Toolbox()
 	toolbox.register("attr_simplest_genotype", frams_getsimplest, frams_lib, genetic_format, initial_genotype)  # "Attribute generator"
 	toolbox.register("attr_random_genotype", frams_getrandomindividual, frams_lib, toolbox.attr_simplest_genotype())  # "Attribute generator"
 	def attr_random_pop_from_genotype(frams_lib, init_geno, n):
+		"""
+		Generate a new population by perturbing the given genotype. For use in soft_perturb_best restart method.
+		"""
 		pop = [tools.initRepeat(creator.Individual, lambda: frams_lib.getRandomGenotype(init_geno,
 				2,
 					min(parsed_args.max_numparts if parsed_args.max_numparts is not None else 10000000000000000000, 100),
@@ -264,6 +294,7 @@ def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_fo
 			case 'tournament':
 				toolbox.register("select", selTournament_only_feasible, tournsize=tournament_size)
 			case 'roulette':
+				# THIS IS WRONG: If you start with initialgenotype = 'X' it breaks, since roulette of a population with 0 fitness makes no sense.
 				toolbox.register("select", selRoulette_only_feasible)
 			case 'best':
 				toolbox.register("select", selBest_only_feasible)
@@ -288,6 +319,10 @@ def parseArguments():
 	parser.add_argument('-skipinitialgenotype', type=int, default=0, help='If 1, set the fitness of the simplest genotype to 0.0, without evaluating it. Should slightly increase the amount of evaluated genotypes')
 
 	parser.add_argument('-selMethod', choices=['tournament', 'roulette', 'best'], default='tournament')
+	parser.add_argument('-flibclass', choices=['competition', 'wHist'], default='competition')
+	parser.add_argument('-wHist_scorefn', required=False, choices=['ratio', 'pos', 'neg'], default='ratio')
+	parser.add_argument('-wHist_decay', required=False, type=float, default=0.985)
+	parser.add_argument('-wHist_cacheActive', required=False, type=bool, default=0)
 	parser.add_argument('-algorithm', required=True, choices=[
 		'eaSimple', 'eaOnePlusLambdaLambda', 'eaMuPlusLambda', 'eaMuCommaLambda',
 		'AdaptMut', 'convection_AdaptMut', 'convection_eaSimple', 'Annealer',
@@ -300,7 +335,7 @@ def parseArguments():
 	parser.add_argument('-fix_invalid', choices=['none', 'mutate'], default='none', help="What to do with invalid solutions.")
 	parser.add_argument('-xmut_enabled', type=bool, default=1, help="0/1 If to enable mutation = replace with simple individual (only for AdaptMut), default: 1.")
 	parser.add_argument('-restart_patience', type=int, default=20, help=r"After how many generations of no improvement greater than 1% in the max fitness to do a restart.")
-	parser.add_argument('-restart_method', choices=['hard', 'soft_perturb_best', 'none'], default='none', help="Restart hard (so reinit pop from scratch), or soft (by applying some mutations to the best ind from the run that is ending and continuing the run)")
+	parser.add_argument('-restart_method', choices=['hard', 'soft_perturb_best', 'soft_perturb_best_all', 'none'], default='none', help="Restart hard (so reinit pop from scratch), or soft (by applying some mutations to the best ind from the run that is ending and continuing the run)")
 	parser.add_argument('-added_ind', choices=['random', 'initial'], default='initial', help="(only for AdaptMut), what genotype to add with a low probability when mutating, default: initial.")
 	parser.add_argument('-lbda', type=int, default=100, help="lambda - how many children to produce (only used for eaMuLambda), default: 100.") # Suggested: 7 * popsize (=350, but that seems like a bit much)
 	parser.add_argument('-delta', type=float, default=3.0, help="delta (speciation) - Distance threshold for determining species.")
@@ -363,7 +398,19 @@ def main():
 	FramsticksLibCompetition.TEST_FUNCTION = int(parsed_args.evalfn)
 	print("Argument values:", ", ".join(['%s=%s' % (arg, getattr(parsed_args, arg)) for arg in vars(parsed_args)]))
 	OPTIMIZATION_CRITERIA = parsed_args.opt.split(",")
-	framsLib = FramsticksLibCompetition(parsed_args.path, parsed_args.lib, parsed_args.sim)
+	match parsed_args.flibclass:
+		case 'competition':
+			framsLib = FramsticksLibCompetition(parsed_args.path, parsed_args.lib, parsed_args.sim)
+		case 'wHist':
+			import frams
+			# Also implements Evolutionary Strategy (remembers all past mutations, and adjusts weights)
+			framsLib = FramsticksLibCompetitionWithHistory(
+				parsed_args.path, parsed_args.lib, parsed_args.sim, frams,
+				cacheActive=parsed_args.wHist_cacheActive, score_fn=parsed_args.wHist_scorefn, decay=parsed_args.wHist_decay,
+			)
+		case _:
+			print("Unknown framslibclass", parsed_args.flibclass)
+			exit(0)
 	# if parsed_args.initialgenotype and parsed_args.skipinitialgenotype:
 	# 	parsed_args.initialgenotype.fitness = DeapFitness()
 	if len(OPTIMIZATION_CRITERIA) <= 1:
@@ -510,12 +557,19 @@ def main():
 		# Algorithm ended
 		pass
 	except KeyboardInterrupt:
-		pass
+		try:
+			# End throws an EOFError to signal the end
+			framsLib.end()
+		except EOFError:
+			# Algorithm ended
+			pass
 	print('Best individuals:')
 	for ind in hof:
 		print(ind.fitness, '\t<--\t', ind[0])
 	if parsed_args.hof_savefile is not None:
 		save_genotypes(parsed_args.hof_savefile, OPTIMIZATION_CRITERIA, hof) # saves a *.gen file, convenient for loading into Framsticks. Otherwise, you can save the HOF in any file format you need.
+		if isinstance(framsLib, FramsticksLibCompetitionWithHistory):
+			framsLib.df.to_pickle(os.path.join(os.path.dirname(parsed_args.hof_savefile), 'framslib_history_cache.pkl'))
 
 
 if __name__ == "__main__":

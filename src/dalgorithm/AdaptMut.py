@@ -83,6 +83,7 @@ def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
 
     mutationStrength = 1.0
     maxFits = []
+    bestFitPastAll = (float('-inf'), [''])
 
     # Begin the generational process
     for gen in range(1, ngen + 1):
@@ -102,12 +103,13 @@ def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
 
         # Only takes into account newly generated individuals. Old folks who persisted unchanged don't contribute to the history.
-        maxFit = (float('-inf'), '')
+        maxFit = (float('-inf'), [''])
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
             if fit[0] > maxFit[0]:
                 maxFit = (fit[0], toolbox.clone(ind))
-        maxFits.append(maxFit)
+        if maxFit[0] != float('-inf'):
+            maxFits.append(maxFit)
 
         # Update the hall of fame with the generated individuals
         if halloffame is not None:
@@ -123,9 +125,9 @@ def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
             print(logbook.stream)
 
         if len(maxFits) > 4:
-            bestFitPast = maxFits[-5]
-            # bestFitPast = sorted(maxFits[-5:], key=lambda x: x[0], reverse=True)[0]
-            if maxFit[0] - bestFitPast[0] < 0.01 * bestFitPast[0]:
+            bestFitPastConsider = maxFits[-5]
+            # bestFitPastConsider = sorted(maxFits[-5:], key=lambda x: x[0], reverse=True)[0]
+            if maxFit[0] - bestFitPastConsider[0] < 0.01 * bestFitPastConsider[0]:
                 mutationStrength *= 1.1
             else:
                 mutationStrength *= 0.9
@@ -135,6 +137,8 @@ def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
         if restart_method != 'none' and len(maxFits) >= restart_patience:
             consider_interval = maxFits[-restart_patience:-1]
             bestFitPast = sorted(consider_interval, key=lambda x: x[0], reverse=True)[0]
+            bestFitPastAllConsider = sorted(maxFits, key=lambda x: x[0], reverse=True)[0]
+            bestFitPastAll = bestFitPastAllConsider if bestFitPastAllConsider > bestFitPastAll else bestFitPastAll
             ind = consider_interval.index(bestFitPast)
             # for mf in consider_interval:
             #     print(f"({mf[0]:10.5f})")
@@ -146,6 +150,9 @@ def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
                 if restart_method == 'soft_perturb_best':
                     print("Restarting soft_perturb_best after", restart_patience, "gens with no improvement.")
                     population = toolbox.attr_random_pop_from_genotype(bestFitPast[1][0], len(population))
+                elif restart_method == 'soft_perturb_best_all':
+                    print("Restarting soft_perturb_best_all after", restart_patience, "gens with no improvement.")
+                    population = toolbox.attr_random_pop_from_genotype(bestFitPastAll[1][0], len(population))
                 elif restart_method == 'hard':
                     print("Restarting hard after", restart_patience, "gens with no improvement.")
                     population = toolbox.population(n=len(population))

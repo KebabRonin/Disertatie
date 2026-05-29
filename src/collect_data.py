@@ -13,8 +13,8 @@ from .config_loader import get_disertatie_root, load_config, get_experiments_dir
 # Remove warnings from console, but disable interactive plots
 matplotlib.use('agg')
 
-# BASELINE = 'AdaptMutF0pmut08added_indrandom'
-BASELINE = 'AdaptMutF0pmut08'
+BASELINE = 'AdaptMutF0pmut08added_indrandom'
+# BASELINE = 'AdaptMutF0pmut08'
 ARR_TO_PLOT = 'mx_arrs' # 'avg_arrs' #
 
 HIGHLIGHT = {
@@ -71,6 +71,11 @@ def order_fn_mean(names):
 def order_fn_max(names):
     ordered_names = list(names.keys())
     ordered_names.sort(key=lambda n: max(names[n]['runs']), reverse=True)
+    return ordered_names
+
+def order_fn_min(names):
+    ordered_names = list(names.keys())
+    ordered_names.sort(key=lambda n: min(names[n]['runs']), reverse=True)
     return ordered_names
 
 def parse_algo_params(name: str):
@@ -142,9 +147,9 @@ def get_finished_runs(runname):
 rgx = r'([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?|nan)'
 sp = r'\s+'
 
-def get_best_genotype_over_all_runs() -> list[list]:
+def get_best_genotypes_over_all_runs() -> list[list]:
     scoreboard = []
-    path = os.path.join(get_disertatie_root(), 'framspy', 'S2ViYWJSb25pblVBSUM=.results')
+    path = os.path.join(get_disertatie_root(), 'S2ViYWJSb25pblVBSUM=.results')
     if os.path.exists(path):
         with open(path, 'r') as f:
             # '2026-04-27 20:13	KebabRoninUAIC	3	100001	14627.3	86.6475	373.5824823213579	//0'
@@ -155,6 +160,7 @@ def get_best_genotype_over_all_runs() -> list[list]:
                 if m:
                     if next_entry:
                         scoreboard.append(next_entry)
+                        next_entry = None
                     evalfn, totalevals, time, nonevaltime, fitness, genotype = m.groups()
                     if genotype.startswith('//0'):
                         genotype += '\n'
@@ -173,7 +179,8 @@ def parse_data(rs=None):
         rs = {}
     modified = False
     # print("I already have these:", rs.keys())
-    for idx, d in enumerate(tqdm.tqdm(sorted(os.listdir(EXPERIMENTS_PATH)), desc="Parsing algos")):
+    pbar = tqdm.tqdm(sorted(os.listdir(EXPERIMENTS_PATH)), desc="Parsing algos", position=0, leave=True)
+    for idx, d in enumerate(pbar):
         # if ('convection' not in d):
         #     continue
         finished_runs = get_finished_runs(d)
@@ -324,7 +331,7 @@ def parse_data(rs=None):
                 islands_arrs.append(islands)
             if len(species_dict) > 0:
                 species_dicts.append(species_dict)
-        print(d)
+        pbar.set_postfix_str(d)
         rs[d] = {
             'params': args,
             'run_idx': i,
@@ -381,31 +388,20 @@ def boxplots(names, order_fn=order_fn_median):
     for tick in ax.get_yticklabels():
         if tick.get_text() in HIGHLIGHT:
             tick.set_color(HIGHLIGHT[tick.get_text()])
-    # t-test to see if better solutions are statistically significant
-    from scipy.stats import ttest_ind
-    SIGLVL = 0.05
-    if BASELINE in ordered_names:
-        idx_baseline = ordered_names.index(BASELINE)
-        print(f"Performing T-test between {BASELINE} and ({idx_baseline}) algorithms")
-        for on in ordered_names[:idx_baseline]:
-            # Perform two-sample t-test
-            t_statistic, p_value = ttest_ind(names[BASELINE]['runs'], names[on]['runs'], equal_var=False)
-
-            # Output the results
-            if p_value < SIGLVL:
-                print(f"P-value: {p_value:.6f} {on} ")
-                # print(f"t-statistic: {t_statistic}")
+    idx_baseline = ordered_names.index(BASELINE)
+    return ordered_names[:idx_baseline]
 
 HOF_SCORE = re.compile(f"\\nCOGpath:{rgx}\\n")
-def show_runs(rs: dict, d, example_idx, plot=True, printout=False, arr_to_plot=ARR_TO_PLOT, replaceplot=False):
+PLOT_FIGSIZE=(15, 6)
+def show_runs(rs: dict, d, example_idx, run_idx, plot=True, printout=False, arr_to_plot=ARR_TO_PLOT, replaceplot=False):
     res = []
     if plot:
-        plotname = os.path.join(IMG_SAVE_PATH, f'{d}_run_{example_idx}.png')
+        plotname = os.path.join(IMG_SAVE_PATH, f'{d}_run_{run_idx}.png')
         if replaceplot or not os.path.exists(plotname):
             # print(f'Making plot for {plotname}')
             color = get_algo_color(d)
             # Plot run means as a thinner line on same axes
-            plt.figure(figsize=(12,6))
+            plt.figure(figsize=PLOT_FIGSIZE)
             plt.title(f'Evolution of {d} at run {example_idx:>3}')
             if 'islands' in rs[d]:
                 # print(d, example_idx)
@@ -427,6 +423,8 @@ def show_runs(rs: dict, d, example_idx, plot=True, printout=False, arr_to_plot=A
                 x_vals_mx = [x[1] if x[1] else 0 for x in rs[d]['mx_arrs'][example_idx]]
                 plt.plot(y_vals, x_vals, label=f'{d} avg', color='black', linewidth=1.5)
                 plt.fill_between(y_vals, x_vals_mn, x_vals_mx, color='black', alpha=0.15)
+                best_ind =  sorted(rs[d]['mx_arrs'][example_idx], key=lambda x: x[1] if x[1] is not None else -10.0, reverse=True)[0]
+                plt.scatter(best_ind[0], best_ind[1], s=200, marker='*', color='green')
             elif 'species' in rs[d]:
                 FILTER_SPECIES_AGE = 10
                 shown_species = list(filter(lambda x: len(rs[d]['species'][example_idx][x]['avg_arrs']) >= FILTER_SPECIES_AGE, rs[d]['species'][example_idx]))
@@ -448,6 +446,8 @@ def show_runs(rs: dict, d, example_idx, plot=True, printout=False, arr_to_plot=A
                 x_vals_mx = [x[1] if x[1] else 0 for x in rs[d]['mx_arrs'][example_idx]]
                 plt.plot(y_vals, x_vals, label=f'{d} avg', color='black', linewidth=1.5)
                 plt.fill_between(y_vals, x_vals_mn, x_vals_mx, color='black', alpha=0.15)
+                best_ind =  sorted(rs[d]['mx_arrs'][example_idx], key=lambda x: x[1] if x[1] is not None else -10.0, reverse=True)[0]
+                plt.scatter(best_ind[0], best_ind[1], s=200, marker='*', color='green')
             else:
                 # Do one plot for it
                 # print(d, plotname)
@@ -457,9 +457,11 @@ def show_runs(rs: dict, d, example_idx, plot=True, printout=False, arr_to_plot=A
                 x_vals_mx = [x[1] if x[1] else 0 for x in rs[d]['mx_arrs'][example_idx]]
                 plt.plot(y_vals, x_vals, label=f'{d} avg', color=color, linewidth=1.5)
                 plt.fill_between(y_vals, x_vals_mn, x_vals_mx, color=color, alpha=0.15)
+                best_ind =  sorted(rs[d]['mx_arrs'][example_idx], key=lambda x: x[1] if x[1] is not None else -10.0, reverse=True)[0]
+                plt.scatter(best_ind[0], best_ind[1], s=200, marker='*', color='green')
             match rs[d]['params'].get('evalfn', '3'):
                 case '5':
-                    plt.ylim(990, 1000)
+                    plt.ylim(994, 1000)
                 case '4':
                     plt.ylim(0, 500)
                 case '3':
@@ -521,6 +523,7 @@ def make_gif(images, gif_name):
     frames = [Image.open(image) for image in images]
     frame_one = frames[0]
     frame_one.save(gif_name, format="GIF", append_images=frames, save_all=True, duration=150, loop=0)
+    del frames
 
 def make_gif_th(th_idx):
     d = list(rs.keys())[th_idx]
@@ -564,21 +567,26 @@ def print_clasament(names, latex):
             maxx = f'**{maxx.strip()}**' if not latex else '\\textbf{' + maxx.strip() + '}'
         comment = comments[n] if n in comments else ''
         runs_time_exceeded = len(list(filter(lambda x: x['nonevalTime'] is not None and x['nonevalTime'] > 3600, names[n]['meta'])))
+        if n == BASELINE:
+            namm = f'***{n} - baseline***' if not latex else '\\textbf{\\textit{' + n + '}}'
+        else:
+            namm = n
         if latex:
             print(
                 f'{idx+1:>3}.'
                 + f'&{np.std(names[n]['runs']):10.5f}&{mean}&{median}&{maxx}'
-                + f'&({runs_time_exceeded}/{len(names[n]['runs'])})&\\seqsplit{"{"}{n.replace('_', '\\_')}{"}"}\\\\ \\hline')
+                + f'&({runs_time_exceeded}/{len(names[n]['runs'])})&\\seqsplit{"{"}{namm.replace('_', '\\_')}{"}"}\\\\ \\hline')
         else:
             print(
                 f'|{idx+1:>3}.'
                 + f'|{np.std(names[n]['runs']):10.5f}|{mean}|{median}|{maxx}'
-                + f'|`({runs_time_exceeded}/{len(names[n]['runs'])})`|{n}|{comment}|')
+                + f'|`({runs_time_exceeded}/{len(names[n]['runs'])})`|{namm}|{comment}|')
 
-FIGSIZE=(25,13)
+FIGSIZE=(25,25)
 if __name__ == '__main__':
-    sc = get_best_genotype_over_all_runs()
-    for s in sc[-1:]:# filter(lambda x: x[0] == '4', sc):
+    sc = get_best_genotypes_over_all_runs()
+    print(len(sc))
+    for s in list(filter(lambda x: x[0] == '3', sc))[-1:]:
         print(s[:5])
         print()
         print(s[5])
@@ -605,7 +613,7 @@ if __name__ == '__main__':
         for d in tqdm.tqdm(list(rs.keys()), position=0, desc="Experiments"):
             finished_runs = get_finished_runs(d)
             for i, idxxx in enumerate(finished_runs):
-                ress += show_runs(rs, d, i, arr_to_plot=ARR_TO_PLOT)
+                ress += show_runs(rs, d, i, idxxx, arr_to_plot=ARR_TO_PLOT)
         ress.sort(key=lambda x: x[1], reverse=True)
         run_ths(make_gif_th, len(rs.keys()), title='Making gifs...')
         print('Making clasament...')
@@ -671,22 +679,42 @@ if __name__ == '__main__':
     # print_clasament({n: names[n] for n in names.keys() if 'evalfn5' not in n and 'evalfn4' not in n})
     print_clasament(names, parsedargs.latex)
 
-
+    ordered_names = [] # For T-test
     print(' By median '.center(90, '*'))
-    boxplots(names, order_fn=order_fn_median)
+    ordered_names += boxplots(names, order_fn=order_fn_median)
     plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by median value')
     plt.tight_layout(pad=0.2)
     plt.savefig(os.path.join(get_disertatie_root(), f'Run_results_boxplot_{ARR_TO_PLOT}_ordermedian.png'))
 
     print(' By mean '.center(90, '*'))
-    boxplots(names, order_fn=order_fn_mean)
+    ordered_names += boxplots(names, order_fn=order_fn_mean)
     plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by mean value')
     plt.tight_layout(pad=0.2)
     plt.savefig(os.path.join(get_disertatie_root(), f'Run_results_boxplot_{ARR_TO_PLOT}_ordermean.png'))
 
     print(' By max '.center(90, '*'))
-    boxplots(names, order_fn=order_fn_max)
+    ordered_names += boxplots(names, order_fn=order_fn_max)
     plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by maximum value')
     plt.tight_layout(pad=0.2)
     plt.savefig(os.path.join(get_disertatie_root(), f'Run_results_boxplot_{ARR_TO_PLOT}_ordermax.png'))
+
+    print(' By min '.center(90, '*'))
+    boxplots(names, order_fn=order_fn_min)
+    plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by minimum value')
+    plt.tight_layout(pad=0.2)
+    plt.savefig(os.path.join(get_disertatie_root(), f'Run_results_boxplot_{ARR_TO_PLOT}_ordermin.png'))
+
+    ordered_names = set(ordered_names)
+    # t-test to see if better solutions are statistically significant
+    from scipy.stats import ttest_ind
+    SIGLVL = 0.05
+    for on in ordered_names:
+        # Perform two-sample t-test
+        t_statistic, p_value = ttest_ind(names[BASELINE]['runs'], names[on]['runs'], equal_var=False)
+
+        # Output the results
+        if p_value < SIGLVL:
+            print(f"P-value: {p_value:.6f} {on} ({BASELINE})")
+            # print(f"t-statistic: {t_statistic}")
+
     exit()

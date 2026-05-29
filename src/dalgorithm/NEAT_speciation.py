@@ -198,6 +198,7 @@ def speciation(population, toolbox,
     if verbose:
         print(logbook.stream)
     maxFits = [max([p.fitness.values for p in new_pop])]
+    bestFitPastAll = (float('-inf'), [''])
     # Begin the generational process
     for gen in range(1, ngen + 1):
         old_species = new_species
@@ -337,13 +338,14 @@ def speciation(population, toolbox,
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in new_pop if not ind.fitness.valid]
         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
-        
-        maxFit = (float('-inf'), '')
+        # Only takes into account newly generated individuals. Old folks who persisted unchanged don't contribute to the history.
+        maxFit = (float('-inf'), [''])
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
             if fit[0] > maxFit[0]:
                 maxFit = (fit[0], toolbox.clone(ind))
-        maxFits.append(maxFit)
+        if maxFit[0] != float('-inf'):
+            maxFits.append(maxFit)
         for sp in new_species:
             sp.compute_fitness(distance_matrix=distance_matrix, admission_delta=delta)
 
@@ -378,6 +380,8 @@ def speciation(population, toolbox,
         if restart_method != 'none' and len(maxFits) >= restart_patience:
             consider_interval = maxFits[-restart_patience:-1]
             bestFitPast = sorted(consider_interval, key=lambda x: x[0], reverse=True)[0]
+            bestFitPastAllConsider = sorted(maxFits, key=lambda x: x[0], reverse=True)[0]
+            bestFitPastAll = bestFitPastAllConsider if bestFitPastAllConsider > bestFitPastAll else bestFitPastAll
             ind = consider_interval.index(bestFitPast)
             for mf in consider_interval:
                 print(f"({mf[0]:10.5f})")
@@ -390,9 +394,15 @@ def speciation(population, toolbox,
                     print("Restarting soft_perturb_best after", restart_patience, "gens with no improvement.")
                     print(bestFitPast)
                     new_pop = toolbox.attr_random_pop_from_genotype(bestFitPast[1][0], len(new_pop))
+                elif restart_method == 'soft_perturb_best_all':
+                    print("Restarting soft_perturb_best_all after", restart_patience, "gens with no improvement.")
+                    print(bestFitPastAll)
+                    new_pop = toolbox.attr_random_pop_from_genotype(bestFitPastAll[1][0], len(new_pop))
                 elif restart_method == 'hard':
                     print("Restarting hard after", restart_patience, "gens with no improvement.")
                     new_pop = toolbox.population(n=len(new_pop))
+                else:
+                    raise "Unimplemented restart method: " + restart_method
                 
                 # Evaluate the individuals with an invalid fitness
                 invalid_ind = [ind for ind in new_pop if not ind.fitness.valid]

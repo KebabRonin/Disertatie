@@ -224,7 +224,7 @@ Novelty stage > Evolution stage > Annealing stage
 triggered hypermutation (AdaptMut basically)
 
 Partition crossover, link uncrossing, ++ graph algorithms stuff
-- [ ] Is it ok to change the evaluation method provided by the competition? (skipping evaluation if invalid phenotype)
+- Is it ok to change the evaluation method provided by the competition? (skipping evaluation if invalid phenotype)
 	- e ok
 	- **caching pe solutii f f apropiate**
 
@@ -254,8 +254,12 @@ https://github.com/CodeReclaimers/neat-python
 https://github.com/marcovirgolin/GP-GOMEA
 
 #### For prof next time
+apetrei razvan - ceva GA pe grafuri
 
-- [ ] Is it ok to change the evaluation method provided by the competition? (skipping evaluation if invalid phenotype)
+
+python -m src.runExperiment -path "/home/xwiki/Documents/fac/GECCO_Robot_Body/Framsticks54" -sim "/home/xwiki/Documents/fac/GECCO_Robot_Body/Disertatie/framspy/eval-allcriteria.sim;/home/xwiki/Documents/fac/GECCO_Robot_Body/Disertatie/framspy/deterministic.sim;/home/xwiki/Documents/fac/GECCO_Robot_Body/Disertatie/framspy/recording-body-coords.sim" -evalfn "3" -genformat "0" -algorithm "RandomMutationCount" -opt COGpath -generations "100000000" -maxmutationsperstep 10 -restart_method soft_perturb_best -restart_patience 5 -initialgenotype random -selMethod roulette
+
+- [x] Is it ok to change the evaluation method provided by the competition? (skipping evaluation if invalid phenotype)
 	- e ok
 	- **caching pe solutii f f apropiate**
 - [ ] I implemented Annealer, but solution quickly deteriorates in small tests (1000 evals)
@@ -283,6 +287,10 @@ https://github.com/marcovirgolin/GP-GOMEA
 https://pmc.ncbi.nlm.nih.gov/articles/PMC12238971/pdf/nihms-2059158.pdf
 _Roughly ordered by difficulty/impact_
 
+* [ ] Self-adaptive EA (aka. store the strategy parameters, such as the mutation step sizes, as part of individuals)
+* [ ] Alter the mutation/selection:
+	* [ ] Mutation: Adding a part is 0.1, removing is 0.15, modifying is rest (overall body mutation=0.3, neuromutation=0.7)
+	* [ ] Selection: Tournament size, selection method
 - [ ] Add species history taken into account when computing dissim, so alive species avoid dead species
 * [ ] GOMEA ([2025 competition entry description here](https://www.framsticks.com/filebrowser/download/341) - it relies on f1)
 	* [ ] Create f0 -> GP tree parser
@@ -299,12 +307,9 @@ _Roughly ordered by difficulty/impact_
 * [ ] A speciation algorithm as follows:
 	* Start with one population of 30
 	* Every generation, probe the population:
-		* If there are some clear outliers wrt. dissimilarity, pick those to start a new species (initial )
+		* If there are some clear outliers wrt. dissimilarity, pick those to start a new species (initial popsize 30 idk)
+		* No popsize limit, but kill species which are stagnant/populations overlap
 * [ ] Crowding
-* [ ] Self-adaptive EA (aka. store the strategy parameters, such as the mutation step sizes, as part of individuals)
-* [ ] Alter the mutation/selection:
-	* [ ] Mutation: Adding a part is 0.1, removing is 0.15, modifying is rest (overall body mutation=0.3, neuromutation=0.7)
-	* [ ] Selection: Tournament size, selection method
 * [x] Implement NEAT Speciation/Clustering
 	* [x] Test the Framsticks dissimilarity metric to get more familiar with it
 		* Dissimilarity is an actually almost symmetric, but not quite
@@ -573,8 +578,9 @@ Algorithms:
 * Building Blocks [^xover-building-block] [^frams-gomea-building-block-varlength] [^building-block-modular-evo] [^gomea-building-block]
 * PPO/RL [^hexacopters] [^rl-chinup] [^rl-evo-comparison]
 * CMA-ES [^cma-es-margin] [^rl-chinup]
+* Other [^feasible-infeasible] [^ga-crossover]
 
-Not reviewed [^qd-annealing] [^hyena-flowshop] [^feasible-infeasible] [^gomea] [^ga-crossover] [^building-block-modular-evo]
+Not reviewed [^qd-annealing] [^hyena-flowshop] [^gomea] [^building-block-modular-evo]
 
 Distance metric [^frams-dissimilarity-new] [^node2vec] [^frams-dissimilarity-bio]
 
@@ -587,6 +593,15 @@ Surveys, State of the Art [^optuna-hyperopt]
 Well of papers: https://nn.cs.utexas.edu/?evolution
 
 ## Sources
+
+https://www.youtube.com/watch?v=hv2BXzjYeRw
+https://www.youtube.com/watch?v=2xVN-qY78P4 - tutorial
+https://www.youtube.com/watch?v=7VBKLH3oDuw - original paper
+
+[^gecco-cma-es-tutorial]: https://www.youtube.com/watch?v=7VBKLH3oDuw
+	- 1/5-th success rule: It's optimal to have only 20% offspring better than parent (so adjust mutation params accordingly)
+	- #idea update mutation step based on genome length?
+	- #idea integrate dissim(parent, offspring) into the weights of mutation methods
 
 [^frams-f-genotype-comparison]: [Comparison of Different Genotype Encodings for Simulated 3D Agents](http://www.framsticks.com/files/common/Komosinski_Encodings_ALifeJ2001.pdf) (Oct 2001, Artificial Life Journal)
 	- #meta **pentru disertatie:** Sa pun la finalul introducerii un cuprins (section 2 contains ..., section 3 contains ..., and conclusions & future work in section 6)
@@ -610,7 +625,9 @@ Well of papers: https://nn.cs.utexas.edu/?evolution
 	- Good read, inspiring!
 
 [^lit-review]: [Accessible Survey of Evolutionary Robotics and Potential Future Research Directions](https://arxiv.org/abs/2210.11704) (Oct 2022, ?)
-	- #tosee 
+	- #toresee 
+	- idk, I didn't see much of use, but it's a slightly interesting read
+	- Integrating RL, emotions into the training process, real 3D printers for creating the robots
 
 [^frams-dissimilarity-bio]:  [On Estimating Similarity of Artificial and Real Organisms](https://www.framsticks.com/files/common/Komosinski_Similarity_TheoryInBiosc2001.pdf) (Dec 2001, Theory in Biosciences)
 	- #advice #stub-article control systems (neurons) are sophisticated, often coupled with morphology and very strongly connected functionally

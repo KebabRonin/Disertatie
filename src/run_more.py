@@ -57,7 +57,7 @@ def run_runs(params):
     elif not params['continuerun']:
         print('Continuerun param is not set, but the run already exists')
         exit()
-    print('cargs', params['commandargs'])
+    # print('cargs', params['commandargs'])
     command = get_command(params['nodet'], params['commandargs'])
     print("Running the following command:")
     print(command + f' {dirname}/hof_{0}.txt > {dirname}/results_{0}.stdout')
@@ -93,14 +93,14 @@ def main(params):
 
             if 'population_initialization' in params['commandargs'] and params['commandargs']['population_initialization'] == 'random':
                 params['commandargs']['initialgenotype'] = 'random'
-            params['commandargs'].pop('population_initialization')
+            params['commandargs'].pop('population_initialization', None)
             if 'dissim' in params['commandargs'] and params['commandargs']['dissim'].startswith('DissimMethod.'):
                 params['commandargs']['dissim'] = params['commandargs']['dissim'][len('DissimMethod.'):]
 
             for pname in params['commandargs']:
                 if params['commandargs'][pname] != 'None':
                     params_str += f' -{pname} "{params['commandargs'][pname]}"'
-            print(params_str)
+            # print(params_str)
             params['commandargs'] = params_str
             params['runindexes'] = []
             i = -1
@@ -112,8 +112,8 @@ def main(params):
                     continue
                 else:
                     params['runindexes'].append(i)
-            print(params['commandargs'])
-            print(params['runindexes'])
+            # print(params['commandargs'])
+            # print(params['runindexes'])
     os.chdir(get_disertatie_root())
     run_runs(params)
     # exit()
@@ -128,7 +128,7 @@ def main(params):
 
 if __name__ == '__main__':
     parsedargs = parseArgs()
-    print(parsedargs)
+    # print(parsedargs)
     nnodet = bool(parsedargs.nodet)
     params = {
         'nodet': nnodet,

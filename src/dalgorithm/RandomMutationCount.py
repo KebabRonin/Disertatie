@@ -41,10 +41,6 @@ def varAnd(population, toolbox, cxpb, mutpb, maxmutationsperstep):
             offspring[i - 1], offspring[i] = toolbox.mate(offspring[i - 1],
                                                           offspring[i])
             del offspring[i - 1].fitness.values, offspring[i].fitness.values
-            # while not toolbox.isValid(offspring[i - 1])[0]:
-            #     offspring[i - 1], = toolbox.mutate(offspring[i - 1])
-            # while not toolbox.isValid(offspring[i])[0]:
-            #     offspring[i], = toolbox.mutate(offspring[i])
 
     for i in range(len(offspring)):
         if random.random() < mutpb:
@@ -52,8 +48,6 @@ def varAnd(population, toolbox, cxpb, mutpb, maxmutationsperstep):
             for _ in range(nr_mutations):
                 offspring[i], = toolbox.mutate(offspring[i])
             del offspring[i].fitness.values
-            # while not toolbox.isValid(offspring[i])[0]:
-            #     offspring[i], = toolbox.mutate(offspring[i])
 
     return offspring
 
@@ -82,6 +76,7 @@ def randomMutationCount(population, toolbox, cxpb, mutpb, ngen,
         print(logbook.stream)
 
     maxFits = []
+    bestFitPastAll = (float('-inf'), [''])
 
     # Begin the generational process
     for gen in range(1, ngen + 1):
@@ -101,12 +96,13 @@ def randomMutationCount(population, toolbox, cxpb, mutpb, ngen,
         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
 
         # Only takes into account newly generated individuals. Old folks who persisted unchanged don't contribute to the history.
-        maxFit = (float('-inf'), '')
+        maxFit = (float('-inf'), [''])
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
             if fit[0] > maxFit[0]:
                 maxFit = (fit[0], toolbox.clone(ind))
-        maxFits.append(maxFit)
+        if maxFit[0] != float('-inf'):
+            maxFits.append(maxFit)
 
         # Update the hall of fame with the generated individuals
         if halloffame is not None:
@@ -124,6 +120,8 @@ def randomMutationCount(population, toolbox, cxpb, mutpb, ngen,
         if restart_method != 'none' and len(maxFits) >= restart_patience:
             consider_interval = maxFits[-restart_patience:-1]
             bestFitPast = sorted(consider_interval, key=lambda x: x[0], reverse=True)[0]
+            bestFitPastAllConsider = sorted(maxFits, key=lambda x: x[0], reverse=True)[0]
+            bestFitPastAll = bestFitPastAllConsider if bestFitPastAllConsider > bestFitPastAll else bestFitPastAll
             ind = consider_interval.index(bestFitPast)
             # for mf in consider_interval:
             #     print(f"({mf[0]:10.5f})")
@@ -138,6 +136,12 @@ def randomMutationCount(population, toolbox, cxpb, mutpb, ngen,
                     # cloned_geno_pop = toolbox.attr_random_pop_from_genotype(bestFitPast[1][0], int(len(population) * ratio_clone))
                     # population = cloned_geno_pop + toolbox.population(n=len(population) - len(cloned_geno_pop))
                     population = toolbox.attr_random_pop_from_genotype(bestFitPast[1][0], len(population))
+                elif restart_method == 'soft_perturb_best_all':
+                    print("Restarting soft_perturb_best_all after", restart_patience, "gens with no improvement.")
+                    # ratio_clone = 0.9
+                    # cloned_geno_pop = toolbox.attr_random_pop_from_genotype(bestFitPast[1][0], int(len(population) * ratio_clone))
+                    # population = cloned_geno_pop + toolbox.population(n=len(population) - len(cloned_geno_pop))
+                    population = toolbox.attr_random_pop_from_genotype(bestFitPastAll[1][0], len(population))
                 elif restart_method == 'hard':
                     print("Restarting hard after", restart_patience, "gens with no improvement.")
                     population = toolbox.population(n=len(population))

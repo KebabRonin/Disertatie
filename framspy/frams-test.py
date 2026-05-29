@@ -6,7 +6,7 @@ For a number of examples of scripting, see the "scripts" directory in the Framst
 
 import sys
 import json
-import frams
+import Disertatie.framspy.frams as frams
 
 frams.init(*(sys.argv[1:]))  # pass whatever args we have, init() is the right place to deal with different scenarios:
 # frams.init() - should try to figure out everything (and might fail)
@@ -58,7 +58,40 @@ print("Now water level is", frams.World.wrldwat)
 frams.World.wrldwat = frams.World.wrldwat._value() + 0.7
 print("Now water level is", frams.World.wrldwat)
 
-initial_genotype = 'X'  # simple body with touch and gyroscope sensors
+initial_genotype = r"""//0
+p:0.214, 0.079, 0.16, fr=1.322, ing=0.326
+p:0.412, -0.163, 0.389, fr=0.685, ing=0.083
+p:-1.473, 0.332, -1.2, fr=0.03, ing=0.542
+p:-1.2959165401353254, 0.4781397688300989, -1.0890154229488218, fr=0.005, ing=0.201
+p:-0.4297716999554018, 1.342551954009019, -0.6228961206239585, fr=2.206, ing=0.2
+p:1.8293315372452914, 1.2424433827758363, 0.3505349308024196, fr=1.218, ing=0.064
+p:1.8, 1.539, 0.97, fr=0.053, ing=0.298
+p:2.69, 0.519, 0.026, fr=0.409, ing=0.003
+j:0, 5, stif=0.755, rotstif=0.843
+j:3, 0, stif=0.927, rotstif=0.49
+j:0, 1, stif=0.985, rotstif=0.856
+j:5, 1, stif=0.918, rotstif=0.906
+j:4, 1, stif=0.923, rotstif=0.839
+j:2, 3, stif=0.985, rotstif=0.948
+j:0, 4, stif=0.812, rotstif=0.994
+j:6, 5, stif=0.836, rotstif=0.947
+j:7, 5, stif=0.582, rotstif=0.997
+n:j=0, d="|:p=0.338, r=0.984"
+n:j=0, d=G
+n:j=3, d="|:p=0.384, r=0.961"
+n:j=3, d=G
+n:d="N:in=0.889, si=0.616"
+n:d=*
+n:d="N:fo=0.647, si=4.233"
+n:d=*
+n:p=4, d=Gpart
+n:p=2, d=Gpart:rz=-0.061
+n:p=0, d="T:r=0.873, rz=-1.412"
+n:j=1, d=G
+c:2, 5, 1.451
+c:6, 10, 2.322
+c:6, 11, -2.376"""
+initial_genotype = """MXX[*][S][N, 10:-7.496, 10:3.812, 0:2.899, 0:0.527, 0:-21.133, 0:16.436, 0:-3.347, 1:-13.831, -1:10.714, 4:-4.933, 4:1.753, 0:0.761,8:1][Gpart, rz:3.991, ry:2.984]qfMXfFX[Gpart][T][N, -4:0.95, -3:-2.129, -5:-4.18, -4:4.344, -2:2.306, -3:1.398,-6:-4.825,0:1]RLMfc(, QFMX[|, 5:28.963][@, 4:-36.341]MF(, qX[T]M(MlX[S][@, -8:1.232, p:0.816][Gpart,ry:0])))"""  # simple body with touch and gyroscope sensors
 print("Let's perform a few simulation steps of the initial genotype:", initial_genotype)
 frams.ExpProperties.initialgen = initial_genotype
 frams.ExpProperties.p_mut = 0  # no mutation (the selection procedure will clone our initial genotype)
@@ -70,28 +103,63 @@ frams.Simulator.init()  # adds initial_genotype to gene pool (calls onInit() fro
 frams.Simulator.start()  # this does not actually start the simulation, just sets the "Simulator.running" status variable
 step = frams.Simulator.step  # cache reference to avoid repeated lookup in the loop (just for performance)
 # frams.Simulator.eval("while(Simulator.running) Simulator.step();")  # loop in FramScript much faster than loop in python
-frams.GenMan.f1_smX = 0.5
-frams.GenMan.f1_smJunct = 0.0
-frams.GenMan.f1_smComma = 0.0
-frams.GenMan.f1_smModif = 0.0
-frams.GenMan.f1_nmNeu = 0.0
-frams.GenMan.f1_nmConn = 0.0
-frams.GenMan.f1_nmProp = 0.0
-frams.GenMan.f1_nmWei = 0.0
-frams.GenMan.f1_nmVal = 0.0
+# frams.GenMan.f1_smX = 0.5
+# frams.GenMan.f1_smJunct = 0.4
+# frams.GenMan.f1_smComma = 0.4
+# frams.GenMan.f1_smModif = 0.4
+# frams.GenMan.f1_nmNeu = 0.4
+# frams.GenMan.f1_nmConn = 0.4
+# frams.GenMan.f1_nmProp = 0.4
+# frams.GenMan.f1_nmWei = 0.4
+# frams.GenMan.f1_nmVal = 0.4
+
+frams.GenMan.gen_extmutinfo = 2
+frams.GenMan.gen_hist = 1
+from ..src.dalgorithm.customMutation import *
+CmutFramsLibReference.custom_mut_frams_lib_reference = frams
+print(CmutFramsLibReference.custom_mut_frams_lib_reference)
+
 print(len(frams.Populations[0]))
-for s in range(15):
-	step()  # first step performs selection and revives one genotype according to standard.expdef rules
-	creature = frams.Populations[0][0]  # FramScript Creature object
-	offspring = frams.GenMan.mutate(frams.Geno.newFromString(creature.genotype))
-	print(offspring.genotype)
+# for s in range(15):
+# 	step()  # first step performs selection and revives one genotype according to standard.expdef rules
+# 	# creature = frams.Populations[0][0]  # FramScript Creature object
+# 	offspring = frams.GenMan.mutate(frams.Geno.newFromString(initial_genotype))
+# 	print(offspring.genotype)
 frams.GenMan.f1_nmNeu = 0.5
 print('oops')
-for s in range(15):
+
+parent = frams.Geno.newFromString(initial_genotype)
+child = frams.GenMan.mutate(parent)
+
+print("child.info type:", type(child.info))
+print("child.info repr:", repr(str(child.info)))
+print("child.info text:\n", str(child.info))
+
+namespace = {'frams': frams}
+for bmut in get_all_prop_names():
+	setExpProperty(bmut, 1)
+
+d = {}
+"""
+0
+{'added Neuron': 5177, 'changed Joint color': 4915, 'removed neural connection': 5073, 'changed Part density': 5157, 'added neural connection': 5118, 'changed Neuron property': 2995, 'changed Joint stamina': 5212, 'changed Part ingestion': 5255, 'added Joint': 3334, 'changed Joint stiffness': 5076, 'changed neural connection weight': 5069, 'changed Part friction': 5080, 'removed Part': 3159, 'changed Part assimilation': 5186, 'swapped Part': 3880, 'removed Neuron': 5161, 'changed Part color': 5260, 'added Part': 5061, 'removed Joint': 4708, 'changed Part position': 5129, 'changed Joint rotational stiffness': 4995}
+1
+{'added or removed a neuron': 7033, 'changed neural connection weight': 7009, 'added or removed neural connection': 7034, 'added or removed a modifier': 27813, 'added or removed a comma': 6450, 'added or removed X': 26034, 'added or removed neuron property': 6935, 'changed neuron property': 7040, 'added or removed branching': 4652}
+"""
+import re
+
+for s in range(100_000):
 	step()  # first step performs selection and revives one genotype according to standard.expdef rules
-	creature = frams.Populations[0][0]  # FramScript Creature object
-	offspring = frams.GenMan.mutate(frams.Geno.newFromString(creature.genotype))
-	print(offspring.genotype)
+	# creature = frams.Populations[0][0]  # FramScript Creature object
+	offspring = frams.GenMan.mutate(frams.Geno.newFromString(initial_genotype))
+	# print(offspring.genotype)
+	print(offspring.info)
+	exit(0)
+	mutation_match = re.search(r'mutation\((.*?)\)', str(offspring.info)).group(1)
+	mutkind = get_applied_mutation(offspring)
+	d[mutkind] = d.get(mutkind, 0) + 1
+print(d)
+exit(0)
 creature_orig = str((frams.Populations[0][0]).genotype)
 print('=', creature_orig)
 import copy, random

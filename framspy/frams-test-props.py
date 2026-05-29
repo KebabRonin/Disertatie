@@ -1,7 +1,7 @@
 """An advanced example of iterating through the properties of an ExtValue object and printing their characteristics.
 This example may be useful for some developers, but it is not needed for a regular usage of Framsticks (i.e. simulation and evolution)."""
 
-import frams
+import Disertatie.framspy.frams as frams
 import sys
 
 frams.init(*(sys.argv[1:]))
@@ -36,10 +36,15 @@ def printFramsProperties(v):
 				printSingleProperty(v, p)
 	print('\n\n')
 
-printFramsProperties(frams.Simulator)
+# printFramsProperties(frams.Simulator)
 printFramsProperties(frams.GenMan)
-printFramsProperties(frams.World)
-printFramsProperties(frams.ExpProperties)
+# printFramsProperties(frams.World)
+# printFramsProperties(frams.ExpProperties)
+frams.GenMan.gen_extmutinfo = 1
+print(frams.GenMan.gen_extmutinfo)
+egg = frams.GenMan.crossOver(frams.Geno.newFromString('X(X,XX)XX'), frams.Geno.newFromString('XX(X,XX,X,,X)'))
+printFramsProperties(egg)
+print(egg.info)
 exit(0)
 printFramsProperties(frams.Simulator)
 print(dir(frams.Simulator))

@@ -57,7 +57,7 @@ PARAM_DISTRIBUTIONS = {
   'initialgenotype': optuna.distributions.CategoricalDistribution(['simplest', 'XX', 'XXneurons', 'random']),
   # EA parameters
   'popsize': optuna.distributions.IntDistribution(1, 500, step=1),
-  'tournament': optuna.distributions.IntDistribution(2, 20),
+  'tournament': optuna.distributions.IntDistribution(2, 50),
   'pmut': optuna.distributions.FloatDistribution(0.1, 1.0, step=0.005),
   'pxov': optuna.distributions.FloatDistribution(0.0, 1.0, step=0.005),
   # Convection-specific parameters
@@ -79,7 +79,7 @@ PARAM_DISTRIBUTIONS = {
   # AdaptMut-specific parameters
   'xmut_enabled': optuna.distributions.CategoricalDistribution([0, 1]),
   # Lambda (eaMuPlusLambda, eaMuCommaLambda) parameters
-  'lbda': optuna.distributions.IntDistribution(20, 500, step=5),
+  'lbda': optuna.distributions.IntDistribution(20, 500, step=1),
   'restart_patience': optuna.distributions.IntDistribution(2, 100),
   'restart_method': optuna.distributions.CategoricalDistribution(
     ['none', 'hard', 'soft_perturb_best']),
