@@ -5,6 +5,7 @@ from ..dalgorithm.customMutation import CmutFramsLibReference, setExpProperty, g
 import frams
 import copy, random
 import json
+import numpy as np
 
 SCORE_FNS = {
 	'pos': lambda pos, neg: pos, # Give more weight to operations which cause the most fitness increase
@@ -20,16 +21,17 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 	def __init__(self, frams_path, frams_lib_name, sim_settings_files, frams_module,
 					cacheActive=False, score_fn='ratio',
 					decay=0.985, # Should forget deltas after ~500 evaluations, aka. 50 ind x 10 generations (but it can differ by algorithm)
+					ESalgo='freqWindow',
 				):
 		super().__init__(frams_path, frams_lib_name, sim_settings_files)
-		print('cacheActive:', cacheActive)
+		self.ESalgo = ESalgo
 		CmutFramsLibReference.custom_mut_frams_lib_reference = frams_module
 		# Ignore some genetic operations for CMA-ES, based on the current simulator settings
 		CmutFramsLibReference.ignored_operation_types += [
 			p for p in get_all_prop_names() if getExpProperty(p) == 0
 		]
 		CmutFramsLibReference.ignored_operation_types += [
-			'crossover',
+			'crossover', 'invalid',
 			'f0_nodel_tag', 'f0_nomod_tag',
 			'f1_xo_propor',
 			]
@@ -38,6 +40,7 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 		## Hardcoded setting, so we can retrieve the mutation type that was applied.
 		setExpProperty('gen_extmutinfo', 2)
 		self.cacheActive = cacheActive
+		print('cacheActive:', cacheActive)
 		self.df = pd.DataFrame({
 			'meta_evaluation_number': pd.Series(dtype='int'),
 			# 'meta_timestamp': pd.Series(dtype='float'),
@@ -63,6 +66,7 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 		# It's technically not a mutation type yet. FIXME
 		# if 'crossover' not in CmutFramsLibReference.ignored_operation_types:
 		self.cmaes_store['crossover'] = {'pos': 0.0, 'neg': 0.0}
+		self.cmaes_store['invalid'] = {'pos': 0.0, 'neg': 0.0}
 		self.applied_operations = [] # To store the mutation types that were applied.
 		self.score_fn = SCORE_FNS[score_fn]
 		self.last_hash = None
@@ -147,6 +151,8 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 		"""
 		Update one or more columns in the cached row for a genotype.
 		"""
+		if not self.cacheActive:
+			return
 		cached_row = self.df[self.df['geno_genotype_representation'] == genotype]
 		if cached_row.empty:
 			print("Error: ", genotype, "does not exist in cache.")
@@ -163,10 +169,12 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 			if key == 'eval_fit':
 				# Update the mutation fitness increase?
 				pass
-		return self.df.loc[idx]
+		return# self.df.loc[idx]
 
 	def updateCMA_ES(self, individual, new_fitness):
 		"""
+		This is called on every evaluate() call, to consume the operation history stored on each genotype.
+
 		Update the "CMA-ES"-like history of the impact of each operation type.
 		This initial implementation is as follows:
 		* Keep a rolling sum over each operation type (eg. 'f0_n_new': [sum_fit_improvement_deltas, sum_fit_worse_deltas] )
@@ -177,55 +185,73 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 		# if isinstance(individual.past_fitness, float):
 		# 	# Uninitialized past fitness
 		# 	individual.past_fitness = [0.0 for _ in range(len(new_fitness))]
-		old_fitness = [individual.past_fitness] if isinstance(individual.past_fitness, float) else individual.past_fitness
-		fitness_delta = float(new_fitness[0] - old_fitness[0])
-		fitness_delta_type = 'neg' if fitness_delta < 0 else 'pos'
-		for op_type in individual.past_operations:
-			self.cmaes_store[op_type]['pos'] = self.decay * self.cmaes_store[op_type]['pos']
-			self.cmaes_store[op_type]['neg'] = self.decay * self.cmaes_store[op_type]['neg']
-			self.cmaes_store[op_type][fitness_delta_type] += fitness_delta / len(individual.past_operations)
+		match self.ESalgo:
+			case 'freqWindow':
+				old_fitness = [individual.past_fitness] if isinstance(individual.past_fitness, float) else individual.past_fitness
+				fitness_delta = float(new_fitness[0] - old_fitness[0])
+				fitness_delta_type = 'neg' if fitness_delta < 0 else 'pos'
+				for op_type in individual.past_operations:
+					if op_type in self.cmaes_store.keys():
+						self.cmaes_store[op_type]['pos'] = self.decay * self.cmaes_store[op_type]['pos']
+						self.cmaes_store[op_type]['neg'] = self.decay * self.cmaes_store[op_type]['neg']
+						self.cmaes_store[op_type][fitness_delta_type] += (fitness_delta / len(individual.past_operations)) * individual.past_operations.count(op_type)
+			case 'cma-es':
+				"""
+				Get the sum of one-hot vectors representing the past operations.
+				"""
+				# Have a canonical ordering of the operation types
+				orderedNames = sorted(self.cmaes_store.keys())
+				v = [individual.past_operations.count(op_type) * fitness_delta for op_type in orderedNames]
+				# actualCMAES(v)
+				# FIXME: I need to get the concept of a generation to be accessible down here.
+				pass
 
 	def set_mutation_simulation_params(self, score_fn):
 		"""
 		In accordance to the CMA-ES collected statistics, update the mutation weights.
 		Should have a mechanism to prevent feedback loops (aka. clamp the probabilities to be > 0)
 		"""
-		scores = [(k, score_fn(self.cmaes_store[k]['pos'], self.cmaes_store[k]['neg'])) for k in self.cmaes_store.keys() if k not in CmutFramsLibReference.ignored_operation_types]
-		scores_only = list(map(lambda x: x[1], scores))
-		mean_score = sum(scores_only) / len(scores)
-		if mean_score == 0:
-			# First generation, so do nothing.
-			return
-		NORM_FACTOR = mean_score
-		sum_scores = sum(scores_only) + NORM_FACTOR * len(scores)
-		for k, score in scores:
-			# Anti feedback loop mechansim, so no mutation type goes entirely extinct.
-			score = (score + NORM_FACTOR) / sum_scores
-			# Framsticks should auto-normalize the mutation probabilities, so don't normalize them here.
-			setExpProperty(k, score)
+		match self.ESalgo:
+			case 'freqWindow':
+				scores = [(k, score_fn(self.cmaes_store[k]['pos'], self.cmaes_store[k]['neg'])) for k in self.cmaes_store.keys() if k not in CmutFramsLibReference.ignored_operation_types]
+				scores_only = list(map(lambda x: x[1], scores))
+				mean_score = sum(scores_only) / len(scores)
+				if mean_score == 0:
+					# First generation, so do nothing.
+					return
+				NORM_FACTOR = mean_score
+				sum_scores = sum(scores_only) + NORM_FACTOR * len(scores)
+				for k, score in scores:
+					# Anti feedback loop mechansim, so no mutation type goes entirely extinct.
+					score = (score + NORM_FACTOR) / sum_scores
+					# Framsticks should auto-normalize the mutation probabilities, so don't normalize them here.
+					setExpProperty(k, score)
+			case 'cma-es':
+				pass
 
 
 	def _evaluate_single_genotype(self, genotype: str):
-		new_record = {
-			"meta_evaluation_number": self._evaluation_count, # N-th evaluation sent to the FramSticks simulator
-			# "meta_timestamp": time.ctime(), # When the evaluation took place.
-			# "meta_generation": 1, # What generation the evaluation belongs to
-			# "meta_algorithm": "1", # Dummy
-			# "algo_data": {"1":"1"}, # Extra data for custom usecases
-			"geno_genotype_representation": genotype, # String representation of the genotype
-			"eval_fit": None,
-			# "geno_numparts": 1,
-			# "geno_numjoints": 1,
-			# "geno_numneurons": 1,
-			# "geno_numconnections": 1,
-			# "eval_raw": ret, # Fallback for raw output, in case of errors # This consumes A LOT of memory
-			# "eval_time": 1.0,
-			# "eval_vertpos": 1.0,
-			# "eval_velocity": 1.0,
-			# "eval_distance": 1.0,
-			# "eval_COGpath": 1.0,
-		}
-		new_record.update(self.get_model_parts_dict(genotype))
+		if self.cacheActive:
+			new_record = {
+				"meta_evaluation_number": self._evaluation_count, # N-th evaluation sent to the FramSticks simulator
+				# "meta_timestamp": time.ctime(), # When the evaluation took place.
+				# "meta_generation": 1, # What generation the evaluation belongs to
+				# "meta_algorithm": "1", # Dummy
+				# "algo_data": {"1":"1"}, # Extra data for custom usecases
+				"geno_genotype_representation": genotype, # String representation of the genotype
+				"eval_fit": None,
+				# "geno_numparts": 1,
+				# "geno_numjoints": 1,
+				# "geno_numneurons": 1,
+				# "geno_numconnections": 1,
+				# "eval_raw": ret, # Fallback for raw output, in case of errors # This consumes A LOT of memory
+				# "eval_time": 1.0,
+				# "eval_vertpos": 1.0,
+				# "eval_velocity": 1.0,
+				# "eval_distance": 1.0,
+				# "eval_COGpath": 1.0,
+			}
+			new_record.update(self.get_model_parts_dict(genotype))
 		# Idk about this one, I need to determine an acceptible similarity threshold for cached_geno ~~ genotype
 		# THIS WAS MOVED TO runExperiment.PY, DON'T UNCOMMENT IT UNLESS IT'S AN EMERGENCY.
 		# if self.cacheActive and self.getCached(genotype) is not None and self.getCached(genotype)['eval_fit'] is not None:
@@ -233,6 +259,7 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 		# 	return self.getCached(genotype)['eval_fit']
 		ret = super()._evaluate_single_genotype(genotype)
 		# new_record["eval_raw"] = ret
-		self.df = self.df._append(new_record, ignore_index=True)
+		if self.cacheActive:
+			self.df = self.df._append(new_record, ignore_index=True)
 		# print("df len:", self.df.shape, genotype[:25].replace('\n', '\\n'))
 		return ret

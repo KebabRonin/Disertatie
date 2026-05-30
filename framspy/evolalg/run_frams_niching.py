@@ -1,5 +1,6 @@
 from FramsticksLib import FramsticksLib
 from .structures.individual import Individual
+from FramsticksLibCompetition import FramsticksLibCompetition
 
 from .frams_base.experiment_frams_niching import ExperimentFramsNiching
 
@@ -14,7 +15,7 @@ def main():
         ['%s=%s' % (arg, getattr(parsed_args, arg)) for arg in vars(parsed_args)]))
     # multiple criteria not supported here. If needed, use FramsticksEvolution.py
     opt_criteria = parsed_args.opt.split(",")
-    framsLib = FramsticksLib(
+    framsLib = FramsticksLibCompetition(
         parsed_args.path, parsed_args.lib, parsed_args.sim)
     constrains = {"max_numparts": parsed_args.max_numparts,
                   "max_numjoints": parsed_args.max_numjoints,

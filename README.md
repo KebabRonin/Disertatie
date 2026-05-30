@@ -394,6 +394,12 @@ For disertation:
 	* **I need help, idk what to interpret about the results**
 * [ ] What could I change from the [2025 GOMEA entry](https://www.framsticks.com/filebrowser/download/341) to improve it?
   * I could substitute the island migrations for the Convection Selection Scheme
+
+MIT Notes about writing papers:
+
+> Creating the patch-quilt or “pastiche” paper—cobbling together paragraphs and ideas taken from different sources. *If we cite sources, then we have “research notes” rather than our own paper.* [source](https://cmsw.mit.edu/writing-and-communication-center/avoiding-plagiarism/)
+
+
 ## Experiments
 #### Setup
 

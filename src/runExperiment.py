@@ -6,8 +6,8 @@ import numpy as np
 from deap import creator, base, tools, algorithms
 from .config_loader import get_framspy_path
 sys.path.append(get_framspy_path())
-from framspy.FramsticksLib import FramsticksLib, DissimMethod
-from framspy.FramsticksLibCompetition import FramsticksLibCompetition
+from FramsticksLib import FramsticksLib, DissimMethod
+from FramsticksLibCompetition import FramsticksLibCompetition
 import traceback
 from scipy.spatial import distance
 # Note: this may be less efficient than running the evolution directly in Framsticks, so if performance is key, compare both options.
@@ -106,8 +106,13 @@ def fix_geno(frams_lib: FramsticksLib, fix_invalid: str, individual: str) -> str
 	"""
 	match fix_invalid:
 		case 'mutate':
-			while not frams_lib.isValidCreature([individual])[0]:
+			nmaxmut = 100
+			for _ in range(nmaxmut):
+				if frams_lib.isValidCreature([individual])[0]:
+					break
 				individual = frams_lib.mutate([individual])[0]
+			if not frams_lib.isValidCreature([individual])[0]:
+				print(f"Failed to fix genotype after {nmaxmut} mutations: individual")
 			return individual
 		case _:
 			return individual
@@ -256,9 +261,9 @@ def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_fo
 				# Movement should require at least 2 neurons: A muscle and a sensor
 				min(parsed_args.max_numneurons if parsed_args.max_numneurons is not None else 10000000000000000000, 2),
 					min(parsed_args.max_numneurons if parsed_args.max_numneurons is not None else 10000000000000000000, 100),
-				random.randrange(0, 4), True)
-			, 1) for _ in range(n // 4)]
-		# Reinit with 1/4 best ind, 3/4 randoms.
+				random.randrange(0, parsed_args.softperturbbest_maxnewmutcount), True)
+			, 1) for _ in range(int(n * parsed_args.softperturbbest_bestratio))]
+		# Reinit with 1/4(bestratio) best ind, 3/4 randoms.
 		return pop + [tools.initRepeat(creator.Individual, toolbox.attr_random_genotype, 1) for _ in range(n - len(pop))]
 
 	toolbox.register("attr_random_pop_from_genotype", attr_random_pop_from_genotype, frams_lib)  # "Attribute generator"
@@ -336,6 +341,8 @@ def parseArguments():
 	parser.add_argument('-xmut_enabled', type=bool, default=1, help="0/1 If to enable mutation = replace with simple individual (only for AdaptMut), default: 1.")
 	parser.add_argument('-restart_patience', type=int, default=20, help=r"After how many generations of no improvement greater than 1% in the max fitness to do a restart.")
 	parser.add_argument('-restart_method', choices=['hard', 'soft_perturb_best', 'soft_perturb_best_all', 'none'], default='none', help="Restart hard (so reinit pop from scratch), or soft (by applying some mutations to the best ind from the run that is ending and continuing the run)")
+	parser.add_argument('-softperturbbest_bestratio', type=float, default=0.25, help=r"Restart soft perturb best will initialize the new population with this % best ind (mutated _ times), and the rest are random individuals")
+	parser.add_argument('-softperturbbest_maxnewmutcount', type=int, default=4, help=r"Restart soft perturb best will initialize the new population with the best ind mutated at most this many times range(0, _)")
 	parser.add_argument('-added_ind', choices=['random', 'initial'], default='initial', help="(only for AdaptMut), what genotype to add with a low probability when mutating, default: initial.")
 	parser.add_argument('-lbda', type=int, default=100, help="lambda - how many children to produce (only used for eaMuLambda), default: 100.") # Suggested: 7 * popsize (=350, but that seems like a bit much)
 	parser.add_argument('-delta', type=float, default=3.0, help="delta (speciation) - Distance threshold for determining species.")
@@ -568,8 +575,10 @@ def main():
 		print(ind.fitness, '\t<--\t', ind[0])
 	if parsed_args.hof_savefile is not None:
 		save_genotypes(parsed_args.hof_savefile, OPTIMIZATION_CRITERIA, hof) # saves a *.gen file, convenient for loading into Framsticks. Otherwise, you can save the HOF in any file format you need.
-		if isinstance(framsLib, FramsticksLibCompetitionWithHistory):
-			framsLib.df.to_pickle(os.path.join(os.path.dirname(parsed_args.hof_savefile), 'framslib_history_cache.pkl'))
+		if isinstance(framsLib, FramsticksLibCompetitionWithHistory) and framsLib.cacheActive:
+			import re
+			number, = re.search(r"hof_(\d+)\.txt", parsed_args.hof_savefile).groups()
+			framsLib.df.to_pickle(os.path.join(os.path.dirname(parsed_args.hof_savefile), f'framslib_history_cache_{number}.pkl'))
 
 
 if __name__ == "__main__":
