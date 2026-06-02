@@ -150,7 +150,7 @@ _Development was done primarily on linux mint, so you might have some issues if 
 [Wikipedia :- Neoevolutionism](https://en.wikipedia.org/wiki/Sociocultural_evolution#Neoevolutionism)
 
 Talcott Parsons, author of _Societies: Evolutionary and Comparative Perspectives_ (1966) and _The System of Modern Societies_ (1971) divided evolution into four subprocesses:
-1. **division**, which creates functional subsystems from the main system; 
+1. **division**, which creates functional subsystems from the main system;
 2. **adaptation**, where those systems evolve into more efficient versions;
 3. **inclusion of elements previously excluded** from the given systems;
 4. **generalization** of values, increasing the legitimization of the ever more complex system.
@@ -322,8 +322,9 @@ python -m src.runExperiment -path "/home/xwiki/Documents/fac/GECCO_Robot_Body/Fr
 
 * `eaOnePlusLambdaLambda` - allow fitness-neutral improvements, otherwise you'll never leave the starting genotype
 * Most final solutions of a run have a lot of neurons which are unused
-* So set the starting genotype not as the simplest possible, but the simplest given the problem at hand (i.e. We need movement -> a solution will have at least 2 bones and some neurons) 
-  * [ ] NOT FOR COMPETITION (GPU-based NN method): Use https://snap.stanford.edu/frequent-subgraph-mining/ to identify frequent sub-graphs aka. Building Blocks 
+  * So set the starting genotype not as the simplest possible, but the simplest given the problem at hand (i.e. We need movement -> a solution will have at least 2 bones and some neurons)
+  * [ ] TODO: Add some guards so you can't use the neuron initial genotype when the simulator has maxnumneuros = 0
+  * [ ] NOT FOR COMPETITION (GPU-based NN method): Use https://snap.stanford.edu/frequent-subgraph-mining/ to identify frequent sub-graphs aka. Building Blocks
 	  * [ ] Installation doesn't work, last updated 5 years ago. Seems I was duped
 
 #### TODO
@@ -619,20 +620,20 @@ Fitness functions examples (included in the Competition example):
 ```
 *************************************** By median ****************************************
 Performing T-test between AdaptMutF0pmut08added_indrandom and (16) algorithms
-P-value: 0.017777 rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0675_pops20_pxov0675_restsoftperturbbest_rest77_tour12_xmut0 
-P-value: 0.019324 AdaptMutF0pmut08pop30initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10 
-P-value: 0.023383 AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10 
+P-value: 0.017777 rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0675_pops20_pxov0675_restsoftperturbbest_rest77_tour12_xmut0
+P-value: 0.019324 AdaptMutF0pmut08pop30initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10
+P-value: 0.023383 AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10
 
 **************************************** By mean *****************************************
 Performing T-test between AdaptMutF0pmut08added_indrandom and (14) algorithms
-P-value: 0.017777 rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0675_pops20_pxov0675_restsoftperturbbest_rest77_tour12_xmut0 
-P-value: 0.023383 AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10 
+P-value: 0.017777 rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0675_pops20_pxov0675_restsoftperturbbest_rest77_tour12_xmut0
+P-value: 0.023383 AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10
 P-value: 0.019324 AdaptMutF0pmut08pop30initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10
 
 ***************************************** By max *****************************************
 Performing T-test between AdaptMutF0pmut08added_indrandom and (11) algorithms
-P-value: 0.017777 rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0675_pops20_pxov0675_restsoftperturbbest_rest77_tour12_xmut0 
-P-value: 0.023383 AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10 
+P-value: 0.017777 rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0675_pops20_pxov0675_restsoftperturbbest_rest77_tour12_xmut0
+P-value: 0.023383 AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10
 P-value: 0.019324 AdaptMutF0pmut08pop30initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10
 ```
 
@@ -702,7 +703,7 @@ https://www.youtube.com/watch?v=7VBKLH3oDuw - original paper
 	- Good read, inspiring!
 
 [^lit-review]: [Accessible Survey of Evolutionary Robotics and Potential Future Research Directions](https://arxiv.org/abs/2210.11704) (Oct 2022, ?)
-	- #toresee 
+	- #toresee
 	- idk, I didn't see much of use, but it's a slightly interesting read
 	- Integrating RL, emotions into the training process, real 3D printers for creating the robots
 
@@ -772,13 +773,13 @@ https://www.youtube.com/watch?v=7VBKLH3oDuw - original paper
 [^feasible-infeasible]: [On a Feasible–Infeasible Two-Population (FI-2Pop) genetic algorithm for constrained optimization: Distance tracing and no free lunch](https://faculty.wharton.upenn.edu/wp-content/uploads/2013/03/genetic-algorithm-for-constrained-optimization_1.pdf) (Oct 2008, EJOR)
 	- For Constraint Satisfaction Problems (ILP, etc)
 	- The key to our approach is the following. Conventionally, we select feasible individuals with the goal of increasing payoff, while disregarding potential constraint violations. Unconventionally, we select infeasible individuals with the goal of repairing them, while disregarding potential payoffs.
-	- #idea: infeasible solutions are not removed, but they instead inherit 1/2 of their parents fitness mean. This way infeasible solutions are penalized, but they can be fixed in the next generations  
-	- to see if framsticks supports mutating infeasible solutions  
-	- The paper by  Kimbrough et al. (2004a) presents a detailed case study of a good success in which no feasible solutions were found until after more than 2500 generations  
-	- the paper relies on infeasible solutions having degrees of infeasibility 
+	- #idea: infeasible solutions are not removed, but they instead inherit 1/2 of their parents fitness mean. This way infeasible solutions are penalized, but they can be fixed in the next generations
+	- to see if framsticks supports mutating infeasible solutions
+	- The paper by  Kimbrough et al. (2004a) presents a detailed case study of a good success in which no feasible solutions were found until after more than 2500 generations
+	- the paper relies on infeasible solutions having degrees of infeasibility
 	-  #advice**Infeasible solutions count towards evals in Framsticks**
-	- #idea count infeasible solutions per run  
-	- #todo see if crossover / mutation is prone to breaking neuron links, since a change can reorder the nodes (i dont think it breaks, since framsticks handles it, but idk)  
+	- #idea count infeasible solutions per run
+	- #todo see if crossover / mutation is prone to breaking neuron links, since a change can reorder the nodes (i dont think it breaks, since framsticks handles it, but idk)
 	- #idea Not for competition, since GPU is required, but train a nn for getting genotype embeddings for distance?
 
 [^frams-ski]: [Evolving free-form stick ski jumpers and their neural control systems](https://www.framsticks.com/files/common/Komosinski_Polak_EvolvedSkiJumping.pdf) (2009, Polish GECCO)
@@ -991,10 +992,10 @@ https://www.youtube.com/watch?v=7VBKLH3oDuw - original paper
 		- Semantic Subtree Inheritance - GOM replaces a random subtree in the parent with a subtree in a donor, if they have the same root && depth_donor <= depth_parent
 			- This is beneficial for almost all tested configurations
 		- Greedy Child Selection - At each step of GOM, probe all children to decide which subtree to replace (expensive for evaluation count I imagine)
-	- 
+	-
 
 [^building-block-modular-evo]: [An evolutionary optimization method for modular structures made of predefined building blocks](https://www.sciencedirect.com/science/article/pii/S014102962501538X#sec0080) (Jul 2025)
-	- #tosee 
+	- #tosee
 
 [^frams-gomea-building-block-varlength]: [GOM-Based Compatible Substitutions Optimization for Variable-Length Representation Gray-Box Problems](https://dl.acm.org/doi/pdf/10.1145/3712255.3726717) (July 2025, GECCO)
 	- #idea this is really good
@@ -1036,8 +1037,24 @@ https://www.youtube.com/watch?v=7VBKLH3oDuw - original paper
 	- RL in inner loop (Markov decision process, aka regular RL (state, action, probability, reward, discount))
 		- Proximal Policy Optimisation for RL
 
+[^intrinsic-motivation]: [Efficient and Diverse Generative Robot Designs using Evolution and Intrinsic Motivation](https://arxiv.org/pdf/2411.18423)
+	- #tosee
+
+[^bayesian-robotics]: [Integrating Sample Inheritance into Bayesian Optimization for Evolutionary Robotics](https://arxiv.org/pdf/2601.03813) (Jan 2026)
+	- Users the [revolve2](https://github.com/egedebruin/revolve2_ege/tree/alife2025/eges_projects/evolve_and_learn) library ~aprox. Framsticks
+	- #tosee
+	-
+
+[^llm-robomorph]: [RoboMorph: Evolving Robot Morphology using Large Language Models](https://arxiv.org/pdf/2407.08626) (Mar 2026)
+	- #tosee
+
+
 
 <!-- Disregard -->
+
+[^softbody-phys]: [Morphological design methodologies of soft robots](https://www.the-innovation.org/data/article/informatics/preview/pdf/TII-2025-0022.pdf) (Sep 2025)
+	- #stub-article
+	- Looks like a review, didn't check
 
 [^book]: [Artificial Life Models in Software](https://pdfs.semanticscholar.org/8676/268ac4320c8fb9baf5200fd86f9c26ab79b5.pdf) (2009, ?)
 	- Carte, nu prea am timp de ea
