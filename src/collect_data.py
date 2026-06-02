@@ -17,10 +17,17 @@ BASELINE = 'AdaptMutF0pmut08added_indrandom'
 # BASELINE = 'AdaptMutF0pmut08'
 ARR_TO_PLOT = 'mx_arrs' # 'avg_arrs' #
 
+BASELINES = [
+    BASELINE,
+    'AdaptMutF0pmut08added_indrandomevalfn4',
+    'AdaptMutF0pmut08added_indrandomevalfn5',
+    'AdaptMutF0pmut08added_indrandomevalfn6',
+]
+
 HIGHLIGHT = {
     'eaSimpleF1': 'red',
-    'AdaptMutF0pmut08added_indrandom': 'red',
-    'AdaptMutF0pmut08': 'red',
+    # 'AdaptMutF0pmut08added_indrandom': 'red',
+    # 'AdaptMutF0pmut08': 'red',
     BASELINE: 'red'
 }
 COLORS = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'magenta']
@@ -376,18 +383,25 @@ def violins(names, order_fn=order_fn_median):
 
 def boxplots(names, order_fn=order_fn_median):
     global HIGHLIGHT
+    hhighlight = {}
+    hhighlight.update(HIGHLIGHT)
+    bbest = []
     plt.figure(figsize=FIGSIZE)
     ordered_names = order_fn(names)
     for idx, n in enumerate(ordered_names):
         if len(names[n]['runs']) < 20:
-            HIGHLIGHT[n] = 'blue'
+            hhighlight[n] = 'blue'
+        if names[n]['params']['algorithm'] not in bbest:
+            hhighlight[n] = 'green'
+            bbest.append(names[n]['params']['algorithm'])
+    for idx, n in enumerate(reversed(ordered_names)):
         plt.scatter(names[n]['runs'], [idx+1] * len(names[n]['runs']), color=get_algo_color(n), label=n, alpha=0.2)
-    plt.boxplot([names[n]['runs'] for n in ordered_names], showmeans=True, orientation='horizontal')
-    plt.yticks(range(1, len(names)+1), ordered_names, rotation=0, ha='right')
+    plt.boxplot([names[n]['runs'] for n in reversed(ordered_names)], showmeans=True, orientation='horizontal')
+    plt.yticks(range(1, len(names)+1), reversed(ordered_names), rotation=0, ha='right')
     ax = plt.gca()
     for tick in ax.get_yticklabels():
-        if tick.get_text() in HIGHLIGHT:
-            tick.set_color(HIGHLIGHT[tick.get_text()])
+        if tick.get_text() in hhighlight:
+            tick.set_color(hhighlight[tick.get_text()])
     idx_baseline = ordered_names.index(BASELINE)
     return ordered_names[:idx_baseline]
 
@@ -567,7 +581,7 @@ def print_clasament(names, latex):
             maxx = f'**{maxx.strip()}**' if not latex else '\\textbf{' + maxx.strip() + '}'
         comment = comments[n] if n in comments else ''
         runs_time_exceeded = len(list(filter(lambda x: x['nonevalTime'] is not None and x['nonevalTime'] > 3600, names[n]['meta'])))
-        if n == BASELINE:
+        if n in BASELINES:
             namm = f'***{n} - baseline***' if not latex else '\\textbf{\\textit{' + n + '}}'
         else:
             namm = n

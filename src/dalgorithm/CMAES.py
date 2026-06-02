@@ -1,3 +1,9 @@
+
+
+"""
+This method alters the way in which genotypes are represented/mutated. So it's less an algorithm, but rather a toolbox setup.
+"""
+
 #    This file is part of DEAP.
 #
 #    DEAP is free software: you can redistribute it and/or modify
@@ -58,11 +64,11 @@ def varAnd(population, toolbox, cxpb, mutpb, mutstrength, xmut_enabled, added_in
 
     return offspring
 
-def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
+def cmaES(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
             restart_patience=15, restart_method='none',
             stats=None, halloffame=None, verbose=__debug__):
     """
-    Taken from deap, adapted for adaptMut
+    Taken from deap, adapted for adaptMut, and bootstrapped to cmaES
     """
     logbook = tools.Logbook()
     logbook.header = ['gen', 'nevals'] + (stats.fields if stats else [])
@@ -117,6 +123,8 @@ def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
 
         # Replace the current population by the offspring
         population[:] = offspring
+        # TODO: Add toolbox.generationEnd(population) function, and make it update the CMA-ES parameters there.
+        # TODO: Somehow assert that this function is only used with FramsticksLibCompetitionWithHistory
 
         # Append the current generation statistics to the logbook
         record = stats.compile(population) if stats else {}
@@ -163,7 +171,7 @@ def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
                 invalid_ind = [ind for ind in population if not ind.fitness.valid]
                 fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
                 for ind, fit in zip(invalid_ind, fitnesses):
-                    # print(ind)
+                    print(ind)
                     ind.fitness.values = fit
 
                 if halloffame is not None:

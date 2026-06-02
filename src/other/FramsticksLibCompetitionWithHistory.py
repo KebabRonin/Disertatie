@@ -2,15 +2,24 @@ import pandas as pd
 import time
 from framspy.FramsticksLibCompetition import FramsticksLibCompetition
 from ..dalgorithm.customMutation import CmutFramsLibReference, setExpProperty, getExpProperty, get_applied_mutation, get_all_prop_names, getExpProperty
-import frams
 import copy, random
-import json
+import json, math
 import numpy as np
 
+EPS = 1e-20
+
 SCORE_FNS = {
-	'pos': lambda pos, neg: pos, # Give more weight to operations which cause the most fitness increase
-	'ratio': lambda pos, neg: pos/(-neg+1e-20), # Give more weight to operations which cause most good when compared to harm
-	'neg': lambda pos, neg: neg, # Give more weight to operations which cause the least fitness decrease
+	'pos': lambda r: r['pos'], # Give more weight to operations which cause the most fitness increase
+	'ratio': lambda r: r['pos']/(-r['neg']+EPS), # Give more weight to operations which cause most good when compared to harm
+	# TODO: Why does this ('neg') give the best results? It makes no sense.
+	# * Is risk seeking behavior better, because it encourages exploration more??
+	# * The biggest 'pos' is not that strongly related to 'neg', so why is 'neg' so much better than pos?
+	'neg': lambda r: r['neg'], # Give more weight to operations which cause the biggest fitness decrease
+	'neg_conservative': lambda r: 0.999**(-r['neg']), # Give more weight to operations which cause the least fitness decrease (+-2%, so not wide swings)
+	'const': lambda r: 1, # Maybe no bias is better?
+	# The '2' below is a scaling factor I added on a whim, so the weights are more biased towards the wanted ratio. I don't think it's optimal necessarily, but it looks good in the first ~20 generations.
+	'ratio_fifthrule': lambda r: 2 * (0.05 ** abs(1/5 - r['countpos']/(r['countneg'] + r['countpos'] + EPS))), # Give priority to operators which have a 1/5 ratio of good/bad fitness delta (counts)
+	'ratio_v2': lambda r: (r['countpos']/(r['countneg'] + r['countpos'] + EPS)), # Give priority to operators which have a better ratio of good/(good+bad) fitness delta (counts)
 }
 
 class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
@@ -21,10 +30,12 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 	def __init__(self, frams_path, frams_lib_name, sim_settings_files, frams_module,
 					cacheActive=False, score_fn='ratio',
 					decay=0.985, # Should forget deltas after ~500 evaluations, aka. 50 ind x 10 generations (but it can differ by algorithm)
+					norm_method='mean',
 					ESalgo='freqWindow',
 				):
 		super().__init__(frams_path, frams_lib_name, sim_settings_files)
 		self.ESalgo = ESalgo
+		self.norm_method = norm_method
 		CmutFramsLibReference.custom_mut_frams_lib_reference = frams_module
 		# Ignore some genetic operations for CMA-ES, based on the current simulator settings
 		CmutFramsLibReference.ignored_operation_types += [
@@ -61,12 +72,12 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 			# 'eval_COGpath': pd.Series(dtype='float'),
 		})
 		self.cmaes_store = {
-			pname: {'pos': 0.0, 'neg': 0.0} for pname in get_all_prop_names()
+			pname: {'pos': 0.0, 'neg': 0.0, 'countpos': 0, 'countneg':0} for pname in get_all_prop_names()
 		}
 		# It's technically not a mutation type yet. FIXME
 		# if 'crossover' not in CmutFramsLibReference.ignored_operation_types:
-		self.cmaes_store['crossover'] = {'pos': 0.0, 'neg': 0.0}
-		self.cmaes_store['invalid'] = {'pos': 0.0, 'neg': 0.0}
+		self.cmaes_store['crossover'] = {'pos': 0.0, 'neg': 0.0, 'countpos': 0, 'countneg':0}
+		self.cmaes_store['invalid'] = {'pos': 0.0, 'neg': 0.0, 'countpos': 0, 'countneg':0}
 		self.applied_operations = [] # To store the mutation types that were applied.
 		self.score_fn = SCORE_FNS[score_fn]
 		self.last_hash = None
@@ -92,10 +103,14 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 		h = hash(json.dumps(self.cmaes_store, sort_keys=True))
 		if h != self.last_hash:
 			self.last_hash = hash(json.dumps(self.cmaes_store, sort_keys=True))
-			for i, k in enumerate(sorted(get_all_prop_names())):
-				print(f"{k:>25} - {f'{getExpProperty(k)*100:.2f}':>10} %", end='\n' if i % 5 == 0 else ' | ')
-			print('\n' + ('~' * 100))
+			TERMINAL_WIDTH = 203
+			print(('~' * TERMINAL_WIDTH))
+			print(' Mutation rates for this generation '.center(TERMINAL_WIDTH, '~'))
+			for i, k in enumerate(sorted(list(self.cmaes_store.keys()))):
+				print(f"{k:>10} - {f'{(getExpProperty(k)*100) if k not in CmutFramsLibReference.ignored_operation_types else -1:.2f}':>8} % (pos: {self.cmaes_store[k]['pos']:8.2f};  neg {self.cmaes_store[k]['neg']:8.2f}; cpos: {self.cmaes_store[k]['countpos']:8.2f}; cneg: {self.cmaes_store[k]['countneg']:8.2f}; rc: {self.cmaes_store[k]['countpos']/(self.cmaes_store[k]['countpos'] + self.cmaes_store[k]['countneg'] + EPS):8.2f})", end='\n' if i % 2 == 2 - 1 else ' | ')
+			print('\n' + ('~' * TERMINAL_WIDTH))
 		mutated = []
+		frams = CmutFramsLibReference.custom_mut_frams_lib_reference # Added for python relative import reasons
 		for genotype_parent in genotype_list:
 			offspring = frams.GenMan.mutate(frams.Geno.newFromString(genotype_parent))
 			offspring_genotype = offspring.genotype._string()
@@ -114,6 +129,7 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 		Returns:
 			The genotype of the offspring. self.GENOTYPE_INVALID if the crossing over failed.
 		"""
+		frams = CmutFramsLibReference.custom_mut_frams_lib_reference # Added for python relative import reasons
 		offspring = frams.GenMan.crossOver(frams.Geno.newFromString(genotype_parent1), frams.Geno.newFromString(genotype_parent2))
 		offspring_genotype = offspring.genotype._string()
 		if offspring_genotype == self.GENOTYPE_INVALID and self.GENOTYPE_INVALID_OFFSPRING_SUBSTITUTE_ORIGINAL:
@@ -131,7 +147,7 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 		self.applied_operations = []
 		return r
 
-	def get_model_parts_dict(self, genotype):
+	def get_model_parts_dict(self, genotype: str):
 		model = CmutFramsLibReference.custom_mut_frams_lib_reference.Model.newFromString(genotype)
 		return {
 				"geno_numparts": model.numparts._value(),
@@ -171,7 +187,7 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 				pass
 		return# self.df.loc[idx]
 
-	def updateCMA_ES(self, individual, new_fitness):
+	def updateMutationStatistics(self, individual, new_fitness):
 		"""
 		This is called on every evaluate() call, to consume the operation history stored on each genotype.
 
@@ -187,6 +203,7 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 		# 	individual.past_fitness = [0.0 for _ in range(len(new_fitness))]
 		match self.ESalgo:
 			case 'freqWindow':
+				# Soft window by using decay
 				old_fitness = [individual.past_fitness] if isinstance(individual.past_fitness, float) else individual.past_fitness
 				fitness_delta = float(new_fitness[0] - old_fitness[0])
 				fitness_delta_type = 'neg' if fitness_delta < 0 else 'pos'
@@ -195,6 +212,18 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 						self.cmaes_store[op_type]['pos'] = self.decay * self.cmaes_store[op_type]['pos']
 						self.cmaes_store[op_type]['neg'] = self.decay * self.cmaes_store[op_type]['neg']
 						self.cmaes_store[op_type][fitness_delta_type] += (fitness_delta / len(individual.past_operations)) * individual.past_operations.count(op_type)
+						self.cmaes_store[op_type]['count' + fitness_delta_type] += individual.past_operations.count(op_type) / len(individual.past_operations)
+			case 'freqWindowHard':
+				# Have a fixed window size, TODO: Somehow...
+				old_fitness = [individual.past_fitness] if isinstance(individual.past_fitness, float) else individual.past_fitness
+				fitness_delta = float(new_fitness[0] - old_fitness[0])
+				fitness_delta_type = 'neg' if fitness_delta < 0 else 'pos'
+				for op_type in individual.past_operations:
+					if op_type in self.cmaes_store.keys():
+						self.cmaes_store[op_type]['pos'] = self.decay * self.cmaes_store[op_type]['pos']
+						self.cmaes_store[op_type]['neg'] = self.decay * self.cmaes_store[op_type]['neg']
+						self.cmaes_store[op_type][fitness_delta_type] += (fitness_delta / len(individual.past_operations)) * individual.past_operations.count(op_type)
+						self.cmaes_store[op_type]['count' + fitness_delta_type] += individual.past_operations.count(op_type) / len(individual.past_operations)
 			case 'cma-es':
 				"""
 				Get the sum of one-hot vectors representing the past operations.
@@ -213,13 +242,21 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 		"""
 		match self.ESalgo:
 			case 'freqWindow':
-				scores = [(k, score_fn(self.cmaes_store[k]['pos'], self.cmaes_store[k]['neg'])) for k in self.cmaes_store.keys() if k not in CmutFramsLibReference.ignored_operation_types]
+				scores = [(k, score_fn(self.cmaes_store[k])) for k in self.cmaes_store.keys() if k not in CmutFramsLibReference.ignored_operation_types]
 				scores_only = list(map(lambda x: x[1], scores))
 				mean_score = sum(scores_only) / len(scores)
 				if mean_score == 0:
 					# First generation, so do nothing.
 					return
-				NORM_FACTOR = mean_score
+				match self.norm_method:
+					case 'mean':
+						NORM_FACTOR = mean_score
+					case 'mean100':
+						NORM_FACTOR = mean_score / 100
+					case 'eps':
+						NORM_FACTOR = EPS
+					case 'none':
+						NORM_FACTOR = 0
 				sum_scores = sum(scores_only) + NORM_FACTOR * len(scores)
 				for k, score in scores:
 					# Anti feedback loop mechansim, so no mutation type goes entirely extinct.
@@ -227,6 +264,8 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 					# Framsticks should auto-normalize the mutation probabilities, so don't normalize them here.
 					setExpProperty(k, score)
 			case 'cma-es':
+				pass
+			case 'none':
 				pass
 
 

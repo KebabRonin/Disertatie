@@ -1,3 +1,9 @@
+
+
+"""
+This method alters the way in which genotypes are represented/mutated. So it's less an algorithm, but rather a toolbox setup.
+"""
+
 #    This file is part of DEAP.
 #
 #    DEAP is free software: you can redistribute it and/or modify
@@ -58,12 +64,38 @@ def varAnd(population, toolbox, cxpb, mutpb, mutstrength, xmut_enabled, added_in
 
     return offspring
 
-def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
+import pandas as pd
+
+def random_gridsel(df: pd.DataFrame, features: list[str], seed=None):
+    gridloc = df.sample(n=1, random_state=seed).iloc[0]
+    bestongrid = ['']
+    # build mask for equality on all keys
+    mask = True
+    for k in features:
+        mask &= (df[k] == gridloc[k])
+    matches = df[mask]
+    if matches.empty:
+        return None
+    max_d = matches["eval_fit"].max()
+    top = matches[matches["eval_fit"] == max_d]
+    return top.sample(n=1, random_state=seed).iloc[0] # random elite if ties are detected.
+
+GRIDSEL_FNS = {
+    'random': random_gridsel,
+    'quality_bias': None, # like random gridsel, but only on top-k individuals (not entire archive)
+    'curiosity': None, # pick out of the least explored grid cells
+    'random_meta': None, # Select one of the above methods at random
+}
+
+def mapElites(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
+            features=['geno_numparts', 'geno_numjoints', 'geno_numneurons', 'geno_numconnections'],
+            grid_selection_method='random',
             restart_patience=15, restart_method='none',
             stats=None, halloffame=None, verbose=__debug__):
     """
-    Taken from deap, adapted for adaptMut
+    Taken from deap, adapted for adaptMut, and bootstrapped to mapElites
     """
+    grid_selection_method = GRIDSEL_FNS[grid_selection_method]
     logbook = tools.Logbook()
     logbook.header = ['gen', 'nevals'] + (stats.fields if stats else [])
 
@@ -87,14 +119,8 @@ def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
 
     # Begin the generational process
     for gen in range(1, ngen + 1):
-        # Compute crowding distance for the current population.
-        toolbox.add_crowding_distance(population)
         # Select the next generation individuals
-        offspring = toolbox.select(population, len(population))
-        if len(offspring[0].fitness.values) > 1:
-            print(f"======== Generation {gen} Chosed:")
-            for p in offspring:
-                print(f"{float(p.fitness.values[0]):10.5f} {float(p.fitness.values[1]):10.5f} | {str(p)[:40]}")
+        offspring = [grid_selection_method(toolbox.getArchive(), features)]
         # Vary the pool of individuals
         offspring = varAnd(offspring, toolbox, cxpb, mutpb, mutationStrength, xmut_enabled, added_ind=added_ind)
 
@@ -117,6 +143,8 @@ def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
 
         # Replace the current population by the offspring
         population[:] = offspring
+        # TODO: Add toolbox.generationEnd(population) function, and make it update the CMA-ES parameters there.
+        # TODO: Somehow assert that this function is only used with FramsticksLibCompetitionWithHistory
 
         # Append the current generation statistics to the logbook
         record = stats.compile(population) if stats else {}
@@ -163,7 +191,7 @@ def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
                 invalid_ind = [ind for ind in population if not ind.fitness.valid]
                 fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
                 for ind, fit in zip(invalid_ind, fitnesses):
-                    # print(ind)
+                    print(ind)
                     ind.fitness.values = fit
 
                 if halloffame is not None:

@@ -119,7 +119,7 @@ BODY_MUT = {
     "f0_j_color": 0.0,
   },
   "1":  {
-    "f1_smModifiers": "LlRrCcQqFfMm",
+    # "f1_smModifiers": "LlRrCcQqFfMm",
     "f1_smX": 0.05,
     "f1_smJunct": 0.02,
     "f1_smComma": 0.02,
@@ -254,8 +254,9 @@ def set_general_weights(framsLib, w_body=None, w_neuro=None):
   pass
 
 def get_all_prop_names(genetic_repr = None):
-  names = list(NEURO_MUT["0"].keys() if genetic_repr != '1' else []) + list(NEURO_MUT["1"].keys() if genetic_repr != '0' else []) + list(NEURO_MUT["generic"].keys()) + \
-    list(BODY_MUT["0"].keys() if genetic_repr != '1' else []) + list(BODY_MUT["0"].keys() if genetic_repr != '0' else [])
+    #list(NEURO_MUT["generic"].keys()) + 
+  names = list(NEURO_MUT["0"].keys() if genetic_repr != '1' else []) + list(NEURO_MUT["1"].keys() if genetic_repr != '0' else []) + \
+    list(BODY_MUT["0"].keys() if genetic_repr != '1' else []) + list(BODY_MUT["1"].keys() if genetic_repr != '0' else [])
   return list(set(filter(lambda x: x not in CmutFramsLibReference.ignored_operation_types, names)))
 
 def get_current_weights(framsLib, genetic_repr):

@@ -92,43 +92,7 @@ def getUnrunExperiments():
     print (f"{alr_run}/{runns} ({alr_run/runns:.3f})")
 
 runs_cfgs = [
-    {
-        'convection': None, #[None, 'convection_'],
-        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-        'genformat': 0, # [0, 1],
-        'pmut': 0.8, # [None, 0.8, 0.5],
-        'pop': None, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' ', # -nodet 1
-        'extra_cargs': ' -evalfn 6 -initialgenotype random -added_ind initial -pxov 0.675 -restart_method soft_perturb_best -restart_patience 77 -tournament 12 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-        'nameSuffix': '',
-        'namePrefix': '',
-    },
-    {
-        'convection': None, #[None, 'convection_'],
-        'algorithm': 'eaSimple', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-        'genformat': 0, # [0, 1],
-        'pmut': None, # [None, 0.8, 0.5],
-        'pop': None, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' ', # -nodet 1
-        'extra_cargs': ' -evalfn 6 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-        'nameSuffix': '',
-        'namePrefix': '',
-    },
-    { # Best so far on evalfn3
-        'convection': None, #[None, 'convection_'],
-        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-        'genformat': 0, # [0, 1],
-        'pmut': 0.675, # [None, 0.8, 0.5],
-        'pop': 20, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' ', # -nodet 1
-        'extra_cargs': ' -evalfn 6 -initialgenotype random -added_ind initial -pxov 0.675 -restart_method soft_perturb_best -restart_patience 77 -tournament 12 -xmut_enabled 0 ',
-        'nameSuffix': '',
-        'namePrefix': '',
-    },
-    # { # Test best with xmut_enabled = 1
+    # { # Test best so far + dynamic mutation probabilities # TODO: Re-test it for the other functions too, after you submit?
     #     'convection': None, #[None, 'convection_'],
     #     'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
     #     'genformat': 0, # [0, 1],
@@ -136,11 +100,47 @@ runs_cfgs = [
     #     'pop': 20, # [None, 100, 500],
     #     'lbda': None, # [100, 350]
     #     'extra': ' ', # -nodet 1
-    #     'extra_cargs': ' -initialgenotype random -added_ind initial -pxov 0.675 -restart_method soft_perturb_best -restart_patience 77 -tournament 12 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+    #     'extra_cargs': ' -initialgenotype random -added_ind initial -pxov 0.675 -restart_method soft_perturb_best -restart_patience 77 -tournament 12 -xmut_enabled 0 -flibclass wHist -wHist_scorefn neg', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
     #     'nameSuffix': '',
     #     'namePrefix': '',
     # },
-    # {# soft_perturb_best_all
+    { # ratio_v2
+        'convection': None, #[None, 'convection_'],
+        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+        'genformat': 0, # [0, 1],
+        'pmut': 0.8, # [None, 0.8, 0.5],
+        'pop': None, # [None, 100, 500],
+        'lbda': None, # [100, 350]
+        'extra': ' -nruns 20 ', # -nodet 1
+        'extra_cargs': ' -initialgenotype random -added_ind random -dissim PHENE_STRUCT_GREEDY -restart_method soft_perturb_best -restart_patience 10 -flibclass wHist -wHist_scorefn ratio_fifthrule ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+        'nameSuffix': '',
+        'namePrefix': '',
+    },
+    { # const
+        'convection': None, #[None, 'convection_'],
+        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+        'genformat': 0, # [0, 1],
+        'pmut': 0.8, # [None, 0.8, 0.5],
+        'pop': None, # [None, 100, 500],
+        'lbda': None, # [100, 350]
+        'extra': ' -nruns 20 ', # -nodet 1
+        'extra_cargs': ' -initialgenotype random -added_ind random -dissim PHENE_STRUCT_GREEDY -restart_method soft_perturb_best -restart_patience 10 -flibclass wHist -wHist_scorefn const ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+        'nameSuffix': '',
+        'namePrefix': '',
+    },
+    # { # Baseline -1
+    #     'convection': None, #[None, 'convection_'],
+    #     'algorithm': 'eaSimple', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+    #     'genformat': 0, # [0, 1],
+    #     'pmut': None, # [None, 0.8, 0.5],
+    #     'pop': None, # [None, 100, 500],
+    #     'lbda': None, # [100, 350]
+    #     'extra': ' ', # -nodet 1
+    #     'extra_cargs': ' -evalfn 6 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+    #     'nameSuffix': '',
+    #     'namePrefix': '',
+    # },
+    # { # Baseline 0
     #     'convection': None, #[None, 'convection_'],
     #     'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
     #     'genformat': 0, # [0, 1],
@@ -148,23 +148,48 @@ runs_cfgs = [
     #     'pop': None, # [None, 100, 500],
     #     'lbda': None, # [100, 350]
     #     'extra': ' ', # -nodet 1
-    #     'extra_cargs': ' -initialgenotype random -added_ind random -dissim PHENE_STRUCT_GREEDY -restart_method soft_perturb_best_all -restart_patience 10 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-    #     'nameSuffix': '',
-    #     'namePrefix': '',
-    # },
-    # { # Test best with added_ind random
-    #     'convection': None, #[None, 'convection_'],
-    #     'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-    #     'genformat': 0, # [0, 1],
-    #     'pmut': 0.675, # [None, 0.8, 0.5],
-    #     'pop': 20, # [None, 100, 500],
-    #     'lbda': None, # [100, 350]
-    #     'extra': ' ', # -nodet 1
-    #     'extra_cargs': ' -initialgenotype random -added_ind random -pxov 0.675 -restart_method soft_perturb_best -restart_patience 77 -tournament 12 -xmut_enabled 0 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+    #     'extra_cargs': ' -added_ind random -evalfn 6 ',
     #     'nameSuffix': '',
     #     'namePrefix': '',
     # },
 ]
+## Maybe later if I have nothing else to do:
+    # { # Baseline -1
+    #     'convection': None, #[None, 'convection_'],
+    #     'algorithm': 'eaSimple', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+    #     'genformat': 1, # [0, 1],
+    #     'pmut': None, # [None, 0.8, 0.5],
+    #     'pop': None, # [None, 100, 500],
+    #     'lbda': None, # [100, 350]
+    #     'extra': ' ', # -nodet 1
+    #     'extra_cargs': ' -evalfn 6 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+    #     'nameSuffix': '',
+    #     'namePrefix': '',
+    # },
+    # { # Baseline -1
+    #     'convection': None, #[None, 'convection_'],
+    #     'algorithm': 'eaSimple', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+    #     'genformat': 1, # [0, 1],
+    #     'pmut': None, # [None, 0.8, 0.5],
+    #     'pop': None, # [None, 100, 500],
+    #     'lbda': None, # [100, 350]
+    #     'extra': ' ', # -nodet 1
+    #     'extra_cargs': ' -evalfn 5 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+    #     'nameSuffix': '',
+    #     'namePrefix': '',
+    # },
+    # { # Baseline -1
+    #     'convection': None, #[None, 'convection_'],
+    #     'algorithm': 'eaSimple', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+    #     'genformat': 1, # [0, 1],
+    #     'pmut': None, # [None, 0.8, 0.5],
+    #     'pop': None, # [None, 100, 500],
+    #     'lbda': None, # [100, 350]
+    #     'extra': ' ', # -nodet 1
+    #     'extra_cargs': ' -evalfn 4 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+    #     'nameSuffix': '',
+    #     'namePrefix': '',
+    # },
 runs = []
 print('Running the following commands:')
 for run in runs_cfgs:

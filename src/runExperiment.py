@@ -5,9 +5,9 @@ import sys
 import numpy as np
 from deap import creator, base, tools, algorithms
 from .config_loader import get_framspy_path
-sys.path.append(get_framspy_path())
-from FramsticksLib import FramsticksLib, DissimMethod
-from FramsticksLibCompetition import FramsticksLibCompetition
+sys.path.append(get_framspy_path()) # FIXME: Needed so `import frams` from files in framspy are imported correctly (i.e. FramsticksLib)
+from framspy.FramsticksLib import FramsticksLib, DissimMethod
+from framspy.FramsticksLibCompetition import FramsticksLibCompetition
 import traceback
 from scipy.spatial import distance
 # Note: this may be less efficient than running the evolution directly in Framsticks, so if performance is key, compare both options.
@@ -35,6 +35,7 @@ def frams_compute_crowding_distance(frams_lib, dissim_method, population: list[l
 	Should be called after evaluating the population, so we can compute the 'FITNESS' dissim method.
 	FIXME: CONTRADICTION: This is part of the fitness.
 	"""
+	return None # This was a valiant attempt, but I won't use it.
 	try:
 		crowding_idx_in_fitness = OPTIMIZATION_CRITERIA.index('crowding')
 	except ValueError:
@@ -62,7 +63,7 @@ def frams_evaluate(frams_lib, individual, population=None, dissim_method=DissimM
 	genotype = individual[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory) and frams_lib.getCached(genotype) is not None:
 		assert frams_lib.getCached(genotype)['eval_fit'] is not None
-		frams_lib.updateCMA_ES(individual, frams_lib.getCached(genotype)['eval_fit'])
+		frams_lib.updateMutationStatistics(individual, frams_lib.getCached(genotype)['eval_fit'])
 		individual.past_fitness = frams_lib.getCached(genotype)['eval_fit']
 		individual.past_operations = []
 		return frams_lib.getCached(genotype)['eval_fit']
@@ -94,7 +95,7 @@ def frams_evaluate(frams_lib, individual, population=None, dissim_method=DissimM
 	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory):
 		frams_lib.updateCached(genotype, eval_fit=fitness)
 		# Update CMA-ES statistics
-		frams_lib.updateCMA_ES(individual, fitness)
+		frams_lib.updateMutationStatistics(individual, fitness)
 		# print(f'Consumed {individual.past_operations} for "{individual[0][:25].replace('\n','\\n')}"')
 		individual.past_fitness = fitness
 		individual.past_operations = []
@@ -287,6 +288,9 @@ def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_fo
 	# if 'crowding' in parsed_args.opt:
 	# 	toolbox.register("evaluate", frams_evaluate_with_crowding, frams_lib)
 	# else:
+	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory) and frams_lib.cacheActive:
+		toolbox.register("getArchive", lambda flib: flib.df, frams_lib)
+	toolbox.register("isValid", frams_isValidCreature, frams_lib) # frams_isValidCreature frams_isValid
 	toolbox.register("isValid", frams_isValidCreature, frams_lib) # frams_isValidCreature frams_isValid
 	toolbox.register("evaluate", frams_evaluate, frams_lib)
 	toolbox.register("add_crowding_distance", frams_compute_crowding_distance, frams_lib, dissim)
@@ -325,9 +329,11 @@ def parseArguments():
 
 	parser.add_argument('-selMethod', choices=['tournament', 'roulette', 'best'], default='tournament')
 	parser.add_argument('-flibclass', choices=['competition', 'wHist'], default='competition')
-	parser.add_argument('-wHist_scorefn', required=False, choices=['ratio', 'pos', 'neg'], default='ratio')
+	parser.add_argument('-wHist_scorefn', required=False, choices=['ratio', 'pos', 'neg', 'neg_conservative', 'const', 'ratio_fifthrule', 'ratio_v2'], default='ratio')
 	parser.add_argument('-wHist_decay', required=False, type=float, default=0.985)
+	parser.add_argument('-wHist_norm_method', required=False, choices=['mean', 'mean100', 'none', 'eps'], default='mean')
 	parser.add_argument('-wHist_cacheActive', required=False, type=bool, default=0)
+	parser.add_argument('-wHist_ESalgo', required=False, choices=['none', 'cma-es', 'freqWindow'], default='freqWindow')
 	parser.add_argument('-algorithm', required=True, choices=[
 		'eaSimple', 'eaOnePlusLambdaLambda', 'eaMuPlusLambda', 'eaMuCommaLambda',
 		'AdaptMut', 'convection_AdaptMut', 'convection_eaSimple', 'Annealer',
@@ -414,6 +420,7 @@ def main():
 			framsLib = FramsticksLibCompetitionWithHistory(
 				parsed_args.path, parsed_args.lib, parsed_args.sim, frams,
 				cacheActive=parsed_args.wHist_cacheActive, score_fn=parsed_args.wHist_scorefn, decay=parsed_args.wHist_decay,
+				norm_method=parsed_args.wHist_norm_method, ESalgo=parsed_args.wHist_ESalgo,
 			)
 		case _:
 			print("Unknown framslibclass", parsed_args.flibclass)

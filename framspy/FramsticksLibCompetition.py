@@ -44,11 +44,8 @@ class FramsticksLibCompetition(FramsticksLib):
 			return 1000 - np.linalg.norm(np.linspace(0, 10, len(path), endpoint=True) - path[:, 2]) / np.sqrt(len(path))  # simple example: z coordinate of the COG should grow linearly from 0 to 1 during lifespan. Returns RMSE as a deviation measure (negated because we are maximizing, and offset to ensure positive outcomes so there is no clash with other optimization code that may assume that negative fitness indicates an invalid genotype).
 		elif self.TEST_FUNCTION == 6:
 			# From competition page.
-			# print( ((0.5 + 0.1 * np.sin(np.arange(len(path)) / 100.0)) - path[:, 2]).shape)
-			# print( ((0.5 + 0.1 * np.sin(np.arange(len(path)) / 100.0)) - path[:, 2])[:10])
-			# print( abs((0.5 + 0.1 * np.sin(np.arange(len(path)) / 100.0)) - path[:, 2])[:10])
 			desired_path = (0.5 + 0.1 * np.sin(np.arange(len(path)) / 100.0))
-			return 1.0 / sum(abs(desired_path - path[:, 2]))  # simple example: z coordinate of the COG should hop sinusoidally during lifespan. Returns RMSE as a deviation measure (negated because we are maximizing, and offset to ensure positive outcomes so there is no clash with other optimization code that may assume that negative fitness indicates an invalid genotype).
+			return 1.0 / (sum(abs(desired_path - path[:, 2])) + 1e-20) # simple example: z coordinate of the COG should hop sinusoidally during lifespan. Returns RMSE as a deviation measure (negated because we are maximizing, and offset to ensure positive outcomes so there is no clash with other optimization code that may assume that negative fitness indicates an invalid genotype).
 		raise RuntimeError('TEST_FUNCTION==%s not implemented!' % self.TEST_FUNCTION)
 
 
