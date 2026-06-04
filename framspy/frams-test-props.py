@@ -1,7 +1,7 @@
 """An advanced example of iterating through the properties of an ExtValue object and printing their characteristics.
 This example may be useful for some developers, but it is not needed for a regular usage of Framsticks (i.e. simulation and evolution)."""
 
-import Disertatie.framspy.frams as frams
+import framspy.frams as frams
 import sys
 
 frams.init(*(sys.argv[1:]))
@@ -45,6 +45,7 @@ print(frams.GenMan.gen_extmutinfo)
 egg = frams.GenMan.crossOver(frams.Geno.newFromString('X(X,XX)XX'), frams.Geno.newFromString('XX(X,XX,X,,X)'))
 printFramsProperties(egg)
 print(egg.info)
+print(egg.format._value().__class__)
 exit(0)
 printFramsProperties(frams.Simulator)
 print(dir(frams.Simulator))
@@ -64,7 +65,7 @@ creator.create("Individual", list, fitness=creator.FitnessMax)  # would be nice 
 def frams_getsimplest(initial_genotype):
 	return initial_genotype
 
-initial_genotype = 'X'
+initial_genotype = 'X[@]X'
 toolbox = base.Toolbox()
 toolbox.register("attr_simplest_genotype", frams_getsimplest, initial_genotype)  # "Attribute generator"
 
@@ -72,6 +73,9 @@ toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.att
 print(toolbox.individual())
 print(type(toolbox.individual().fitness))
 print(type(toolbox.individual().fitness.values))
+
+printFramsProperties(frams.Model.newFromString(initial_genotype))
+printFramsProperties(frams.Model.newFromString(initial_genotype).getNeuroDef(0))
 # toolbox.individual().fitness.values = 1.0
 # toolbox.register("evaluate", frams_evaluate, frams_lib)
 

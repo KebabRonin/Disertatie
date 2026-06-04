@@ -241,13 +241,21 @@ def selNSGA2_only_feasible(individuals, k, toolboxclone):
 		feasible = feasible + [toolboxclone(ind) for ind in feasible] # must copy (clone) individuals so we have independent instances in population, not multiple references to the same individuals
 	return tools.selNSGA2(feasible, k)
 
-def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_format, initial_genotype, dissim) -> base.Toolbox:
+def prepareToolbox(frams_lib: FramsticksLib, OPTIMIZATION_CRITERIA, tournament_size, genetic_format, initial_genotype, dissim) -> base.Toolbox:
 	creator.create("FitnessMax", base.Fitness, weights=[1.0] * len(OPTIMIZATION_CRITERIA))
 	# Added:
 	# * past_operations: A list of all genetic operations performed on this Individual since the last evaluation
 	# * past_fitness: The result of the last evaluated parent of this Individual. It's a float just to have a
-	# 		placeholder while the Individual has not been evaluated. 'Real' fitness values are base.Fitness (aka. lists)
-	creator.create("Individual", list, fitness=creator.FitnessMax, past_operations=list, past_fitness=float)  # would be nice to have "str" instead of unnecessary "list of str"
+	# 		placeholder while the Individual has not been evaluated. Actual individuals should replace that float fitness
+	# 		value with the a base.Fitness (aka. list[float])
+	# * es_params: The mutation parameters stored on this individual. It's supposed to be for those mainly, but you can
+	# 		store anything you want in it. It's your dict, do whatever.
+
+	# would be nice to have "str" instead of unnecessary "list of str"
+	# Actually: list is a nice stand-in for C pointers. Otherwise, trying to replace an individual's genotype would
+	# replace the entire object pointer, thus losing the individual.
+	creator.create("Individual", list, fitness=creator.FitnessMax,
+			past_operations=list, past_fitness=float, es_params=dict)
 
 	toolbox = base.Toolbox()
 	toolbox.register("attr_simplest_genotype", frams_getsimplest, frams_lib, genetic_format, initial_genotype)  # "Attribute generator"
@@ -274,13 +282,23 @@ def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_fo
 	# https://github.com/DEAP/deap/issues/339
 	# https://gitlab.com/santiagoandre/deap-customize-population-example/-/blob/master/AGbasic.py
 	# https://groups.google.com/forum/#!topic/deap-users/22g1kyrpKy8
-	toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_simplest_genotype, 1)
-	toolbox.register("random_individual", tools.initRepeat, creator.Individual, toolbox.attr_random_genotype, 1) # TODO: 
-	# framsLib.getRandomGenotype(simplest, 2, 6, 2, 4, 100, True)
-	# print(toolbox.individual())
-	# print(toolbox.individual().fitness) ()
-	# print(toolbox.individual().fitness.values) ()
-	# exit(0)
+	from .dalgorithm.customMutation import get_all_prop_names
+	def initInd(genotype):
+		ind = creator.Individual(genotype)
+		if parsed_args.wHist_ESalgo == 'indstore':
+			rates = np.random.random(len(get_all_prop_names()))
+			steps = np.random.random(len(get_all_prop_names()))
+			rates /= rates.sum()
+			steps /= steps.sum()
+			d = {'steps': {}}
+			for i, k in enumerate(get_all_prop_names()):
+				d[k] = rates[i]
+				d['steps'][k] = steps[i]
+			ind.es_params.update(d)
+			print(d)
+		return ind
+	toolbox.register("individual", tools.initRepeat, initInd, toolbox.attr_simplest_genotype, 1)
+	toolbox.register("random_individual", tools.initRepeat, initInd, toolbox.attr_random_genotype, 1) # TODO: 
 	if parsed_args.population_initialization == 'random':
 		toolbox.register("population", tools.initRepeat, list, toolbox.random_individual)
 	elif parsed_args.population_initialization == 'clone':
@@ -319,6 +337,7 @@ def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_fo
 def parseArguments():
 	parser = argparse.ArgumentParser(description='Run this program with "python -u %s" if you want to disable buffering of its output.' % sys.argv[0])
 	parser.add_argument('-path', type=ensureDir, required=True, help='Path to Framsticks library without trailing slash.')
+	parser.add_argument('-framspath', type=ensureDir, required=False, help='Path to framspy folder without trailing slash.')
 	parser.add_argument('-lib', required=False, help='Library name. If not given, "frams-objects.dll" (or .so or .dylib) is assumed depending on the platform.')
 	parser.add_argument('-sim', required=False, default="eval-allcriteria.sim", help="The name of the .sim file with settings for evaluation, mutation, crossover, and similarity estimation. If not given, \"eval-allcriteria.sim\" is assumed by default. Must be compatible with the \"standard-eval\" expdef. If you want to provide more files, separate them with a semicolon ';'.")
 	parser.add_argument('-evalfn', default=3, help="The fitness function to use. Values: 3 (default), 4, or 5")
@@ -333,7 +352,7 @@ def parseArguments():
 	parser.add_argument('-wHist_decay', required=False, type=float, default=0.985)
 	parser.add_argument('-wHist_norm_method', required=False, choices=['mean', 'mean100', 'none', 'eps'], default='mean')
 	parser.add_argument('-wHist_cacheActive', required=False, type=bool, default=0)
-	parser.add_argument('-wHist_ESalgo', required=False, choices=['none', 'cma-es', 'freqWindow'], default='freqWindow')
+	parser.add_argument('-wHist_ESalgo', required=False, choices=['none', 'cmaes', 'freqWindow', 'indstore'], default='freqWindow')
 	parser.add_argument('-algorithm', required=True, choices=[
 		'eaSimple', 'eaOnePlusLambdaLambda', 'eaMuPlusLambda', 'eaMuCommaLambda',
 		'AdaptMut', 'convection_AdaptMut', 'convection_eaSimple', 'Annealer',
@@ -584,8 +603,10 @@ def main():
 		save_genotypes(parsed_args.hof_savefile, OPTIMIZATION_CRITERIA, hof) # saves a *.gen file, convenient for loading into Framsticks. Otherwise, you can save the HOF in any file format you need.
 		if isinstance(framsLib, FramsticksLibCompetitionWithHistory) and framsLib.cacheActive:
 			import re
-			number, = re.search(r"hof_(\d+)\.txt", parsed_args.hof_savefile).groups()
-			framsLib.df.to_pickle(os.path.join(os.path.dirname(parsed_args.hof_savefile), f'framslib_history_cache_{number}.pkl'))
+			number = re.search(r"hof_(\d+)\.txt", parsed_args.hof_savefile)
+			if number:
+				number, = number.groups()
+				framsLib.df.to_pickle(os.path.join(os.path.dirname(parsed_args.hof_savefile), f'framslib_history_cache_{number}.pkl'))
 
 
 if __name__ == "__main__":

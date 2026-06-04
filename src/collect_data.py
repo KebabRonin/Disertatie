@@ -688,6 +688,8 @@ if __name__ == '__main__':
     print_clasament({n: names[n] for n in names.keys() if 'evalfn4' in n}, parsedargs.latex)
     print(' Evalfn5 '.center(130, '*'))
     print_clasament({n: names[n] for n in names.keys() if 'evalfn5' in n}, parsedargs.latex)
+    print(' Evalfn6 '.center(130, '*'))
+    print_clasament({n: names[n] for n in names.keys() if 'evalfn6' in n}, parsedargs.latex)
     print(' Evalfn3 '.center(130, '*'))
     names = {n: names[n] for n in names.keys() if 'evalfn5' not in n and 'evalfn4' not in n}
     # print_clasament({n: names[n] for n in names.keys() if 'evalfn5' not in n and 'evalfn4' not in n})

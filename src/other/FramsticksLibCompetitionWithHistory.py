@@ -99,7 +99,7 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 			The genotype(s) of the mutated source genotype(s). self.GENOTYPE_INVALID for genotypes whose mutation failed (for example because the source genotype was invalid).
 		"""
 		assert isinstance(genotype_list, list)  # because in python, str has similar capabilities to a list and here it would pretend to work too, so to avoid any ambiguity
-		self.set_mutation_simulation_params(self.score_fn)
+		self.set_mutation_simulation_params(self.score_fn, genotype_list)
 		h = hash(json.dumps(self.cmaes_store, sort_keys=True))
 		if h != self.last_hash:
 			self.last_hash = hash(json.dumps(self.cmaes_store, sort_keys=True))
@@ -214,6 +214,7 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 						self.cmaes_store[op_type][fitness_delta_type] += (fitness_delta / len(individual.past_operations)) * individual.past_operations.count(op_type)
 						self.cmaes_store[op_type]['count' + fitness_delta_type] += individual.past_operations.count(op_type) / len(individual.past_operations)
 			case 'freqWindowHard':
+				raise NotImplementedError('freqWindowHard')
 				# Have a fixed window size, TODO: Somehow...
 				old_fitness = [individual.past_fitness] if isinstance(individual.past_fitness, float) else individual.past_fitness
 				fitness_delta = float(new_fitness[0] - old_fitness[0])
@@ -224,10 +225,13 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 						self.cmaes_store[op_type]['neg'] = self.decay * self.cmaes_store[op_type]['neg']
 						self.cmaes_store[op_type][fitness_delta_type] += (fitness_delta / len(individual.past_operations)) * individual.past_operations.count(op_type)
 						self.cmaes_store[op_type]['count' + fitness_delta_type] += individual.past_operations.count(op_type) / len(individual.past_operations)
-			case 'cma-es':
+			case 'cmaes':
+				raise NotImplementedError('cmaes')
 				"""
 				Get the sum of one-hot vectors representing the past operations.
 				"""
+				old_fitness = [individual.past_fitness] if isinstance(individual.past_fitness, float) else individual.past_fitness
+				fitness_delta = float(new_fitness[0] - old_fitness[0])
 				# Have a canonical ordering of the operation types
 				orderedNames = sorted(self.cmaes_store.keys())
 				v = [individual.past_operations.count(op_type) * fitness_delta for op_type in orderedNames]
@@ -235,7 +239,7 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 				# FIXME: I need to get the concept of a generation to be accessible down here.
 				pass
 
-	def set_mutation_simulation_params(self, score_fn):
+	def set_mutation_simulation_params(self, score_fn, paramsDict: dict={}):
 		"""
 		In accordance to the CMA-ES collected statistics, update the mutation weights.
 		Should have a mechanism to prevent feedback loops (aka. clamp the probabilities to be > 0)
@@ -263,8 +267,13 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 					score = (score + NORM_FACTOR) / sum_scores
 					# Framsticks should auto-normalize the mutation probabilities, so don't normalize them here.
 					setExpProperty(k, score)
-			case 'cma-es':
-				pass
+			case 'cmaes':
+				raise NotImplementedError('cmaes')
+			case 'indstore':
+				# Mutation rates are stored on the individual
+				for k in paramsDict:
+					# Framsticks should auto-normalize the mutation probabilities, so don't normalize them here.
+					setExpProperty(k, paramsDict[k])
 			case 'none':
 				pass
 

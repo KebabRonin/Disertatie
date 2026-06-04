@@ -288,12 +288,10 @@ def get_applied_mutation(offspring) -> str:
   if not m:
     if not re.search('Crossing over of ', s):
       print('Unknown operation type:', s, 'ooo')
-      # exit(-1)
       return 'invalid'
     return 'crossover'
   mutation_match = m.group(1)
   if mutation_match not in INFO_MUT[offspring.format._value()]:
     print('Unknown mutation type:', mutation_match, 'eee')
     return 'invalid'
-    # exit(-1)
   return INFO_MUT[offspring.format._value()][mutation_match]

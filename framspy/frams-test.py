@@ -92,6 +92,15 @@ c:2, 5, 1.451
 c:6, 10, 2.322
 c:6, 11, -2.376"""
 initial_genotype = """MXX[*][S][N, 10:-7.496, 10:3.812, 0:2.899, 0:0.527, 0:-21.133, 0:16.436, 0:-3.347, 1:-13.831, -1:10.714, 4:-4.933, 4:1.753, 0:0.761,8:1][Gpart, rz:3.991, ry:2.984]qfMXfFX[Gpart][T][N, -4:0.95, -3:-2.129, -5:-4.18, -4:4.344, -2:2.306, -3:1.398,-6:-4.825,0:1]RLMfc(, QFMX[|, 5:28.963][@, 4:-36.341]MF(, qX[T]M(MlX[S][@, -8:1.232, p:0.816][Gpart,ry:0])))"""  # simple body with touch and gyroscope sensors
+initial_genotype = """//0
+p:
+p:1
+j:0, 1, dx=1
+n:p=1, d=T
+n:p=1
+n:p=1, d=@
+c:0,1"""
+
 print("Let's perform a few simulation steps of the initial genotype:", initial_genotype)
 frams.ExpProperties.initialgen = initial_genotype
 frams.ExpProperties.p_mut = 0  # no mutation (the selection procedure will clone our initial genotype)
@@ -112,22 +121,41 @@ step = frams.Simulator.step  # cache reference to avoid repeated lookup in the l
 # frams.GenMan.f1_nmProp = 0.4
 # frams.GenMan.f1_nmWei = 0.4
 # frams.GenMan.f1_nmVal = 0.4
+frams.GenMan.f0_n_del = 1000000000000
+set
 
 frams.GenMan.gen_extmutinfo = 2
 frams.GenMan.gen_hist = 1
 from ..src.dalgorithm.customMutation import *
 CmutFramsLibReference.custom_mut_frams_lib_reference = frams
 print(CmutFramsLibReference.custom_mut_frams_lib_reference)
-
+initial_genotype = """//0
+p:
+p:1
+j:0, 1, dx=1
+n:p=1, d=G
+n:p=1, d=T
+n:p=1
+n:p=1, d=@
+c:1,2"""
 print(len(frams.Populations[0]))
-# for s in range(15):
-# 	step()  # first step performs selection and revives one genotype according to standard.expdef rules
-# 	# creature = frams.Populations[0][0]  # FramScript Creature object
-# 	offspring = frams.GenMan.mutate(frams.Geno.newFromString(initial_genotype))
-# 	print(offspring.genotype)
+for k in get_all_prop_names('0'):
+	setExpProperty(k, 0)
+setExpProperty('f0_n_del', 1)
+print(get_all_prop_names('1'))
+exit(0)
+d = {}
+for s in range(3000):
+	step()  # first step performs selection and revives one genotype according to standard.expdef rules
+	# creature = frams.Populations[0][0]  # FramScript Creature object
+	offspring = frams.GenMan.mutate(frams.Geno.newFromString(initial_genotype))
+	# print(offspring.genotype)
+	d[offspring.genotype._value()] = 1 + d.setdefault(offspring.genotype._value(), 0)
 frams.GenMan.f1_nmNeu = 0.5
 print('oops')
-
+for k in d:
+	print(d[k], k)
+exit(0)
 parent = frams.Geno.newFromString(initial_genotype)
 child = frams.GenMan.mutate(parent)
 
