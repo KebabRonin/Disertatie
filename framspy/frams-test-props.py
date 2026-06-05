@@ -46,6 +46,7 @@ egg = frams.GenMan.crossOver(frams.Geno.newFromString('X(X,XX)XX'), frams.Geno.n
 printFramsProperties(egg)
 print(egg.info)
 print(egg.format._value().__class__)
+print(frams.Geno.newFromString('X(X,XX)XX').format._value())
 exit(0)
 printFramsProperties(frams.Simulator)
 print(dir(frams.Simulator))

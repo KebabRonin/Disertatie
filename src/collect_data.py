@@ -121,7 +121,7 @@ def get_algo_params(name):
             'generations': int(name['generations']),
             'invalid_genos': int(name['invalid_genos']),
             'nonevalTime': None if name['nonevalTime'] is None else float(name['nonevalTime']),
-            'totalevals': int(name['totalevals']),
+            'totalevals': None if name['totalevals'] is None else int(name['totalevals']),
             'evalTime': float(name['evalTime']),
         }
 
@@ -201,6 +201,8 @@ def parse_data(rs=None):
             continue
         if len(finished_runs) < N_RUNS:
             print(f"[WARNING] {d} is not complete - it has {len(finished_runs)} finished runs")
+        elif len(finished_runs) > N_RUNS:
+            print(f"[WARNING] {d} has too many runs - it has {len(finished_runs)} finished runs")
             # continue
         mx_arrs = []
         mn_arrs = []
@@ -314,7 +316,9 @@ def parse_data(rs=None):
                     expected_evals = 100_000 - int(args['popsize']) * int(args['migrate_after'])
                 else:
                     expected_evals = 100_000 - int(args['popsize'])
-                if mx_arr[-1][0] <= expected_evals:
+                if len(mx_arr) == 0:
+                    print("(Couldn't find history information)", d, i)
+                elif mx_arr[-1][0] <= expected_evals:
                     if nonevalTime is not None and float(nonevalTime) > 3600:
                         print("(Hit time limit)", d, i, f"{float(nonevalTime)} > 3600")
                     else:
@@ -327,7 +331,7 @@ def parse_data(rs=None):
                 # exit(0)
             gens_arr.append(gen)
             nonevalTime_arr.append(nonevalTime)
-            totalevals_arr.append(last_totalevals)
+            totalevals_arr.append(last_totalevals if last_totalevals is not None else 0)
             evalTime_arr.append(evalTime)
             mx_arrs.append(mx_arr)
             mn_arrs.append(mn_arr)
@@ -437,8 +441,10 @@ def show_runs(rs: dict, d, example_idx, run_idx, plot=True, printout=False, arr_
                 x_vals_mx = [x[1] if x[1] else 0 for x in rs[d]['mx_arrs'][example_idx]]
                 plt.plot(y_vals, x_vals, label=f'{d} avg', color='black', linewidth=1.5)
                 plt.fill_between(y_vals, x_vals_mn, x_vals_mx, color='black', alpha=0.15)
-                best_ind =  sorted(rs[d]['mx_arrs'][example_idx], key=lambda x: x[1] if x[1] is not None else -10.0, reverse=True)[0]
-                plt.scatter(best_ind[0], best_ind[1], s=200, marker='*', color='green')
+                best_ind =  sorted(rs[d]['mx_arrs'][example_idx], key=lambda x: x[1] if x[1] is not None else -10.0, reverse=True)
+                if len(best_ind) > 0:
+                    best_ind = best_ind[0]
+                    plt.scatter(best_ind[0], best_ind[1], s=200, marker='*', color='green')
             elif 'species' in rs[d]:
                 FILTER_SPECIES_AGE = 10
                 shown_species = list(filter(lambda x: len(rs[d]['species'][example_idx][x]['avg_arrs']) >= FILTER_SPECIES_AGE, rs[d]['species'][example_idx]))
@@ -460,8 +466,10 @@ def show_runs(rs: dict, d, example_idx, run_idx, plot=True, printout=False, arr_
                 x_vals_mx = [x[1] if x[1] else 0 for x in rs[d]['mx_arrs'][example_idx]]
                 plt.plot(y_vals, x_vals, label=f'{d} avg', color='black', linewidth=1.5)
                 plt.fill_between(y_vals, x_vals_mn, x_vals_mx, color='black', alpha=0.15)
-                best_ind =  sorted(rs[d]['mx_arrs'][example_idx], key=lambda x: x[1] if x[1] is not None else -10.0, reverse=True)[0]
-                plt.scatter(best_ind[0], best_ind[1], s=200, marker='*', color='green')
+                best_ind =  sorted(rs[d]['mx_arrs'][example_idx], key=lambda x: x[1] if x[1] is not None else -10.0, reverse=True)
+                if len(best_ind) > 0:
+                    best_ind = best_ind[0]
+                    plt.scatter(best_ind[0], best_ind[1], s=200, marker='*', color='green')
             else:
                 # Do one plot for it
                 # print(d, plotname)
@@ -471,8 +479,10 @@ def show_runs(rs: dict, d, example_idx, run_idx, plot=True, printout=False, arr_
                 x_vals_mx = [x[1] if x[1] else 0 for x in rs[d]['mx_arrs'][example_idx]]
                 plt.plot(y_vals, x_vals, label=f'{d} avg', color=color, linewidth=1.5)
                 plt.fill_between(y_vals, x_vals_mn, x_vals_mx, color=color, alpha=0.15)
-                best_ind =  sorted(rs[d]['mx_arrs'][example_idx], key=lambda x: x[1] if x[1] is not None else -10.0, reverse=True)[0]
-                plt.scatter(best_ind[0], best_ind[1], s=200, marker='*', color='green')
+                best_ind =  sorted(rs[d]['mx_arrs'][example_idx], key=lambda x: x[1] if x[1] is not None else -10.0, reverse=True)
+                if len(best_ind) > 0:
+                    best_ind = best_ind[0]
+                    plt.scatter(best_ind[0], best_ind[1], s=200, marker='*', color='green')
             match rs[d]['params'].get('evalfn', '3'):
                 case '5':
                     plt.ylim(994, 1000)
@@ -494,7 +504,7 @@ def show_runs(rs: dict, d, example_idx, run_idx, plot=True, printout=False, arr_
     #     else:
     #         print("[Warning] Empty hof file? For ", example_idx, d)
     #         best_val_hof = -1
-    best_val = max(map(lambda x: x[1] if x[1] else 0, rs[d][arr_to_plot][example_idx]))
+    best_val = max(map(lambda x: x[1] if x[1] else 0, rs[d][arr_to_plot][example_idx])) if len(rs[d][arr_to_plot][example_idx]) > 0 else float('-inf')
     if 'islands' in rs[d]:
         islbests = []
         for isl in rs[d]['islands'][example_idx]:
@@ -559,24 +569,24 @@ def print_clasament(names, latex):
     names_sorted.sort(key=lambda x: np.mean(names[x]['runs']), reverse=True)
     comments = json.load(open(os.path.join(get_disertatie_root(), 'algo_comments.json'), 'r'))
 
-    best_max = [(n, np.max(names[n]['runs'])) for n in names_sorted]
+    best_max = [(n, np.max(names[n]['runs'][:N_RUNS])) for n in names_sorted]
     best_max.sort(key=lambda x: x[1], reverse=True)
     best_max = best_max[0][0]
-    best_mean = [(n, np.mean(names[n]['runs'])) for n in names_sorted]
+    best_mean = [(n, np.mean(names[n]['runs'][:N_RUNS])) for n in names_sorted]
     best_mean.sort(key=lambda x: x[1], reverse=True)
     best_mean = best_mean[0][0]
-    best_median = [(n, np.median(names[n]['runs'])) for n in names_sorted]
+    best_median = [(n, np.median(names[n]['runs'][:N_RUNS])) for n in names_sorted]
     best_median.sort(key=lambda x: x[1], reverse=True)
     best_median = best_median[0][0]
 
     for idx, n in enumerate(names_sorted):
-        mean = f'{np.mean(names[n]['runs']):10.5f}'
+        mean = f'{np.mean(names[n]['runs'][:N_RUNS]):10.5f}'
         if n == best_mean:
             mean = f'**{mean.strip()}**' if not latex else '\\textbf{' + mean.strip() + '}'
-        median = f'{np.median(names[n]['runs']):10.5f}'
+        median = f'{np.median(names[n]['runs'][:N_RUNS]):10.5f}'
         if n == best_median:
             median = f'**{median.strip()}**' if not latex else '\\textbf{' + median.strip() + '}'
-        maxx = f'{np.max(names[n]['runs']):10.5f}'
+        maxx = f'{np.max(names[n]['runs'][:N_RUNS]):10.5f}'
         if n == best_max:
             maxx = f'**{maxx.strip()}**' if not latex else '\\textbf{' + maxx.strip() + '}'
         comment = comments[n] if n in comments else ''
@@ -593,17 +603,17 @@ def print_clasament(names, latex):
         else:
             print(
                 f'|{idx+1:>3}.'
-                + f'|{np.std(names[n]['runs']):10.5f}|{mean}|{median}|{maxx}'
-                + f'|`({runs_time_exceeded}/{len(names[n]['runs'])})`|{namm}|{comment}|')
+                + f'|{np.std(names[n]['runs'][:N_RUNS]):10.5f}|{mean}|{median}|{maxx}'
+                + f'|`({runs_time_exceeded}/{len(names[n]['runs'][:N_RUNS])})`|{namm}|{comment}|')
 
 FIGSIZE=(25,25)
 if __name__ == '__main__':
-    sc = get_best_genotypes_over_all_runs()
-    print(len(sc))
-    for s in list(filter(lambda x: x[0] == '3', sc))[-1:]:
-        print(s[:5])
-        print()
-        print(s[5])
+    # sc = get_best_genotypes_over_all_runs()
+    # print(len(sc))
+    # for s in list(filter(lambda x: x[0] == '3', sc))[-1:]:
+    #     print(s[:5])
+    #     print()
+    #     print(s[5])
     parsedargs = parseArgs()
     if parsedargs.silent:
         print = lambda *x, **kw: x
@@ -691,7 +701,7 @@ if __name__ == '__main__':
     print(' Evalfn6 '.center(130, '*'))
     print_clasament({n: names[n] for n in names.keys() if 'evalfn6' in n}, parsedargs.latex)
     print(' Evalfn3 '.center(130, '*'))
-    names = {n: names[n] for n in names.keys() if 'evalfn5' not in n and 'evalfn4' not in n}
+    names = {n: names[n] for n in names.keys() if 'evalfn6' not in n and 'evalfn5' not in n and 'evalfn4' not in n}
     # print_clasament({n: names[n] for n in names.keys() if 'evalfn5' not in n and 'evalfn4' not in n})
     print_clasament(names, parsedargs.latex)
 
@@ -724,13 +734,14 @@ if __name__ == '__main__':
     # t-test to see if better solutions are statistically significant
     from scipy.stats import ttest_ind
     SIGLVL = 0.05
+    print(f"T-test with baseline ({BASELINE})")
     for on in ordered_names:
         # Perform two-sample t-test
         t_statistic, p_value = ttest_ind(names[BASELINE]['runs'], names[on]['runs'], equal_var=False)
 
         # Output the results
         if p_value < SIGLVL:
-            print(f"P-value: {p_value:.6f} {on} ({BASELINE})")
+            print(f"P-value: {p_value:.6f} {on}")
             # print(f"t-statistic: {t_statistic}")
 
     exit()

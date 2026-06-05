@@ -259,9 +259,9 @@ def get_all_prop_names(genetic_repr = None):
     list(BODY_MUT["0"].keys() if genetic_repr != '1' else []) + list(BODY_MUT["1"].keys() if genetic_repr != '0' else [])
   return list(set(filter(lambda x: x not in CmutFramsLibReference.ignored_operation_types, names)))
 
-def get_current_weights(framsLib, genetic_repr):
+def get_current_weights(genetic_repr):
   d = {}
-  for prop in get_all_prop_names():
+  for prop in get_all_prop_names(genetic_repr):
     d[prop] = getExpProperty(prop)
   return d
 

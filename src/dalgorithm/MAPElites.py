@@ -30,7 +30,7 @@ def s_int(x):
     b = a + 1
     return (np.random.choice([a, b], p=[b - x, x - a]))
 
-def varAnd(population, toolbox, cxpb, mutpb, mutstrength, xmut_enabled, added_ind):
+def varAnd(population, toolbox, cxpb, mutpb, mutstrength):
     r"""
     This variation is named *And* because of its propensity to apply both
     crossover and mutation on the individuals. Note that both operators are
@@ -52,23 +52,18 @@ def varAnd(population, toolbox, cxpb, mutpb, mutstrength, xmut_enabled, added_in
         nr_mutations = s_int(mutstrength)
         for j in range(nr_mutations):
             if random.random() < mutpb:
-                if xmut_enabled and random.random() < 0.01:
-                    ## AdaptMut randomly adds a RANDOM specimen rarely
-                    if added_ind == 'initial':
-                        offspring[i] = toolbox.individual()
-                    elif added_ind == 'random':
-                        offspring[i] = toolbox.random_individual()
-                else:
-                    offspring[i], = toolbox.mutate(offspring[i])
-                    del offspring[i].fitness.values
+                offspring[i], = toolbox.mutate(offspring[i])
+                del offspring[i].fitness.values
 
     return offspring
 
 import pandas as pd
 
-def random_gridsel(df: pd.DataFrame, features: list[str], seed=None):
-    gridloc = df.sample(n=1, random_state=seed).iloc[0]
-    bestongrid = ['']
+def random_gridsel(toolbox, result: pd.DataFrame, df: pd.DataFrame, features: list[str], topk=100000, seed=None):
+    """
+    Select a random elite
+    """
+    gridloc = result.sample(n=1, random_state=seed).iloc[0]
     # build mask for equality on all keys
     mask = True
     for k in features:
@@ -76,22 +71,68 @@ def random_gridsel(df: pd.DataFrame, features: list[str], seed=None):
     matches = df[mask]
     if matches.empty:
         return None
-    max_d = matches["eval_fit"].max()
-    top = matches[matches["eval_fit"] == max_d]
-    return top.sample(n=1, random_state=seed).iloc[0] # random elite if ties are detected.
+    max_d = matches["_eval0"].max()
+    top = matches[matches["_eval0"] == max_d]
+    top = top.sample(n=1, random_state=seed).iloc[0] # random elite if ties are detected.
+    top = toolbox.individual_from_str([top['geno_genotype_representation']])
+    # assert isinstance(top, str)
+    return top
+
+def top_gridsel(toolbox, result: pd.DataFrame, df: pd.DataFrame, features: list[str], topk=50, seed=None):
+    """
+    Select a random elite
+    """
+    result = result.sort_values(by="max_eval0", ascending=False).reset_index(drop=True)
+    gridloc = result[:topk].sample(n=1, random_state=seed, weights=list(range(len(result[:topk])+1, 1, -1))).iloc[0]
+    # build mask for equality on all keys
+    mask = True
+    for k in features:
+        mask &= (df[k] == gridloc[k])
+    matches = df[mask]
+    if matches.empty:
+        return None
+    max_d = matches["_eval0"].max()
+    top = matches[matches["_eval0"] == max_d]
+    top = top.sample(n=1, random_state=seed).iloc[0] # random elite if ties are detected.
+    top = toolbox.individual_from_str([top['geno_genotype_representation']])
+    # assert isinstance(top, str)
+    return top
+
+def curiosity_gridsel(toolbox, result: pd.DataFrame, df: pd.DataFrame, features: list[str], topk=50, seed=None):
+    """
+    Select a random elite
+    """
+    result = result.sort_values(by="count", ascending=True).reset_index(drop=True)
+    gridloc = result[:topk].sample(n=1, random_state=seed, weights=list(range(len(result[:topk])+1, 1, -1))).iloc[0]
+    # build mask for equality on all keys
+    mask = True
+    for k in features:
+        mask &= (df[k] == gridloc[k])
+    matches = df[mask]
+    if matches.empty:
+        return None
+    max_d = matches["_eval0"].max()
+    top = matches[matches["_eval0"] == max_d]
+    top = top.sample(n=1, random_state=seed).iloc[0] # random elite if ties are detected.
+    top = toolbox.individual_from_str([top['geno_genotype_representation']])
+    # assert isinstance(top, str)
+    return top
 
 GRIDSEL_FNS = {
     'random': random_gridsel,
-    'quality_bias': None, # like random gridsel, but only on top-k individuals (not entire archive)
-    'curiosity': None, # pick out of the least explored grid cells
-    'random_meta': None, # Select one of the above methods at random
+    'quality': top_gridsel, # like random gridsel, but only on top-k individuals (not entire archive)
+    'curiosity': curiosity_gridsel, # pick out of the least explored grid cells
+    'random_meta': lambda *x, **kx: GRIDSEL_FNS[random.choice([k for k in GRIDSEL_FNS.keys() if k != 'random_meta'])](*x, **kx), # Select one of the above methods at random
 }
 
-def mapElites(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
+def mapElites(population, toolbox, cxpb, mutpb, ngen,
             features=['geno_numparts', 'geno_numjoints', 'geno_numneurons', 'geno_numconnections'],
             grid_selection_method='random',
+            topk=50,
             restart_patience=15, restart_method='none',
             stats=None, halloffame=None, verbose=__debug__):
+    if grid_selection_method == 'random_meta':
+        print(list(GRIDSEL_FNS.keys()))
     """
     Taken from deap, adapted for adaptMut, and bootstrapped to mapElites
     """
@@ -119,10 +160,20 @@ def mapElites(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
 
     # Begin the generational process
     for gen in range(1, ngen + 1):
+        df = toolbox.getArchive()
+        df["_eval0"] = df["eval_fit"].apply(lambda x: x[0])
+        result = (
+            df.groupby(features, dropna=False)
+            .agg(count=("_eval0", "size"), max_eval0=("_eval0", "max"))
+            .reset_index()
+            .sort_values(by="max_eval0", ascending=False)
+            .reset_index(drop=True)
+        )
+        print(result)
         # Select the next generation individuals
-        offspring = [grid_selection_method(toolbox.getArchive(), features)]
+        offspring = [grid_selection_method(toolbox, result, toolbox.getArchive(), features, topk=topk) for _ in population]
         # Vary the pool of individuals
-        offspring = varAnd(offspring, toolbox, cxpb, mutpb, mutationStrength, xmut_enabled, added_ind=added_ind)
+        offspring = varAnd(offspring, toolbox, cxpb, mutpb, mutationStrength)
 
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
@@ -175,6 +226,9 @@ def mapElites(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
             # bestFitPast = maxFits[-restart_patience:]
             if maxFits[-1][0] <= bestFitPast[0] and ind == 0:
                 print(maxFits[-1][0], '<=', bestFitPast[0], ', doing a restart...')
+                # Drop all cells discovered so far.
+                df = toolbox.getArchive()
+                df.drop(df.index, inplace=True)
                 if restart_method == 'soft_perturb_best':
                     print("Restarting soft_perturb_best after", restart_patience, "gens with no improvement.")
                     population = toolbox.attr_random_pop_from_genotype(bestFitPast[1][0], len(population))
