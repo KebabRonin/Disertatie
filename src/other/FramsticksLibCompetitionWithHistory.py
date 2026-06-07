@@ -106,11 +106,11 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 		h = hash(json.dumps(self.cmaes_store, sort_keys=True))
 		if h != self.last_hash:
 			self.last_hash = hash(json.dumps(self.cmaes_store, sort_keys=True))
-			TERMINAL_WIDTH = 203
+			TERMINAL_WIDTH = 217
 			print(('~' * TERMINAL_WIDTH))
 			print(' Mutation rates for this generation '.center(TERMINAL_WIDTH, '~'))
 			for i, k in enumerate(sorted(list(self.cmaes_store.keys()))):
-				print(f"{k:>10} - {f'{(getExpProperty(k)*100) if k not in CmutFramsLibReference.ignored_operation_types else -1:.2f}':>8} % (pos: {self.cmaes_store[k]['pos']:8.2f};  neg {self.cmaes_store[k]['neg']:8.2f}; cpos: {self.cmaes_store[k]['countpos']:8.2f}; cneg: {self.cmaes_store[k]['countneg']:8.2f}; rc: {self.cmaes_store[k]['countpos']/(self.cmaes_store[k]['countpos'] + self.cmaes_store[k]['countneg'] + EPS):8.2f})", end='\n' if i % 2 == 2 - 1 else ' | ')
+				print(f"{k:>10} - {f'{(getExpProperty(k)*100) if k not in CmutFramsLibReference.ignored_operation_types else -1:.2f}':>8} % (pos: {self.cmaes_store[k]['pos']:8.2f};  neg {self.cmaes_store[k]['neg']:15.2f}; cpos: {self.cmaes_store[k]['countpos']:8.2f}; cneg: {self.cmaes_store[k]['countneg']:8.2f}; rc: {self.cmaes_store[k]['countpos']/(self.cmaes_store[k]['countpos'] + self.cmaes_store[k]['countneg'] + EPS):8.2f})", end='\n' if i % 2 == 2 - 1 else ' | ')
 			print('\n' + ('~' * TERMINAL_WIDTH))
 		mutated = []
 		frams = CmutFramsLibReference.custom_mut_frams_lib_reference # Added for python relative import reasons
@@ -206,6 +206,10 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 		# 	individual.past_fitness = [0.0 for _ in range(len(new_fitness))]
 		match self.ESalgo:
 			case 'freqWindow':
+				if new_fitness[0] == -999999.0: # FIXME: This should be FITNESS_VALUE_INFEASIBLE_SOLUTION instead.
+					# Don't count invalid individuals.
+					# This is mainly to avoid a feedback loop for AdaptMut with neg score_fn and max_numparts 3 , so f0_p_add isn't promoted into oblivion and you end up with an all-infeasible population.
+					return
 				# Soft window by using decay
 				old_fitness = [individual.past_fitness] if isinstance(individual.past_fitness, float) else individual.past_fitness
 				fitness_delta = float(new_fitness[0] - old_fitness[0])

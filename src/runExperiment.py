@@ -296,7 +296,7 @@ def prepareToolbox(frams_lib: FramsticksLib, OPTIMIZATION_CRITERIA, tournament_s
 		"""
 		Generate a new population by perturbing the given genotype. For use in soft_perturb_best restart method.
 		"""
-		pop = [tools.initRepeat(creator.Individual, lambda: frams_lib.getRandomGenotype(init_geno,
+		pop = [tools.initRepeat(toolbox.individual_from_str, lambda: frams_lib.getRandomGenotype(init_geno,
 				2,
 					min(parsed_args.max_numparts if parsed_args.max_numparts is not None else 10000000000000000000, 100),
 				# Movement should require at least 2 neurons: A muscle and a sensor
@@ -305,7 +305,7 @@ def prepareToolbox(frams_lib: FramsticksLib, OPTIMIZATION_CRITERIA, tournament_s
 				random.randrange(0, parsed_args.softperturbbest_maxnewmutcount), True)
 			, 1) for _ in range(int(n * parsed_args.softperturbbest_bestratio))]
 		# Reinit with 1/4(bestratio) best ind, 3/4 randoms.
-		return pop + [tools.initRepeat(creator.Individual, toolbox.attr_random_genotype, 1) for _ in range(n - len(pop))]
+		return pop + [tools.initRepeat(toolbox.individual_from_str, toolbox.attr_random_genotype, 1) for _ in range(n - len(pop))]
 
 	toolbox.register("attr_random_pop_from_genotype", attr_random_pop_from_genotype, frams_lib)  # "Attribute generator"
 	# (failed) struggle to have an individual which is a simple str, not a list of str
@@ -395,7 +395,7 @@ def parseArguments():
 	parser.add_argument('-migrate_after', type=int, default=10, help="Number of generations to execute for each island before migrating all islands (only for convection), default: 10.")
 	parser.add_argument('-maxmutationsperstep', type=int, default=5, help="Number of mutations to perform when an individual is selected for mutation, default: 5.")
 	parser.add_argument('-fix_invalid', choices=['none', 'mutate'], default='none', help="What to do with invalid solutions.")
-	parser.add_argument('-xmut_enabled', type=bool, default=1, help="0/1 If to enable mutation = replace with simple individual (only for AdaptMut), default: 1.")
+	parser.add_argument('-xmut_enabled', default='1', help="0/1 If to enable mutation = replace with simple individual (only for AdaptMut), default: 1.")
 	parser.add_argument('-restart_patience', type=int, default=20, help=r"After how many generations of no improvement greater than 1% in the max fitness to do a restart.")
 	parser.add_argument('-restart_method', choices=['hard', 'soft_perturb_best', 'soft_perturb_best_all', 'none'], default='none', help="Restart hard (so reinit pop from scratch), or soft (by applying some mutations to the best ind from the run that is ending and continuing the run)")
 	parser.add_argument('-softperturbbest_bestratio', type=float, default=0.25, help=r"Restart soft perturb best will initialize the new population with this % best ind (mutated _ times), and the rest are random individuals")
@@ -408,7 +408,7 @@ def parseArguments():
 	parser.add_argument('-dissim', type=str, default="PHENE_STRUCT_OPTIM", help="dissimilarity method  (only used for ???), default: PHENE_STRUCT_OPTIM.")
 
 	parser.add_argument('-novelty_features', default=','.join(['geno_numparts', 'geno_numjoints', 'geno_numneurons', 'geno_numconnections']), help="Features to split the grid by in MAP-Elites (comma separated). Can contain any of: 'geno_numparts', 'geno_numjoints', 'geno_numneurons', 'geno_numconnections'")
-	parser.add_argument('-novelty_sel', default='random', help="How to pick the next individual to evaluate") #, choices=['random']
+	parser.add_argument('-novelty_sel', choices=['random', 'random_meta', 'quality_bias', 'curiosity'], default='random', help="How to pick the next individual to evaluate") #, choices=['random']
 
 	parser.add_argument('-opt', required=True, help='optimization criteria: vertpos, velocity, distance, vertvel, lifespan, numjoints, numparts, numneurons, numconnections (or other as long as it is provided by the .sim file and its .expdef). For multiple criteria optimization, separate the names by the comma.')
 	parser.add_argument('-popsize', type=int, default=50, help="Population size, default: 50.")
@@ -436,6 +436,7 @@ def parseArguments():
 	else:
 		parsed_args.population_initialization = 'clone'
 	parsed_args.wHist_cacheActive = parsed_args.wHist_cacheActive != '0'
+	parsed_args.xmut_enabled = parsed_args.xmut_enabled != '0'
 	return parsed_args
 
 

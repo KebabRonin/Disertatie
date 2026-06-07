@@ -234,6 +234,7 @@ def parse_data(rs=None):
                     args['popsize'] = 50
                 island_id = None
                 prevTevals = None
+                prevGen = -1
                 last_totalevals = None
                 for lidx, l in enumerate(f):
                     totalevals = None
@@ -244,9 +245,10 @@ def parse_data(rs=None):
                     m_invalid = re.match(GEN_REGEX_INVALID_GENOS, l)
                     if m:
                         gen, nevals, avg, stdev, mn, mx, totalevals, evalTime, nonevalTime = m.groups()
-                        if totalevals == prevTevals:
+                        if totalevals == prevTevals and prevGen > gen:
                             # For convection runs, count this as a regular step, not as an island step.
                             island_id = None
+                            prevGen = -1
                         if island_id is None:
                             mx_arr += [(int(totalevals), float(mx) if mx != 'nan' else None)]
                             mn_arr += [(int(totalevals), float(mn) if mn != 'nan' else None)]
@@ -257,6 +259,7 @@ def parse_data(rs=None):
                             islands[island_id]['mn_arrs'] += [(int(totalevals), float(mn) if mn != 'nan' else None)]
                             islands[island_id]['avg_arrs'] += [(int(totalevals), float(avg) if avg != 'nan' else None)]
                             islands[island_id]['std_arrs'] += [(int(totalevals), float(stdev) if stdev != 'nan' else None)]
+                        prevGen = gen
                     elif m_island:
                         # We're in convection algorithm, so we should store each island separately.
                         island_id, = m_island.groups()
@@ -268,6 +271,7 @@ def parse_data(rs=None):
                                 'avg_arrs': [],
                                 'std_arrs': [],
                             }
+                        last_totalevals = totalevals if totalevals is not None else last_totalevals
                         continue
                     elif m_species_end:
                         species_id, = m_species_end.groups()
@@ -472,7 +476,7 @@ def show_runs(rs: dict, d, example_idx, run_idx, plot=True, printout=False, arr_
                     plt.scatter(best_ind[0], best_ind[1], s=200, marker='*', color='green')
             else:
                 # Do one plot for it
-                # print(d, plotname)
+                print(d, plotname)
                 y_vals = [x[0] for x in rs[d]['avg_arrs'][example_idx]]
                 x_vals = [x[1] if x[1] else 0 for x in rs[d]['avg_arrs'][example_idx]]
                 x_vals_mn = [x[1] if x[1] else 0 for x in rs[d]['mn_arrs'][example_idx]]
@@ -608,18 +612,18 @@ def print_clasament(names, latex):
 
 FIGSIZE=(25,25)
 if __name__ == '__main__':
-    # sc = get_best_genotypes_over_all_runs()
-    # print(len(sc))
-    # for s in list(filter(lambda x: x[0] == '3', sc))[-1:]:
-    #     print(s[:5])
-    #     print()
-    #     print(s[5])
+    sc = get_best_genotypes_over_all_runs()
+    print(len(sc))
+    for s in list(filter(lambda x: x[0] == '3', sc))[-1:]:
+        print(s[:5])
+        print()
+        print(s[5])
     parsedargs = parseArgs()
     if parsedargs.silent:
         print = lambda *x, **kw: x
     if parsedargs.redo:
         os.system(f'rm {DATA_FILE}')
-    os.system(f'rm {STATS_FILE}')
+    # os.system(f'rm {STATS_FILE}')
     if not os.path.exists(STATS_FILE):
         if not os.path.exists(DATA_FILE):
             print('Parsing results...')
@@ -734,14 +738,16 @@ if __name__ == '__main__':
     # t-test to see if better solutions are statistically significant
     from scipy.stats import ttest_ind
     SIGLVL = 0.05
+    ss = ['']
     print(f"T-test with baseline ({BASELINE})")
     for on in ordered_names:
         # Perform two-sample t-test
-        t_statistic, p_value = ttest_ind(names[BASELINE]['runs'], names[on]['runs'], equal_var=False)
+        t_statistic, p_value = ttest_ind(names[BASELINE]['runs'][:N_RUNS], names[on]['runs'][:N_RUNS], equal_var=False)
 
         # Output the results
         if p_value < SIGLVL:
-            print(f"P-value: {p_value:.6f} {on}")
+            ss += [f"P-value: {p_value:.6f} {on}"]
             # print(f"t-statistic: {t_statistic}")
-
+    ss.sort()
+    print('\n'.join(ss))
     exit()

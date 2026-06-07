@@ -48,7 +48,7 @@ PARAM_DISTRIBUTIONS = {
   'algorithm': optuna.distributions.CategoricalDistribution([
     'AdaptMut', 'eaSimple',
     'convection_eaSimple', 'convection_AdaptMut',
-    'NEAT_speciation',
+    'NEAT_speciation', 'MAPElites',
     'eaMuPlusLambda', 'eaMuCommaLambda',
     'eaOnePlusLambdaLambda',
   ]),
@@ -66,7 +66,9 @@ PARAM_DISTRIBUTIONS = {
   'added_ind': optuna.distributions.CategoricalDistribution(['initial', 'random']),
   'island_eval_order': optuna.distributions.CategoricalDistribution(['bestToWorst', 'worstToBest', 'interleaved']),
   # NEAT_speciation-specific parameters
-  # 'delta': optuna.distributions.FloatDistribution(1.0, 10.0),
+  'delta': optuna.distributions.FloatDistribution(1.0, 10.0),
+  'delta_under_mult': optuna.distributions.FloatDistribution(0.8, 1.0),
+  'delta_over_mult': optuna.distributions.FloatDistribution(1.0, 2.0),
   'dissim': optuna.distributions.CategoricalDistribution([
     'PHENE_STRUCT_OPTIM',
     'GENE_LEVENSHTEIN',
@@ -78,11 +80,35 @@ PARAM_DISTRIBUTIONS = {
   ]),
   # AdaptMut-specific parameters
   'xmut_enabled': optuna.distributions.CategoricalDistribution([0, 1]),
-  # Lambda (eaMuPlusLambda, eaMuCommaLambda) parameters
-  'lbda': optuna.distributions.IntDistribution(20, 500, step=1),
   'restart_patience': optuna.distributions.IntDistribution(2, 100),
   'restart_method': optuna.distributions.CategoricalDistribution(
-    ['none', 'hard', 'soft_perturb_best']),
+    ['none', 'hard', 'soft_perturb_best', 'soft_perturb_best_all']),
+  'softperturbbest_bestratio': optuna.distributions.FloatDistribution(0.1, 1.0, step=0.05),
+  'softperturbbest_maxnewmutcount': optuna.distributions.IntDistribution(1, 10),
+  # Lambda (eaMuPlusLambda, eaMuCommaLambda) parameters
+  'lbda': optuna.distributions.IntDistribution(20, 500, step=1),
+  # General parameters
+  'selMethod': optuna.distributions.CategoricalDistribution(['tournament', 'roulette', 'best']),
+  'flibclass': optuna.distributions.CategoricalDistribution(['competition', 'wHist']),
+  'wHist_scorefn': optuna.distributions.CategoricalDistribution(['ratio', 'pos', 'neg', 'neg_conservative', 'const', 'ratio_fifthrule', 'ratio_v2']),
+  'wHist_decay': optuna.distributions.FloatDistribution(0.9, 1.0, step=0.005),
+  'wHist_norm_method': optuna.distributions.CategoricalDistribution(['mean', 'mean100', 'none', 'eps']),
+  'wHist_ESalgo': optuna.distributions.CategoricalDistribution(['none', 'cmaes', 'freqWindow', 'indstore']),
+  'fix_invalid': optuna.distributions.CategoricalDistribution(['none', 'mutate']),
+  'maxmutationsperstep': optuna.distributions.IntDistribution(1, 20),
+  'xov_mutschema': optuna.distributions.CategoricalDistribution(['choice', 'rand']),
+  # MAPElites-specific parameters
+  'novelty_features': optuna.distributions.CategoricalDistribution([
+    # 'geno_numparts',
+    # 'geno_numjoints',
+    # 'geno_numneurons',
+    # 'geno_numconnections',
+    # 'geno_numparts,geno_numjoints',
+    # 'geno_numparts,geno_numneurons',
+    # 'geno_numparts,geno_numjoints,geno_numneurons',
+    'geno_numparts,geno_numjoints,geno_numneurons,geno_numconnections',
+  ]),
+  'novelty_sel': optuna.distributions.CategoricalDistribution(['random', 'random_meta', 'quality_bias', 'curiosity']),
 }
 
 DEFAULTS = {
@@ -105,7 +131,20 @@ DEFAULTS = {
   'xmut_enabled': 1,
   'restart_patience': 15,
   'restart_method': 'none',
+  'softperturbbest_bestratio': 0.25,
+  'softperturbbest_maxnewmutcount': 4,
   'lbda': 100,
+  'selMethod': 'tournament',
+  'flibclass': 'competition',
+  'wHist_scorefn': 'ratio',
+  'wHist_decay': 0.985,
+  'wHist_norm_method': 'mean',
+  'wHist_ESalgo': 'freqWindow',
+  'fix_invalid': 'none',
+  'maxmutationsperstep': 5,
+  'xov_mutschema': 'choice',
+  'novelty_features': 'geno_numparts,geno_numjoints,geno_numneurons,geno_numconnections',
+  'novelty_sel': 'random',
 }
 
 # Parameters to EXCLUDE from import (not relevant for optimization)
@@ -126,6 +165,7 @@ def try_cast(value: str, type):
      return None
 
 def from_str_to_type(algo_data_param, param_name: str):
+  print(param_name)
   value = algo_data_param.get(param_name)
   if param_name == 'initialgenotype':
     if value not in SIMPLEST_GENOTYPE.values():
@@ -169,17 +209,18 @@ def update_db_datetimes(number, start_ts, end_ts):
     )
     conn.commit()
 
-COMMON_PARAMS = ['evalfn', 'algorithm', 'genformat', 'initialgenotype', 'popsize', 'tournament', 'pmut', 'pxov']
+COMMON_PARAMS = ['evalfn', 'algorithm', 'genformat', 'initialgenotype', 'popsize', 'tournament', 'pmut', 'pxov', 'generations', 'selMethod', 'flibclass', 'fix_invalid', 'xov_mutschema']
 ALGO_PARAMS = {
   'convection_eaSimple': COMMON_PARAMS + ['nislands', 'migrate_after', 'island_eval_order'],
-  'convection_AdaptMut': COMMON_PARAMS + ['nislands', 'migrate_after', 'island_eval_order'],
+  'convection_AdaptMut': COMMON_PARAMS + ['nislands', 'migrate_after', 'island_eval_order', 'xmut_enabled', 'added_ind', 'restart_patience', 'restart_method', 'softperturbbest_bestratio', 'softperturbbest_maxnewmutcount'],
   'NEAT_speciation': COMMON_PARAMS + ['dissim', 'delta', 'delta_under_mult', 'delta_over_mult'],
-  'AdaptMut': COMMON_PARAMS + ['xmut_enabled', 'restart_patience', 'restart_method'],
+  'AdaptMut': COMMON_PARAMS + ['xmut_enabled', 'restart_patience', 'restart_method', 'added_ind'],
   'eaSimple': COMMON_PARAMS,
   'eaMuPlusLambda': COMMON_PARAMS + ['lbda'],
   'eaMuCommaLambda': COMMON_PARAMS + ['lbda'],
-  # TODO: 
-  'eaOnePlusLambdaLambda': ['evalfn', 'algorithm', 'genformat', 'initialgenotype', 'popsize', 'tournament'] + ['lbda'],
+  'MAPElites': COMMON_PARAMS + ['novelty_sel'], #'novelty_features', 
+  # TODO
+  'eaOnePlusLambdaLambda': ['evalfn', 'algorithm', 'genformat', 'initialgenotype', 'popsize', 'tournament', 'selMethod', 'flibclass', 'fix_invalid', 'xov_mutschema'] + ['lbda'],
 }
 
 def create_study_and_import(study: optuna.Study, algo_key: str, algo_data: dict):
@@ -189,7 +230,10 @@ def create_study_and_import(study: optuna.Study, algo_key: str, algo_data: dict)
     if algo_data['params'].get('restart_method', None) == 'none' \
         or algo_data['params'].get('restart_patience', None) == '100000000':
       algo_data['params'].pop('restart_patience')
-    print('baba', algo_data['params'].get('population_initialization', None))
+    if algo_data['params'].get('xmut_enabled', None) not in ['0', 'False']:
+      algo_data['params']['xmut_enabled'] = '1'
+    else:
+      algo_data['params']['xmut_enabled'] = '0'
     if algo_data['params'].get('population_initialization', None) == 'random':
       algo_data['params']['initialgenotype'] = 'random'
     if algo_data['params'].get('population_initialization', None) is not None:

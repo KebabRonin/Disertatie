@@ -186,13 +186,26 @@ def get_algorithm_specific_params(trial: optuna.Trial, algorithm: str) -> dict:
     params["genformat"] = trial.suggest_categorical("genformat", [0, 1])
     params["pmut"] = trial.suggest_float("pmut", 0.1, 1.0, step=0.005)
     params["initialgenotype"] = trial.suggest_categorical("initialgenotype", ["simplest", "XX", "XXneurons", "random"])
+    # Selection and library class parameters
+    params["selMethod"] = trial.suggest_categorical("selMethod", ["tournament", "roulette", "best"])
+    params["flibclass"] = trial.suggest_categorical("flibclass", ["competition", "wHist"])
+    params["fix_invalid"] = trial.suggest_categorical("fix_invalid", ["none", "mutate"])
+    # params["maxmutationsperstep"] = trial.suggest_int("maxmutationsperstep", 1, 20)
+    params["xov_mutschema"] = trial.suggest_categorical("xov_mutschema", ["choice", "rand"])
+
+    # wHist parameters (when flibclass == 'wHist')
+    if params["flibclass"] == "wHist":
+        params["wHist_scorefn"] = trial.suggest_categorical("wHist_scorefn", ["ratio", "pos", "neg", "neg_conservative", "const", "ratio_fifthrule", "ratio_v2"])
+        params["wHist_decay"] = trial.suggest_float("wHist_decay", 0.9, 1.0, step=0.005)
+        params["wHist_norm_method"] = trial.suggest_categorical("wHist_norm_method", ["mean", "mean100", "none", "eps"])
+        params["wHist_ESalgo"] = trial.suggest_categorical("wHist_ESalgo", ["none", "cmaes", "freqWindow", "indstore"])
 
     # Algorithm-specific parameters
     if algorithm == 'eaOnePlusLambdaLambda':
         params["popsize"] = trial.suggest_int("popsize", 1, 1)
     else:
         params["popsize"] = trial.suggest_int("popsize", 1, 500)
-        params["tournament"] = trial.suggest_int("tournament", 2, min(50, params["popsize"])) # FIXME This doesn't help in OnePlusLambdaLambda
+        params["tournament"] = trial.suggest_int("tournament", 2, min(50, params["popsize"]))
 
     if algorithm in ['eaMuPlusLambda', 'eaMuCommaLambda']:
         params["lbda"] = trial.suggest_int("lbda", params['popsize'], 500, step=1)
@@ -205,11 +218,15 @@ def get_algorithm_specific_params(trial: optuna.Trial, algorithm: str) -> dict:
         # convection_eaSimple, convection_AdaptMut
         params["nislands"] = trial.suggest_int("nislands", 2, min(100, params["popsize"]))
         params["migrate_after"] = trial.suggest_int("migrate_after", 1, 50)
+        # params["island_eval_order"] = trial.suggest_categorical("island_eval_order", ["bestToWorst", "worstToBest", "interleaved"])
         params["island_eval_order"] = "bestToWorst"
 
     if algorithm == "NEAT_speciation":
         params["nislands"] = trial.suggest_int("nislands", 3, 15)
         # params["delta"] = trial.suggest_float("delta", 1.0, 10.0)
+        # params["delta"] = trial.suggest_float("delta", 1.0, 10.0)
+        # params["delta_under_mult"] = trial.suggest_float("delta_under_mult", 0.8, 1.0, step=0.01)
+        # params["delta_over_mult"] = trial.suggest_float("delta_over_mult", 1.0, 2.0, step=0.1)
         params["dissim"] = trial.suggest_categorical(
             "dissim",
             [
@@ -226,9 +243,38 @@ def get_algorithm_specific_params(trial: optuna.Trial, algorithm: str) -> dict:
     if algorithm == "AdaptMut":
         params["xmut_enabled"] = trial.suggest_categorical("xmut_enabled", [0, 1])
         params["added_ind"] = trial.suggest_categorical("added_ind", ['initial', 'random'])
-        params["restart_method"] = trial.suggest_categorical("restart_method", ['none', 'hard', 'soft_perturb_best'])
-        if params["restart_method"] != 'none':
-            params["restart_patience"] = trial.suggest_int("restart_patience", 2, 100)
+        params["restart_method"] = trial.suggest_categorical("restart_method", ['none', 'hard', 'soft_perturb_best', 'soft_perturb_best_all'])
+    if params["restart_method"] != 'none':
+        params["restart_patience"] = trial.suggest_int("restart_patience", 2, 100)
+        if 'soft_perturb_best' in params["restart_method"]:
+            params["softperturbbest_bestratio"] = trial.suggest_float("softperturbbest_bestratio", 0.1, 1.0, step=0.05)
+            params["softperturbbest_maxnewmutcount"] = trial.suggest_int("softperturbbest_maxnewmutcount", 1, 10)
+
+    if algorithm == "MAPElites":
+        # MAPElites uses novelty search features
+        # params["novelty_features"] = trial.suggest_categorical(
+        #     "novelty_features",
+        #     [
+        #         "geno_numparts",
+        #         "geno_numjoints",
+        #         "geno_numneurons",
+        #         "geno_numconnections",
+        #         "geno_numparts,geno_numjoints",
+        #         "geno_numparts,geno_numneurons",
+        #         "geno_numparts,geno_numjoints,geno_numneurons",
+        #         "geno_numparts,geno_numjoints,geno_numneurons,geno_numconnections",
+        #     ],
+        # )
+        params["novelty_sel"] = trial.suggest_categorical("novelty_sel", ["random", "random_meta", "quality_bias", "curiosity"])
+
+    # if "convection_AdaptMut" in algorithm:
+    #     params["xmut_enabled"] = trial.suggest_categorical("xmut_enabled", [0, 1])
+    #     params["added_ind"] = trial.suggest_categorical("added_ind", ['initial', 'random'])
+    #     params["restart_method"] = trial.suggest_categorical("restart_method", ['none', 'hard', 'soft_perturb_best'])
+    #     if params["restart_method"] != 'none':
+    #         params["restart_patience"] = trial.suggest_int("restart_patience", 2, 100)
+    #         params["softperturbbest_bestratio"] = trial.suggest_float("softperturbbest_bestratio", 0.1, 1.0, step=0.05)
+    #         params["softperturbbest_maxnewmutcount"] = trial.suggest_int("softperturbbest_maxnewmutcount", 1, 10)
 
     return params
 
@@ -240,13 +286,14 @@ def suggest_algorithm(trial: optuna.Trial) -> str:
     This is a workaround for Optuna not supporting weighted categoricals.
     We use suggest_int + cumulative weights to pick an algorithm.
     """
-    return trial.suggest_categorical("algorithm", [
-        'AdaptMut', 'eaSimple',
-        'convection_eaSimple', 'convection_AdaptMut',
-        'NEAT_speciation',
-        'eaMuPlusLambda', 'eaMuCommaLambda',
-        'eaOnePlusLambdaLambda',
-    ])
+    return 'MAPElites'
+    # return trial.suggest_categorical("algorithm", [
+    #     'AdaptMut', 'eaSimple',
+    #     'convection_eaSimple', 'convection_AdaptMut',
+    #     'NEAT_speciation', 'MAPElites',
+    #     'eaMuPlusLambda', 'eaMuCommaLambda',
+    #     'eaOnePlusLambdaLambda',
+    # ])
     # algorithms = list(ALGORITHM_WEIGHTS.keys())
     # weights = list(ALGORITHM_WEIGHTS.values())
 
