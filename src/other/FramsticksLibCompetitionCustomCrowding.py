@@ -1,4 +1,4 @@
-from framspy.FramsticksLibCompetition import FramsticksLibCompetition
+from FramsticksLibCompetition import FramsticksLibCompetition
 import numpy as np
 
 class FramsticksLibCompetitionCustomCrowding(FramsticksLibCompetition):

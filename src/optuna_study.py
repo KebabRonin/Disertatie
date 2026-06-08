@@ -265,7 +265,7 @@ def get_algorithm_specific_params(trial: optuna.Trial, algorithm: str) -> dict:
         #         "geno_numparts,geno_numjoints,geno_numneurons,geno_numconnections",
         #     ],
         # )
-        params["novelty_sel"] = trial.suggest_categorical("novelty_sel", ["random", "random_meta", "quality_bias", "curiosity"])
+        params["novelty_sel"] = trial.suggest_categorical("novelty_sel", ["random", "random_meta", "quality", "curiosity"])
 
     # if "convection_AdaptMut" in algorithm:
     #     params["xmut_enabled"] = trial.suggest_categorical("xmut_enabled", [0, 1])

@@ -23,7 +23,7 @@ def get_disertatie_root():
     """Get the absolute path to the Disertatie folder (parent of src folder)."""
     src_dir = os.path.dirname(__file__)
     path = os.path.abspath(os.path.join(src_dir, ".."))
-    assert path.endswith('Disertatie')
+    # assert path.endswith('Disertatie')
     return path
 
 

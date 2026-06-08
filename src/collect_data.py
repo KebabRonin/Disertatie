@@ -405,6 +405,7 @@ def boxplots(names, order_fn=order_fn_median):
     for idx, n in enumerate(reversed(ordered_names)):
         plt.scatter(names[n]['runs'], [idx+1] * len(names[n]['runs']), color=get_algo_color(n), label=n, alpha=0.2)
     plt.boxplot([names[n]['runs'] for n in reversed(ordered_names)], showmeans=True, orientation='horizontal')
+    plt.axvline(x=243.49050, color='red', linestyle='--', linewidth=2)
     plt.yticks(range(1, len(names)+1), reversed(ordered_names), rotation=0, ha='right')
     ax = plt.gca()
     for tick in ax.get_yticklabels():
@@ -623,7 +624,7 @@ if __name__ == '__main__':
         print = lambda *x, **kw: x
     if parsedargs.redo:
         os.system(f'rm {DATA_FILE}')
-    # os.system(f'rm {STATS_FILE}')
+    os.system(f'rm {STATS_FILE}')
     if not os.path.exists(STATS_FILE):
         if not os.path.exists(DATA_FILE):
             print('Parsing results...')

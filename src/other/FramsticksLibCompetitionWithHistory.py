@@ -1,6 +1,6 @@
 import pandas as pd
 import time
-from framspy.FramsticksLibCompetition import FramsticksLibCompetition
+from FramsticksLibCompetition import FramsticksLibCompetition
 from ..dalgorithm.customMutation import CmutFramsLibReference, setExpProperty, getExpProperty, get_applied_mutation, get_all_prop_names, getExpProperty
 import copy, random
 import json, math

@@ -108,7 +108,7 @@ PARAM_DISTRIBUTIONS = {
     # 'geno_numparts,geno_numjoints,geno_numneurons',
     'geno_numparts,geno_numjoints,geno_numneurons,geno_numconnections',
   ]),
-  'novelty_sel': optuna.distributions.CategoricalDistribution(['random', 'random_meta', 'quality_bias', 'curiosity']),
+  'novelty_sel': optuna.distributions.CategoricalDistribution(['random', 'random_meta', 'quality', 'curiosity']),
 }
 
 DEFAULTS = {

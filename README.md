@@ -68,6 +68,7 @@ The algorithm extends the `AdaptMut` submission from prior years:
 		* This means a 300 fitness decrease is 'forgotten' after ~20 generations ~= 1.000 evaluations (-300 * 0.985^{987 generations}<0.0001)
 	* The mutation probabilities are recomputed after each evaluation.
 	* The mutation probabilities are the same for all individuals in a generation (i.e. no per-individual mutation probabilities).
+	* Invalid individuals (fitness = -999999) are not counted towards the Mutation Result Cache
 	* The mutation operators which cause the smallest fitness decrease have the smallest probabilities.
 	* The mutation operators which cause the largest fitness decrease have the largest probabilities.
 	* A lower bound is set on all mutation probabilities (only those which are not 0 at the start of the program), so no mutation operator can go extinct.

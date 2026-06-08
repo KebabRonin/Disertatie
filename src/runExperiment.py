@@ -6,8 +6,8 @@ import numpy as np
 from deap import creator, base, tools, algorithms
 from .config_loader import get_framspy_path
 sys.path.append(get_framspy_path()) # FIXME: Needed so `import frams` from files in framspy are imported correctly (i.e. FramsticksLib)
-from framspy.FramsticksLib import FramsticksLib, DissimMethod
-from framspy.FramsticksLibCompetition import FramsticksLibCompetition
+from FramsticksLib import FramsticksLib, DissimMethod
+from FramsticksLibCompetition import FramsticksLibCompetition
 import traceback
 import frams
 from scipy.spatial import distance
@@ -408,7 +408,7 @@ def parseArguments():
 	parser.add_argument('-dissim', type=str, default="PHENE_STRUCT_OPTIM", help="dissimilarity method  (only used for ???), default: PHENE_STRUCT_OPTIM.")
 
 	parser.add_argument('-novelty_features', default=','.join(['geno_numparts', 'geno_numjoints', 'geno_numneurons', 'geno_numconnections']), help="Features to split the grid by in MAP-Elites (comma separated). Can contain any of: 'geno_numparts', 'geno_numjoints', 'geno_numneurons', 'geno_numconnections'")
-	parser.add_argument('-novelty_sel', choices=['random', 'random_meta', 'quality_bias', 'curiosity'], default='random', help="How to pick the next individual to evaluate") #, choices=['random']
+	parser.add_argument('-novelty_sel', choices=['random', 'random_meta', 'quality', 'curiosity'], default='random', help="How to pick the next individual to evaluate") #, choices=['random']
 
 	parser.add_argument('-opt', required=True, help='optimization criteria: vertpos, velocity, distance, vertvel, lifespan, numjoints, numparts, numneurons, numconnections (or other as long as it is provided by the .sim file and its .expdef). For multiple criteria optimization, separate the names by the comma.')
 	parser.add_argument('-popsize', type=int, default=50, help="Population size, default: 50.")
@@ -448,7 +448,7 @@ def ensureDir(string):
 
 
 def save_genotypes(filename, OPTIMIZATION_CRITERIA, hof):
-	from framspy.framsfiles import writer as framswriter
+	from framsfiles import writer as framswriter
 	with open(filename, "w") as outfile:
 		for ind in hof:
 			keyval = {}
