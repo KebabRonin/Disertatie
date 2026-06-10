@@ -7,6 +7,7 @@ experiments:
   framspy_path: <YOUR_PATH (replace '\' with '/' or '\\')>
 ```
 This is used to import DissimMeasure, gain access to some framspy classes like `frams.GenMan`, `frams.Model` etc.., and so FramsticksLib doesn't break when imported.
+
 3. Make sure the framspy folder you linked above has `SIMPLE_FITNESS_FORMAT = False` set in `FramsticksLibCompetition.py`.
 4. In a terminal/cmd, move to the parent folder of the `src` folder
 5. Run the following command:
