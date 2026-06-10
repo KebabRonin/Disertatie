@@ -1,25 +1,2 @@
-# Disertatie Project Configuration
-# ================================
-
-# Framsticks Installation Path
-# Supports both absolute and relative paths (relative to Disertatie folder)
-framsticks:
-  # Modify if needed.
-  # Fallback paths to try in order, taken in order if the first ones don't exist.
-  path:
-    - "./Framsticks"
-    - "./Framsticks54"
-    - "../Framsticks"
-    - "../Framsticks54"
-
-
-
-# Database Configuration
-database:
-  path: "./algo_runs.db"  # Path relative to Disertatie folder
-
-# Experiment Configuration
 experiments:
-  results_dir: "./experiments"  # Relative to Disertatie folder
-  simfiles_path: "./framspy" # Where the .sim files are stored, like the example has `eval-allcriteria.sim;deterministic.sim;recording-body-coords.sim;`
-  framspy_path: "./framspy" # Where the FramsticksLib.py files are stored
+  framspy_path: "./framspy" # The folder where the FramsticksLib.py files are stored (relative or absolute path)
