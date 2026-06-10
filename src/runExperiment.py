@@ -17,7 +17,6 @@ from .other.FramsticksLibCompetitionWithHistory import FramsticksLibCompetitionW
 
 FITNESS_VALUE_INFEASIBLE_SOLUTION = -999999.0  # DEAP expects fitness to always be a real value (not None), so this special value indicates that a solution is invalid, incorrect, or infeasible. [Related: https://github.com/DEAP/deap/issues/30 ]. Using float('-inf') or -sys.float_info.max here causes DEAP to silently exit. If you are not using DEAP, set this constant to None, float('nan'), or another special/non-float value to avoid clashing with valid real fitness values, and handle such solutions appropriately as a separate case.
 
-
 def genotype_within_constraint(genotype, dict_criteria_values, criterion_name, constraint_value):
 	REPORT_CONSTRAINT_VIOLATIONS = False
 	if constraint_value is not None:
@@ -28,7 +27,8 @@ def genotype_within_constraint(genotype, dict_criteria_values, criterion_name, c
 			return False
 	return True
 
-def frams_evaluate(frams_lib, individual, population=None, dissim_method=DissimMethod.GENE_LEVENSHTEIN):
+
+def frams_evaluate(frams_lib, individual):
 	FITNESS_CRITERIA_INFEASIBLE_SOLUTION = [FITNESS_VALUE_INFEASIBLE_SOLUTION] * len(OPTIMIZATION_CRITERIA)  # this special fitness value indicates that the solution should not be propagated via selection ("that genotype is invalid"). The floating point value is only used for compatibility with DEAP. If you implement your own optimization algorithm, instead of a negative value in this constant, use a special value like None to properly distinguish between feasible and infeasible solutions.
 	if not frams_lib.isValidCreature([individual[0]])[0]:
 		# Short circuit if invalid genotype.
@@ -42,6 +42,7 @@ def frams_evaluate(frams_lib, individual, population=None, dissim_method=DissimM
 		individual.past_operations = []
 		return frams_lib.getCached(genotype)['eval_fit']
 	data = frams_lib.evaluate([genotype])
+	# print("Evaluated '%s'" % genotype, 'evaluation is:', data)
 	valid = True
 	try:
 		first_genotype_data = data[0]
@@ -50,7 +51,6 @@ def frams_evaluate(frams_lib, individual, population=None, dissim_method=DissimM
 		fitness = [default_evaluation_data[crit] for crit in OPTIMIZATION_CRITERIA]
 	except (KeyError, TypeError) as e:  # the evaluation may have failed for an invalid genotype (such as X[@][@] with "Don't simulate genotypes with warnings" option), or because the creature failed to stabilize, or for some other reason
 		valid = False
-		print(traceback.format_exc())
 		print('Problem "%s" so could not evaluate genotype "%s", hence assigned it a special ("infeasible solution") fitness value: %s' % (str(e), genotype, FITNESS_CRITERIA_INFEASIBLE_SOLUTION))
 	if valid:
 		default_evaluation_data['numgenocharacters'] = len(genotype)  # add one new key to the dictionary for consistent constraint checking below
@@ -309,7 +309,6 @@ def prepareToolbox(frams_lib: FramsticksLib, OPTIMIZATION_CRITERIA, tournament_s
 	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory) and frams_lib.cacheActive:
 		toolbox.register("getArchive", lambda flib: flib.df, frams_lib)
 	toolbox.register("isValid", frams_isValidCreature, frams_lib) # frams_isValidCreature frams_isValid
-	toolbox.register("isValid", frams_isValidCreature, frams_lib) # frams_isValidCreature frams_isValid
 	toolbox.register("evaluate", frams_evaluate, frams_lib)
 	toolbox.register("mate", frams_crossover, frams_lib)
 	toolbox.register("mutate", frams_mutate, frams_lib)
@@ -336,7 +335,6 @@ def prepareToolbox(frams_lib: FramsticksLib, OPTIMIZATION_CRITERIA, tournament_s
 def parseArguments():
 	parser = argparse.ArgumentParser(description='Run this program with "python -u %s" if you want to disable buffering of its output.' % sys.argv[0])
 	parser.add_argument('-path', type=ensureDir, required=True, help='Path to Framsticks library without trailing slash.')
-	parser.add_argument('-framspath', type=ensureDir, required=False, help='Path to framspy folder without trailing slash.')
 	parser.add_argument('-lib', required=False, help='Library name. If not given, "frams-objects.dll" (or .so or .dylib) is assumed depending on the platform.')
 	parser.add_argument('-sim', required=False, default="eval-allcriteria.sim", help="The name of the .sim file with settings for evaluation, mutation, crossover, and similarity estimation. If not given, \"eval-allcriteria.sim\" is assumed by default. Must be compatible with the \"standard-eval\" expdef. If you want to provide more files, separate them with a semicolon ';'.")
 
@@ -446,12 +444,8 @@ def main():
 		case _:
 			print("Unknown framslibclass", parsed_args.flibclass)
 			exit(0)
-	toolbox = prepareToolbox(framsLib,
-									OPTIMIZATION_CRITERIA,
-									parsed_args.tournament, parsed_args.genformat,
-									parsed_args.initialgenotype,
-									parsed_args.dissim
-									)
+	toolbox = prepareToolbox(framsLib, OPTIMIZATION_CRITERIA, parsed_args.tournament,
+			parsed_args.genformat, parsed_args.initialgenotype, parsed_args.dissim)
 	pop = toolbox.population(n=parsed_args.popsize)
 	hof = tools.HallOfFame(parsed_args.hof_size)
 	stats = tools.Statistics(lambda ind: ind.fitness.values)
