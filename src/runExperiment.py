@@ -55,8 +55,7 @@ def frams_evaluate(frams_lib, individual):
 	if not valid:
 		fitness = FITNESS_CRITERIA_INFEASIBLE_SOLUTION
 	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory):
-		frams_lib.updateCached(genotype, eval_fit=fitness)
-		# Update CMA-ES statistics
+		# Update mutation operation frequency statistics
 		frams_lib.updateMutationStatistics(individual, fitness)
 		# print(f'Consumed {individual.past_operations} for "{individual[0][:25].replace('\n','\\n')}"')
 		individual.past_fitness = fitness
@@ -68,11 +67,7 @@ def frams_crossover(frams_lib, individual1, individual2):
 	geno1 = individual1[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	geno2 = individual2[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	individual1[0] = frams_lib.crossOver(geno1, geno2)
-	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory):
-		individual1.past_operations += frams_lib.get_last_performed_operations()
 	individual2[0] = frams_lib.crossOver(geno1, geno2)
-	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory):
-		individual2.past_operations += frams_lib.get_last_performed_operations()
 	return individual1, individual2
 
 
@@ -80,15 +75,13 @@ def frams_mutate(frams_lib, individual):
 	individual[0] = frams_lib.mutate(individual)[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory):
 		individual.past_operations += frams_lib.get_last_performed_operations()
+		print(individual.past_operations)
 	return individual,
 
 
 def frams_getsimplest(frams_lib, genetic_format, initial_genotype):
 	assert initial_genotype is None or frams.Geno.newFromString(initial_genotype).format._value() == genetic_format
 	return initial_genotype if initial_genotype is not None else frams_lib.getSimplest(genetic_format)
-
-def frams_isValid(frams_lib: FramsticksLib, individual):
-	return frams_lib.isValid([individual[0]])[0]
 
 def frams_isValidCreature(frams_lib: FramsticksLib, individual):
 	return frams_lib.isValidCreature([individual[0]])[0]
@@ -181,7 +174,7 @@ def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_fo
 		toolbox.register("population", tools.initRepeat, list, toolbox.random_individual)
 	elif parsed_args.population_initialization == 'clone':
 		toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-	toolbox.register("isValid", frams_isValidCreature, frams_lib) # frams_isValidCreature frams_isValid
+	toolbox.register("isValid", frams_isValidCreature, frams_lib)
 	toolbox.register("evaluate", frams_evaluate, frams_lib)
 	toolbox.register("mate", frams_crossover, frams_lib)
 	toolbox.register("mutate", frams_mutate, frams_lib)
@@ -264,13 +257,7 @@ def main():
 		case 'wHist':
 			# Also implements Evolutionary Strategy (remembers all past mutations, and adjusts weights)
 			framsLib = FramsticksLibCompetitionWithHistory(
-				parsed_args.path, parsed_args.lib, parsed_args.sim, frams,
-				cacheActive=False, score_fn='neg', decay=0.985,
-				norm_method='mean', ESalgo='freqWindow',
-			)
-		case _:
-			print("Unknown framslibclass", parsed_args.flibclass)
-			exit(0)
+				parsed_args.path, parsed_args.lib, parsed_args.sim, frams, ESalgo='freqWindow')
 	toolbox = prepareToolbox(framsLib, OPTIMIZATION_CRITERIA, parsed_args.tournament, parsed_args.genformat, parsed_args.initialgenotype)
 	pop = toolbox.population(n=parsed_args.popsize)
 	hof = tools.HallOfFame(parsed_args.hof_size)
