@@ -239,19 +239,10 @@ class CmutFramsLibReference:
   ignored_operation_types = list(NEURO_MUT['generic'].keys())
 
 def setExpProperty(name, value):
-  # print(CmutFramsLibReference.custom_mut_frams_lib_reference)
-  exec(f"frams.GenMan.{name} = {value}", {'frams': CmutFramsLibReference.custom_mut_frams_lib_reference})
+  setattr(CmutFramsLibReference.custom_mut_frams_lib_reference.GenMan, name, value)
 
 def getExpProperty(name):
-  # print(CmutFramsLibReference.custom_mut_frams_lib_reference)
-  rval = eval(f"frams.GenMan.{name}._value()", globals={'frams': CmutFramsLibReference.custom_mut_frams_lib_reference})
-  return rval
-
-def set_general_weights(framsLib, w_body=None, w_neuro=None):
-  """
-  In case you want to set some weight to a more general class of mutation operators. 
-  """
-  pass
+  return getattr(CmutFramsLibReference.custom_mut_frams_lib_reference.GenMan, name)._value()
 
 def get_all_prop_names(genetic_repr = None):
     #list(NEURO_MUT["generic"].keys()) + 

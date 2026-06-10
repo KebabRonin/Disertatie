@@ -132,9 +132,9 @@ def frams_mutate(frams_lib: FramsticksLib, individual):
 	individual[0] = fix_geno(frams_lib, parsed_args.fix_invalid, individual[0])
 	# Mutate mutation rates:
 	k2 = random.choice(list(individual.es_params['rates'].keys()))
-	individual.es_params['rates'][k2] += random.normalvariate() * individual.es_params['steps'][k2]
+	individual.es_params['rates'][k2] += random.normalvariate(mu=0, sig=1) * individual.es_params['steps'][k2]
 	individual.es_params['rates'][k2] = float(np.clip(individual.es_params['rates'][k2], 1e-8, 1))
-	individual.es_params['steps'][k2] += random.normalvariate() * 1e-2
+	individual.es_params['steps'][k2] += random.normalvariate(mu=0, sig=1) * 1e-2
 	individual.es_params['steps'][k2] = float(np.clip(individual.es_params['steps'][k2], 1e-8, 1))
 	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory):
 		individual.past_operations += frams_lib.get_last_performed_operations()
@@ -393,7 +393,7 @@ def parseArguments():
 	parser.add_argument('-max_numconnections', type=int, default=None, help="Maximum number of Neural connections. Default: no limit")
 	parser.add_argument('-max_numgenochars', type=int, default=None, help="Maximum number of characters in genotype (including the format prefix, if any). Default: no limit")
 	parsed_args = parser.parse_args()
-	exec(f"parsed_args.dissim = DissimMethod.{parsed_args.dissim}")
+	parsed_args.dissim = DissimMethod[parsed_args.dissim]
 	if parsed_args.algorithm == 'eaOnePlusLambdaLambda' and parsed_args.popsize != 1:
 		print(f"Error: You used the eaOnePlusLambdaLambda algorithm, but popsize is not 1 (it's {parsed_args.popsize})")
 		exit(0)
