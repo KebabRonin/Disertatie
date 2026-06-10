@@ -31,7 +31,6 @@ def frams_evaluate(frams_lib, individual):
 	FITNESS_CRITERIA_INFEASIBLE_SOLUTION = [FITNESS_VALUE_INFEASIBLE_SOLUTION] * len(OPTIMIZATION_CRITERIA)  # this special fitness value indicates that the solution should not be propagated via selection ("that genotype is invalid"). The floating point value is only used for compatibility with DEAP. If you implement your own optimization algorithm, instead of a negative value in this constant, use a special value like None to properly distinguish between feasible and infeasible solutions.
 	if not frams_lib.isValidCreature([individual[0]])[0]:
 		# Short circuit if invalid genotype.
-		# individual.fitness.values = (FITNESS_CRITERIA_INFEASIBLE_SOLUTION,)
 		return FITNESS_CRITERIA_INFEASIBLE_SOLUTION
 	genotype = individual[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	data = frams_lib.evaluate([genotype])
@@ -72,10 +71,9 @@ def frams_crossover(frams_lib, individual1, individual2):
 
 
 def frams_mutate(frams_lib, individual):
-	individual[0] = frams_lib.mutate(individual)[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
+	individual[0] = frams_lib.mutate([individual[0]])[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory):
 		individual.past_operations += frams_lib.get_last_performed_operations()
-		print(individual.past_operations)
 	return individual,
 
 
@@ -120,11 +118,7 @@ def select_feasible(individuals):
 
 
 def selTournament_only_feasible(individuals, k, tournsize):
-	feasible_individuals = select_feasible(individuals)
-	if len(feasible_individuals) == 0:
-		print("Selection: no feasible solution in the population of size %d, so selecting from all individuals (including infeasible solutions with special fitness value %s)" % (len(individuals), FITNESS_VALUE_INFEASIBLE_SOLUTION))
-		return tools.selTournament(individuals, k, tournsize=tournsize)
-	return tools.selTournament(feasible_individuals, k, tournsize=tournsize)
+	return tools.selTournament(select_feasible(individuals), k, tournsize=tournsize)
 
 
 def selNSGA2_only_feasible(individuals, k, toolboxclone):
@@ -263,9 +257,7 @@ def main():
 	hof = tools.HallOfFame(parsed_args.hof_size)
 	stats = tools.Statistics(lambda ind: ind.fitness.values)
 	# calculate statistics excluding infeasible solutions (by filtering out those with fitness containing FITNESS_VALUE_INFEASIBLE_SOLUTION)
-	def filter_feasible_for_function(function, fitness_criteria):
-		filtered = list(filter(is_feasible_fitness_criteria, fitness_criteria))
-		return function(filtered) if len(filtered) > 0 else float('nan')
+	filter_feasible_for_function = lambda function, fitness_criteria: function(list(filter(is_feasible_fitness_criteria, fitness_criteria)))
 	stats.register("avg", lambda fitness_criteria: filter_feasible_for_function(np.mean, fitness_criteria))
 	stats.register("stddev", lambda fitness_criteria: filter_feasible_for_function(np.std, fitness_criteria))
 	stats.register("min", lambda fitness_criteria: filter_feasible_for_function(np.min, fitness_criteria))
