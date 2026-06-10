@@ -125,21 +125,6 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 		if len(genotype_list) != len(mutated):
 			raise RuntimeError("Submitted %d genotypes, received %d mutants" % (len(genotype_list), len(mutated)))
 		return mutated
-	
-	def crossOver(self, genotype_parent1, genotype_parent2):
-		"""
-		Copied from `FramsticksLib.py`
-		Returns:
-			The genotype of the offspring. self.GENOTYPE_INVALID if the crossing over failed.
-		"""
-		frams = CmutFramsLibReference.custom_mut_frams_lib_reference # Added for python relative import reasons
-		offspring = frams.GenMan.crossOver(frams.Geno.newFromString(genotype_parent1), frams.Geno.newFromString(genotype_parent2))
-		offspring_genotype = offspring.genotype._string()
-		if offspring_genotype == self.GENOTYPE_INVALID and self.GENOTYPE_INVALID_OFFSPRING_SUBSTITUTE_ORIGINAL:
-			print('[WARN] crossOver(%s, %s) failed but you requested GENOTYPE_INVALID_OFFSPRING_SUBSTITUTE_ORIGINAL, so returning a random parent instead. Reason for failure: %s' % (self.shortGenotype(genotype_parent1), self.shortGenotype(genotype_parent2), offspring.info._string()))
-			offspring_genotype = random.choice([genotype_parent1, genotype_parent2])
-		self.applied_operations += [get_applied_mutation(offspring)] # This was changed from the original implementation.
-		return offspring_genotype
 
 	def get_last_performed_operations(self):
 		"""
