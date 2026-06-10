@@ -132,9 +132,9 @@ def frams_mutate(frams_lib: FramsticksLib, individual):
 	individual[0] = fix_geno(frams_lib, parsed_args.fix_invalid, individual[0])
 	# Mutate mutation rates:
 	k2 = random.choice(list(individual.es_params['rates'].keys()))
-	individual.es_params['rates'][k2] += random.normalvariate(mu=0, sig=1) * individual.es_params['steps'][k2]
+	individual.es_params['rates'][k2] += random.normalvariate(mu=0, sigma=1) * individual.es_params['steps'][k2]
 	individual.es_params['rates'][k2] = float(np.clip(individual.es_params['rates'][k2], 1e-8, 1))
-	individual.es_params['steps'][k2] += random.normalvariate(mu=0, sig=1) * 1e-2
+	individual.es_params['steps'][k2] += random.normalvariate(mu=0, sigma=1) * 1e-2
 	individual.es_params['steps'][k2] = float(np.clip(individual.es_params['steps'][k2], 1e-8, 1))
 	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory):
 		individual.past_operations += frams_lib.get_last_performed_operations()
