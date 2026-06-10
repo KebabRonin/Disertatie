@@ -4,7 +4,6 @@ import sys
 import numpy as np
 from deap import creator, base, tools, algorithms
 from FramsticksLib import FramsticksLib
-from FramsticksLibCompetition import FramsticksLibCompetition
 
 # Note: this may be less efficient than running the evolution directly in Framsticks, so if performance is key, compare both options.
 
@@ -183,7 +182,7 @@ def main():
 	parsed_args = parseArguments()
 	print("Argument values:", ", ".join(['%s=%s' % (arg, getattr(parsed_args, arg)) for arg in vars(parsed_args)]))
 	OPTIMIZATION_CRITERIA = parsed_args.opt.split(",")
-	framsLib = FramsticksLibCompetition(parsed_args.path, parsed_args.lib, parsed_args.sim)
+	framsLib = FramsticksLib(parsed_args.path, parsed_args.lib, parsed_args.sim)
 	toolbox = prepareToolbox(framsLib, OPTIMIZATION_CRITERIA, parsed_args.tournament, '1' if parsed_args.genformat is None else parsed_args.genformat, parsed_args.initialgenotype)
 	pop = toolbox.population(n=parsed_args.popsize)
 	hof = tools.HallOfFame(parsed_args.hof_size)
@@ -194,9 +193,7 @@ def main():
 	stats.register("stddev", lambda fitness_criteria: filter_feasible_for_function(np.std, fitness_criteria))
 	stats.register("min", lambda fitness_criteria: filter_feasible_for_function(np.min, fitness_criteria))
 	stats.register("max", lambda fitness_criteria: filter_feasible_for_function(np.max, fitness_criteria))
-	from AdaptMut import adaptMut
-	pop, log = adaptMut(pop, toolbox, cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations, stats=stats, halloffame=hof, verbose=True)
-	#pop, log = algorithms.eaSimple(pop, toolbox, cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations, stats=stats, halloffame=hof, verbose=True)
+	pop, log = algorithms.eaSimple(pop, toolbox, cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations, stats=stats, halloffame=hof, verbose=True)
 	print('Best individuals:')
 	for ind in hof:
 		print(ind.fitness, '\t<--\t', ind[0])

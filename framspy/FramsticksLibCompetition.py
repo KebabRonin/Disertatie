@@ -18,7 +18,7 @@ class FramsticksLibCompetition(FramsticksLib):
 	See also: https://www.framsticks.com/gecco-competition
 	"""
 
-	COMPETITOR_ID = 'KebabRoninUAIC'
+	COMPETITOR_ID = 'AliceTeam'
 	SIMPLE_FITNESS_FORMAT = False  # set to False only if you want compatibility with existing sources of optimization algorithms such as FramsticksEvolution.py. Otherwise (for True), you will just get a simple number as fitness.
 	FITNESS_DICT_KEY = 'COGpath'  # only used for SIMPLE_FITNESS_FORMAT = False
 
@@ -42,10 +42,6 @@ class FramsticksLibCompetition(FramsticksLib):
 			return np.linalg.norm(path[0] - path[-1]) * np.mean(np.maximum(0, path[:, 2]))  # simple example: run far and have COG high above ground!
 		elif self.TEST_FUNCTION == 5:
 			return 1000 - np.linalg.norm(np.linspace(0, 10, len(path), endpoint=True) - path[:, 2]) / np.sqrt(len(path))  # simple example: z coordinate of the COG should grow linearly from 0 to 1 during lifespan. Returns RMSE as a deviation measure (negated because we are maximizing, and offset to ensure positive outcomes so there is no clash with other optimization code that may assume that negative fitness indicates an invalid genotype).
-		elif self.TEST_FUNCTION == 6:
-			# From competition page.
-			desired_path = (0.5 + 0.1 * np.sin(np.arange(len(path)) / 100.0))
-			return 1.0 / (sum(abs(desired_path - path[:, 2])) + 1e-20) # simple example: z coordinate of the COG should hop sinusoidally during lifespan. Returns RMSE as a deviation measure (negated because we are maximizing, and offset to ensure positive outcomes so there is no clash with other optimization code that may assume that negative fitness indicates an invalid genotype).
 		raise RuntimeError('TEST_FUNCTION==%s not implemented!' % self.TEST_FUNCTION)
 
 
@@ -102,5 +98,4 @@ class FramsticksLibCompetition(FramsticksLib):
 			outfile.write(s)
 			outfile.write("\n")
 		print("Saved '%s' (%s)" % (filename, competitor))
-		# sys.exit()  # only call end() once
-		raise EOFError
+		sys.exit()  # only call end() once

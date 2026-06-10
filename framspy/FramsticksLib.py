@@ -5,8 +5,8 @@ import sys, os
 import argparse
 import random
 import numpy as np
-
 import frams
+
 
 @unique
 class DissimMethod(Enum):  # values assigned to fields are irrelevant, hence auto()
