@@ -58,7 +58,7 @@ def varAnd(population, toolbox, cxpb, mutpb, mutstrength, xmut_enabled, added_in
 
     return offspring
 
-def adaptMut(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
+def adaptMut(population, toolbox, cxpb, mutpb, ngen, added_ind, xmut_enabled=True,
             restart_patience=15, restart_method='none',
             stats=None, halloffame=None, verbose=__debug__):
     """
