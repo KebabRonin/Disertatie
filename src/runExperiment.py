@@ -339,7 +339,6 @@ def parseArguments():
 	parser.add_argument('-framspath', type=ensureDir, required=False, help='Path to framspy folder without trailing slash.')
 	parser.add_argument('-lib', required=False, help='Library name. If not given, "frams-objects.dll" (or .so or .dylib) is assumed depending on the platform.')
 	parser.add_argument('-sim', required=False, default="eval-allcriteria.sim", help="The name of the .sim file with settings for evaluation, mutation, crossover, and similarity estimation. If not given, \"eval-allcriteria.sim\" is assumed by default. Must be compatible with the \"standard-eval\" expdef. If you want to provide more files, separate them with a semicolon ';'.")
-	parser.add_argument('-evalfn', default=3, help="The fitness function to use. Values: 3 (default), 4, or 5")
 
 	parser.add_argument('-genformat', required=False, help='Genetic format for the simplest initial genotype, for example 4, 9, or B. If not given, f1 is assumed.', default='1')
 	parser.add_argument('-initialgenotype', required=False, help='The genotype used to seed the initial population. If given, the -genformat argument is ignored.')
@@ -432,7 +431,6 @@ def main():
 	# random.seed(123)  # see FramsticksLib.DETERMINISTIC below, set to True if you want full determinism
 	FramsticksLib.DETERMINISTIC = False  # must be set before the FramsticksLib() constructor call
 	parsed_args = parseArguments()
-	FramsticksLibCompetition.TEST_FUNCTION = int(parsed_args.evalfn)
 	print("Argument values:", ", ".join(['%s=%s' % (arg, getattr(parsed_args, arg)) for arg in vars(parsed_args)]))
 	OPTIMIZATION_CRITERIA = parsed_args.opt.split(",")
 	match parsed_args.flibclass:
