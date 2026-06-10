@@ -93,8 +93,6 @@ def cmaES(population, toolbox, cxpb, mutpb, ngen, xmut_enabled, added_ind,
 
     # Begin the generational process
     for gen in range(1, ngen + 1):
-        # Compute crowding distance for the current population.
-        toolbox.add_crowding_distance(population)
         # Select the next generation individuals
         offspring = toolbox.select(population, len(population))
         if len(offspring[0].fitness.values) > 1:
