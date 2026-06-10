@@ -95,8 +95,6 @@ def frams_crossover(frams_lib: FramsticksLib, individual1, individual2):
 	keys = individual1.es_params['rates'].keys()
 	newrates1 = {'steps': {}, 'rates': {}}
 	newrates2 = {'steps': {}, 'rates': {}}
-	# print('xvp', str(individual1.es_params)[:250])
-	# print('xvp', str(individual2.es_params)[:250])
 	for k in keys:
 		if parsed_args.xov_mutschema == 'rand':
 			newrates1['rates'][k] = individual2.es_params['rates'][k] + random.random() * (individual1.es_params['rates'][k] - individual2.es_params['rates'][k])
@@ -177,16 +175,6 @@ def frams_getrandomindividual(frams_lib: FramsticksLib, initial_genotype):
 				min(parsed_args.max_numneurons if parsed_args.max_numneurons is not None else 10000000000000000000, 100),
 			100, True)
 	return ind
-
-
-# from framspy import frams
-
-# def get_numparts(frams_lib, genotype):
-# 	m = frams.Model.newFromString(genotype)
-# 	numparts = m.numparts._value()
-# 	numneurons = m.numneurons._value()
-# 	print("dir(Model)", dir(m))
-# 	return {"numparts": numparts, "numneurons": numneurons}
 
 def is_feasible_fitness_value(fitness_value: float) -> bool:
 	assert isinstance(fitness_value, float), f"feasible_fitness({fitness_value}): argument is not of type 'float', it is of type '{type(fitness_value)}'"  # since we are using DEAP, we unfortunately must represent the fitness of an "infeasible solution" as a float...
@@ -464,15 +452,6 @@ def main():
 	print('Max time set to:', FramsticksLibCompetition.MAX_TIME)
 	try:
 		match parsed_args.algorithm:
-			case "RandomMutationCount":
-				print('jazz')
-				from .dalgorithm.RandomMutationCount import randomMutationCount
-				pop, log = randomMutationCount(
-							pop, toolbox,
-							maxmutationsperstep=parsed_args.maxmutationsperstep,
-							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations,
-							restart_method=parsed_args.restart_method, restart_patience=parsed_args.restart_patience,
-							stats=stats, halloffame=hof, verbose=True)
 			case "AdaptMut":
 				print('am')
 				from .dalgorithm.AdaptMut import adaptMut
@@ -482,109 +461,12 @@ def main():
 							restart_method=parsed_args.restart_method, restart_patience=parsed_args.restart_patience,
 							added_ind=parsed_args.added_ind,
 							stats=stats, halloffame=hof, verbose=True)
-			case "MAPElites":
-				print('mapelites')
-				from .dalgorithm.MAPElites import mapElites
-				mapElites(
-							pop, toolbox,
-							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations,
-							features=parsed_args.novelty_features.split(','),
-							grid_selection_method=parsed_args.novelty_sel,
-							topk=parsed_args.tournament,
-							restart_method=parsed_args.restart_method, restart_patience=parsed_args.restart_patience,
-							stats=stats, halloffame=hof, verbose=True)
-			case "eaMuPlusLambda":
-				print('eaMu+Lambda')
-				pop, log = algorithms.eaMuPlusLambda(
-							pop, toolbox, mu=len(pop), lambda_=parsed_args.lbda,
-							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations,
-							stats=stats, halloffame=hof, verbose=True)
-			case "eaMuCommaLambda":
-				print('eaMu,Lambda')
-				pop, log = algorithms.eaMuCommaLambda(
-							pop, toolbox, mu=len(pop), lambda_=parsed_args.lbda,
-							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations,
-							stats=stats, halloffame=hof, verbose=True)
-			case "eaOnePlusLambdaLambda":
-				print('ea1+(Lambda,Lambda)')
-				from .dalgorithm.eaOnePlusLambdaLambda import eaOnePlusLambdaLambda
-				pop, log = eaOnePlusLambdaLambda(
-							pop, toolbox, lbda=parsed_args.lbda, ngen=parsed_args.generations,
-							maxmutationsperstep=parsed_args.maxmutationsperstep,
-							stats=stats, halloffame=hof, verbose=True)
 			case "eaSimple":
 				print('ea')
 				pop, log = algorithms.eaSimple(
 							pop, toolbox,
 							cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations,
 							stats=stats, halloffame=hof, verbose=True)
-			case "Annealer":
-				print('Annealer')
-				from .dalgorithm import Annealer
-				pop, log = Annealer.annealer(
-							pop, toolbox,
-							ngen=parsed_args.generations,
-							adaptMut=parsed_args.xmut_enabled,
-							# adaptMutPatience=parsed_args.restart_patience,
-							stats=stats, halloffame=hof, verbose=True)
-			case "convection_eaSimple":
-				print('cv_ea')
-				def algo_ea(population, toolbox, **params):
-					return algorithms.eaSimple(
-						population, toolbox, ngen=params['generations'],
-						cxpb=parsed_args.pxov, mutpb=parsed_args.pmut,
-						stats=stats, halloffame=hof, verbose=True)
-
-				from .dalgorithm.ConvectionSelection import convectionSelection, ConvectionSelectionPopulationEvalOrder
-				match parsed_args.island_eval_order:
-					case 'worstToBest':
-						parsed_args.island_eval_order = ConvectionSelectionPopulationEvalOrder.WORST_TO_BEST
-					case 'bestToWorst':
-						parsed_args.island_eval_order = ConvectionSelectionPopulationEvalOrder.WORST_TO_BEST
-					case 'interleaved':
-						parsed_args.island_eval_order = ConvectionSelectionPopulationEvalOrder.INTERLEAVED
-					case _:
-						print("Unknown island evaluation order: ", parsed_args.island_eval_order)
-						exit(0)
-				pop, log = convectionSelection(pop, toolbox, ngen=parsed_args.generations,
-								n_islands=parsed_args.nislands, reconvene_gen_interval=parsed_args.migrate_after, algo=algo_ea, island_eval_order=parsed_args.island_eval_order,
-								# restart_method=parsed_args.restart_method, restart_patience=parsed_args.restart_patience,
-								stats=stats, halloffame=hof, verbose=True)
-			case "convection_AdaptMut":
-				print('cv_am')
-				from .dalgorithm.AdaptMut import adaptMut
-				def algo_am(population, toolbox, **params):
-					return adaptMut(
-						population, toolbox, ngen=params['generations'],
-						cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, xmut_enabled=parsed_args.xmut_enabled,
-						added_ind=parsed_args.added_ind,
-						stats=stats, halloffame=hof, verbose=True)
-
-				from .dalgorithm.ConvectionSelection import convectionSelection, ConvectionSelectionPopulationEvalOrder
-				match parsed_args.island_eval_order:
-					case 'worstToBest':
-						parsed_args.island_eval_order = ConvectionSelectionPopulationEvalOrder.WORST_TO_BEST
-					case 'bestToWorst':
-						parsed_args.island_eval_order = ConvectionSelectionPopulationEvalOrder.BEST_TO_WORST
-					case 'interleaved':
-						parsed_args.island_eval_order = ConvectionSelectionPopulationEvalOrder.INTERLEAVED
-					case _:
-						print("Unknown island evaluation order: ", parsed_args.island_eval_order)
-						exit(0)
-				pop, log = convectionSelection(pop, toolbox, ngen=parsed_args.generations,
-								n_islands=parsed_args.nislands, reconvene_gen_interval=parsed_args.migrate_after, algo=algo_am, island_eval_order=parsed_args.island_eval_order,
-								# restart_method=parsed_args.restart_method, restart_patience=parsed_args.restart_patience,
-								stats=stats, halloffame=hof, verbose=True)
-			case "NEAT_speciation":
-				print("NEATsp")
-				from .dalgorithm.NEAT_speciation import speciation
-				pop, log = speciation(pop, toolbox, ngen=parsed_args.generations,
-						n_species=parsed_args.nislands, admission_delta=parsed_args.delta,
-						dynamic_delta_under=parsed_args.delta_under_mult,
-						dynamic_delta_over=parsed_args.delta_over_mult,
-						cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, dissimilarity_metric=parsed_args.dissim,
-						restart_method=parsed_args.restart_method, restart_patience=parsed_args.restart_patience,
-						stats=stats, halloffame=hof, verbose=True)
 			case _:
 				raise "Unknown algorithm"
 	except EOFError:
