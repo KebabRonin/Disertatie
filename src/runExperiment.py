@@ -1,7 +1,7 @@
 import random
 import argparse
 import os
-import sys
+import sys, time
 import numpy as np
 from deap import creator, base, tools, algorithms
 from .config_loader import get_framspy_path
@@ -28,33 +28,6 @@ def genotype_within_constraint(genotype, dict_criteria_values, criterion_name, c
 			return False
 	return True
 
-def frams_compute_crowding_distance(frams_lib, dissim_method, population: list[list[str]], distance_matrix=None):
-	"""
-	Compute a crowding distance for a population.
-	Updates the population individuals inplace, and returns the computed distance matrix, for reuse in whatever you need.
-
-	Should be called after evaluating the population, so we can compute the 'FITNESS' dissim method.
-	FIXME: CONTRADICTION: This is part of the fitness.
-	"""
-	return None # This was a valiant attempt, but I won't use it.
-	try:
-		crowding_idx_in_fitness = OPTIMIZATION_CRITERIA.index('crowding')
-	except ValueError:
-		# No crowding needed
-		return None
-	
-	if distance_matrix is None:
-		distance_matrix = frams_dissim(frams_lib, population, dissim_method)
-	print(distance_matrix)
-
-	popaddrs = [id(geno) for geno in population]
-	for geno in population:
-		idx = popaddrs.index(id(geno))
-		if geno.fitness.valid:
-				# Add the crowding distance as an evaluated fitness metric, if a dissim method was defined, by replacing the fitness altogether.
-				geno.fitness.values = tuple(np.linalg.norm(distance_matrix[idx], ord=2) / 1_000_000 if indx == crowding_idx_in_fitness else geno.fitness.values[indx] for indx in range(len(geno.fitness.values)))
-	return distance_matrix
-
 def frams_evaluate(frams_lib, individual, population=None, dissim_method=DissimMethod.GENE_LEVENSHTEIN):
 	FITNESS_CRITERIA_INFEASIBLE_SOLUTION = [FITNESS_VALUE_INFEASIBLE_SOLUTION] * len(OPTIMIZATION_CRITERIA)  # this special fitness value indicates that the solution should not be propagated via selection ("that genotype is invalid"). The floating point value is only used for compatibility with DEAP. If you implement your own optimization algorithm, instead of a negative value in this constant, use a special value like None to properly distinguish between feasible and infeasible solutions.
 	if not frams_lib.isValidCreature([individual[0]])[0]:
@@ -69,16 +42,11 @@ def frams_evaluate(frams_lib, individual, population=None, dissim_method=DissimM
 		individual.past_operations = []
 		return frams_lib.getCached(genotype)['eval_fit']
 	data = frams_lib.evaluate([genotype])
-	# if population:
-	# 	# For crowding distance, 
-	# 	frams_compute_crowding_distance(frams_lib, dissim_method, population)
-	# print("{'genotype': \"" + genotype.replace('\n', '\\n') + "\", 'data': " + str(data) + "}", file=sys.stderr)
 	valid = True
 	try:
 		first_genotype_data = data[0]
 		evaluation_data = first_genotype_data["evaluations"]
 		default_evaluation_data = evaluation_data[""]
-		default_evaluation_data['crowding'] = 0.0 # Placeholder so crowding distance can be computed separately for each generation, without consuming an evaluation.
 		fitness = [default_evaluation_data[crit] for crit in OPTIMIZATION_CRITERIA]
 	except (KeyError, TypeError) as e:  # the evaluation may have failed for an invalid genotype (such as X[@][@] with "Don't simulate genotypes with warnings" option), or because the creature failed to stabilize, or for some other reason
 		valid = False
@@ -343,7 +311,6 @@ def prepareToolbox(frams_lib: FramsticksLib, OPTIMIZATION_CRITERIA, tournament_s
 	toolbox.register("isValid", frams_isValidCreature, frams_lib) # frams_isValidCreature frams_isValid
 	toolbox.register("isValid", frams_isValidCreature, frams_lib) # frams_isValidCreature frams_isValid
 	toolbox.register("evaluate", frams_evaluate, frams_lib)
-	toolbox.register("add_crowding_distance", frams_compute_crowding_distance, frams_lib, dissim)
 	toolbox.register("mate", frams_crossover, frams_lib)
 	toolbox.register("mutate", frams_mutate, frams_lib)
 	toolbox.register("dissimilarity", frams_dissim, frams_lib) # Open the door to dissimilarity-based methods. FIXME: Does this count as an evaluation? I hope not...
@@ -461,10 +428,10 @@ def save_genotypes(filename, OPTIMIZATION_CRITERIA, hof):
 
 def main():
 	global parsed_args, OPTIMIZATION_CRITERIA  # needed in frams_evaluate(), so made global to avoid passing as arguments
-	parsed_args = parseArguments()
 
 	# random.seed(123)  # see FramsticksLib.DETERMINISTIC below, set to True if you want full determinism
 	FramsticksLib.DETERMINISTIC = False  # must be set before the FramsticksLib() constructor call
+	parsed_args = parseArguments()
 	FramsticksLibCompetition.TEST_FUNCTION = int(parsed_args.evalfn)
 	print("Argument values:", ", ".join(['%s=%s' % (arg, getattr(parsed_args, arg)) for arg in vars(parsed_args)]))
 	OPTIMIZATION_CRITERIA = parsed_args.opt.split(",")
@@ -481,12 +448,6 @@ def main():
 		case _:
 			print("Unknown framslibclass", parsed_args.flibclass)
 			exit(0)
-	# if parsed_args.initialgenotype and parsed_args.skipinitialgenotype:
-	# 	parsed_args.initialgenotype.fitness = DeapFitness()
-	if len(OPTIMIZATION_CRITERIA) <= 1:
-		print("Probably using regular selection")
-	else:
-		print("Probably using NSGA-II selection")
 	toolbox = prepareToolbox(framsLib,
 									OPTIMIZATION_CRITERIA,
 									parsed_args.tournament, parsed_args.genformat,

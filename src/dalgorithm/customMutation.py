@@ -265,16 +265,6 @@ def get_current_weights(genetic_repr):
     d[prop] = getExpProperty(prop)
   return d
 
-def normalize_weights(framsLib, genetic_repr, settings=None):
-  """
-  Normalize mutation weights, so they sum up to 1. This is already done by framsticks, so this method is probably useless.
-  """
-  if settings is None:
-    return
-  for s in settings.keys():
-    setExpProperty(s, settings[s])
-
-
 import re
 MUTATION_INFO_RE = re.compile(r'mutation\((.*?)\)')
 def get_applied_mutation(offspring) -> str:
