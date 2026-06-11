@@ -261,7 +261,7 @@ def custom_Eval(frams_lib: FramsticksLib, toolbox, individual):
 	FITNESS_CRITERIA_INFEASIBLE_SOLUTION = [FITNESS_VALUE_INFEASIBLE_SOLUTION]  # this special fitness value indicates that the solution should not be propagated via selection ("that genotype is invalid"). The floating point value is only used for compatibility with DEAP. If you implement your own optimization algorithm, instead of a negative value in this constant, use a special value like None to properly distinguish between feasible and infeasible solutions.
 	if not frams_lib.isValidCreature([individual[0]])[0]:
 		# Short circuit if invalid genotype.
-		printextra('Skippin\' invalid creature.')
+		# printextra('Skippin\' invalid creature.')
 		return FITNESS_CRITERIA_INFEASIBLE_SOLUTION
 	# real eval
 	fitness = toolbox.evaluate(individual)

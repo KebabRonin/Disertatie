@@ -1,18 +1,11 @@
 ## Installation Instructions
 
 1. Unzip the attached archive
-2. Add your local path to the framspy folder to `config.yaml` file in the parent of `src` folder:
-```config.yaml
-experiments:
-  framspy_path: <YOUR_PATH (replace '\' with '/' or '\\')>
+2. Copy `DynMut.py` and `runExperiment.py` into your framspy folder (which contains the `FramsticksLibCompetition.py` file)
+3. (optional) Uncomment `printextra = lambda *x, **kx: 0` in `DynMut.py` to disable debug prints for restart, mutation strength, mutation probabilities
+4. Run the following command:
 ```
-This is used to gain access to some framspy classes like `frams.GenMan`, and so FramsticksLib doesn't break when imported.
-
-3. Make sure the framspy folder you linked above has `SIMPLE_FITNESS_FORMAT = False` set in `FramsticksLibCompetition.py`.
-4. In a terminal/cmd, move to the parent folder of the `src` folder
-5. Run the following command:
-```
-python -m src.runExperiment -path <PATH_TO_FRAMSTICKS> -sim "eval-allcriteria.sim;deterministic.sim;recording-body-coords.sim" -opt COGpath -genformat 0 -initialgenotype random -added_ind random -restart_method soft_perturb_best -restart_patience 10 -flibclass wHist -pmut 0.8 -generations 1000000
+python runExperiment -path <PATH_TO_FRAMSTICKS> -sim "eval-allcriteria.sim;deterministic.sim;recording-body-coords.sim" -opt COGpath -genformat 0 -pmut 0.8 -pxov 0.2 -popsize 50 -generations 1000000
 ```
 
 ## Algorithm Description
