@@ -1,2 +1,0 @@
-experiments:
-  framspy_path: "./framspy" # The folder where the FramsticksLib.py files are stored (relative or absolute path)

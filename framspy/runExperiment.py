@@ -1,20 +1,15 @@
-import random
 import argparse
 import os
 import sys
 import numpy as np
 from deap import creator, base, tools, algorithms
-from .config_loader import get_framspy_path
-sys.path.append(get_framspy_path()) # FIXME: Needed so `import frams` from files in framspy are imported correctly (i.e. FramsticksLib)
 from FramsticksLib import FramsticksLib
-from FramsticksLibCompetition import FramsticksLibCompetition
-import frams
-from .other.FramsticksLibCompetitionWithHistory import FramsticksLibCompetitionWithHistory
 
 # Note: this may be less efficient than running the evolution directly in Framsticks, so if performance is key, compare both options.
 
 
 FITNESS_VALUE_INFEASIBLE_SOLUTION = -999999.0  # DEAP expects fitness to always be a real value (not None), so this special value indicates that a solution is invalid, incorrect, or infeasible. [Related: https://github.com/DEAP/deap/issues/30 ]. Using float('-inf') or -sys.float_info.max here causes DEAP to silently exit. If you are not using DEAP, set this constant to None, float('nan'), or another special/non-float value to avoid clashing with valid real fitness values, and handle such solutions appropriately as a separate case.
+
 
 def genotype_within_constraint(genotype, dict_criteria_values, criterion_name, constraint_value):
 	REPORT_CONSTRAINT_VIOLATIONS = False
@@ -29,9 +24,6 @@ def genotype_within_constraint(genotype, dict_criteria_values, criterion_name, c
 
 def frams_evaluate(frams_lib, individual):
 	FITNESS_CRITERIA_INFEASIBLE_SOLUTION = [FITNESS_VALUE_INFEASIBLE_SOLUTION] * len(OPTIMIZATION_CRITERIA)  # this special fitness value indicates that the solution should not be propagated via selection ("that genotype is invalid"). The floating point value is only used for compatibility with DEAP. If you implement your own optimization algorithm, instead of a negative value in this constant, use a special value like None to properly distinguish between feasible and infeasible solutions.
-	if not frams_lib.isValidCreature([individual[0]])[0]:
-		# Short circuit if invalid genotype.
-		return FITNESS_CRITERIA_INFEASIBLE_SOLUTION
 	genotype = individual[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	data = frams_lib.evaluate([genotype])
 	# print("Evaluated '%s'" % genotype, 'evaluation is:', data)
@@ -53,12 +45,6 @@ def frams_evaluate(frams_lib, individual):
 		valid &= genotype_within_constraint(genotype, default_evaluation_data, 'numgenocharacters', parsed_args.max_numgenochars)
 	if not valid:
 		fitness = FITNESS_CRITERIA_INFEASIBLE_SOLUTION
-	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory):
-		# Update mutation operation frequency statistics
-		frams_lib.updateMutationStatistics(individual, fitness)
-		# print(f'Consumed {individual.past_operations} for "{individual[0][:25].replace('\n','\\n')}"')
-		individual.past_fitness = fitness
-		individual.past_operations = []
 	return fitness
 
 
@@ -72,27 +58,12 @@ def frams_crossover(frams_lib, individual1, individual2):
 
 def frams_mutate(frams_lib, individual):
 	individual[0] = frams_lib.mutate([individual[0]])[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
-	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory):
-		individual.past_operations += frams_lib.get_last_performed_operations()
 	return individual,
 
 
 def frams_getsimplest(frams_lib, genetic_format, initial_genotype):
-	assert initial_genotype is None or frams.Geno.newFromString(initial_genotype).format._value() == genetic_format
 	return initial_genotype if initial_genotype is not None else frams_lib.getSimplest(genetic_format)
 
-def frams_isValidCreature(frams_lib: FramsticksLib, individual):
-	return frams_lib.isValidCreature([individual[0]])[0]
-
-def frams_getrandomindividual(frams_lib: FramsticksLib, initial_genotype):
-	ind = frams_lib.getRandomGenotype(initial_genotype, 
-			2,
-				min(parsed_args.max_numparts if parsed_args.max_numparts is not None else 10000000000000000000, 100),
-			# Movement should require at least 2 neurons: A muscle and a sensor
-			min(parsed_args.max_numneurons if parsed_args.max_numneurons is not None else 10000000000000000000, 2),
-				min(parsed_args.max_numneurons if parsed_args.max_numneurons is not None else 10000000000000000000, 100),
-			100, True)
-	return ind
 
 def is_feasible_fitness_value(fitness_value: float) -> bool:
 	assert isinstance(fitness_value, float), f"feasible_fitness({fitness_value}): argument is not of type 'float', it is of type '{type(fitness_value)}'"  # since we are using DEAP, we unfortunately must represent the fitness of an "infeasible solution" as a float...
@@ -134,7 +105,7 @@ def selNSGA2_only_feasible(individuals, k, toolboxclone):
 
 def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_format, initial_genotype):
 	creator.create("FitnessMax", base.Fitness, weights=[1.0] * len(OPTIMIZATION_CRITERIA))
-	creator.create("Individual", list, fitness=creator.FitnessMax, past_operations=list, past_fitness=float)  # would be nice to have "str" instead of unnecessary "list of str"
+	creator.create("Individual", list, fitness=creator.FitnessMax)  # would be nice to have "str" instead of unnecessary "list of str"
 
 	toolbox = base.Toolbox()
 	toolbox.register("attr_simplest_genotype", frams_getsimplest, frams_lib, genetic_format, initial_genotype)  # "Attribute generator"
@@ -145,30 +116,7 @@ def prepareToolbox(frams_lib, OPTIMIZATION_CRITERIA, tournament_size, genetic_fo
 	# https://gitlab.com/santiagoandre/deap-customize-population-example/-/blob/master/AGbasic.py
 	# https://groups.google.com/forum/#!topic/deap-users/22g1kyrpKy8
 	toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_simplest_genotype, 1)
-	toolbox.register("attr_random_genotype", frams_getrandomindividual, frams_lib, toolbox.attr_simplest_genotype())  # "Attribute generator"
-	def attr_random_pop_from_genotype(frams_lib, init_geno, n):
-		"""
-		Generate a new population by perturbing the given genotype. For use in soft_perturb_best restart method.
-		"""
-		pop = [tools.initRepeat(toolbox.individual_from_str, lambda: frams_lib.getRandomGenotype(init_geno,
-				2,
-					min(parsed_args.max_numparts if parsed_args.max_numparts is not None else 10000000000000000000, 100),
-				# Movement should require at least 2 neurons: A muscle and a sensor
-				min(parsed_args.max_numneurons if parsed_args.max_numneurons is not None else 10000000000000000000, 2),
-					min(parsed_args.max_numneurons if parsed_args.max_numneurons is not None else 10000000000000000000, 100),
-				random.randrange(0, 4), True)
-			, 1) for _ in range(int(n * 0.25))]
-		# Reinit with 1/4(bestratio) best ind, 3/4 randoms.
-		return pop + [tools.initRepeat(toolbox.individual_from_str, toolbox.attr_random_genotype, 1) for _ in range(n - len(pop))]
-
-	toolbox.register("attr_random_pop_from_genotype", attr_random_pop_from_genotype, frams_lib)  # "Attribute generator"
-	toolbox.register("individual_from_str", creator.Individual)
-	toolbox.register("random_individual", tools.initRepeat, creator.Individual, toolbox.attr_random_genotype, 1) # TODO: 
-	if parsed_args.population_initialization == 'random':
-		toolbox.register("population", tools.initRepeat, list, toolbox.random_individual)
-	elif parsed_args.population_initialization == 'clone':
-		toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-	toolbox.register("isValid", frams_isValidCreature, frams_lib)
+	toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 	toolbox.register("evaluate", frams_evaluate, frams_lib)
 	toolbox.register("mate", frams_crossover, frams_lib)
 	toolbox.register("mutate", frams_mutate, frams_lib)
@@ -187,13 +135,8 @@ def parseArguments():
 	parser.add_argument('-lib', required=False, help='Library name. If not given, "frams-objects.dll" (or .so or .dylib) is assumed depending on the platform.')
 	parser.add_argument('-sim', required=False, default="eval-allcriteria.sim", help="The name of the .sim file with settings for evaluation, mutation, crossover, and similarity estimation. If not given, \"eval-allcriteria.sim\" is assumed by default. Must be compatible with the \"standard-eval\" expdef. If you want to provide more files, separate them with a semicolon ';'.")
 
-	parser.add_argument('-genformat', required=False, help='Genetic format for the simplest initial genotype, for example 4, 9, or B. If not given, f1 is assumed.', default='1')
+	parser.add_argument('-genformat', required=False, help='Genetic format for the simplest initial genotype, for example 4, 9, or B. If not given, f1 is assumed.')
 	parser.add_argument('-initialgenotype', required=False, help='The genotype used to seed the initial population. If given, the -genformat argument is ignored.')
-
-	parser.add_argument('-flibclass', choices=['competition', 'wHist'], default='competition')
-	parser.add_argument('-restart_patience', type=int, default=20, help=r"After how many generations of no improvement greater than 1% in the max fitness to do a restart.")
-	parser.add_argument('-restart_method', choices=['hard', 'soft_perturb_best', 'soft_perturb_best_all', 'none'], default='none', help="Restart hard (so reinit pop from scratch), or soft (by applying some mutations to the best ind from the run that is ending and continuing the run)")
-	parser.add_argument('-added_ind', choices=['random', 'initial'], default='initial', help="(only for AdaptMut), what genotype to add with a low probability when mutating, default: initial.")
 
 	parser.add_argument('-opt', required=True, help='optimization criteria: vertpos, velocity, distance, vertvel, lifespan, numjoints, numparts, numneurons, numconnections (or other as long as it is provided by the .sim file and its .expdef). For multiple criteria optimization, separate the names by the comma.')
 	parser.add_argument('-popsize', type=int, default=50, help="Population size, default: 50.")
@@ -209,13 +152,7 @@ def parseArguments():
 	parser.add_argument('-max_numneurons', type=int, default=None, help="Maximum number of Neurons. Default: no limit")
 	parser.add_argument('-max_numconnections', type=int, default=None, help="Maximum number of Neural connections. Default: no limit")
 	parser.add_argument('-max_numgenochars', type=int, default=None, help="Maximum number of characters in genotype (including the format prefix, if any). Default: no limit")
-	parsed_args = parser.parse_args()
-	if parsed_args.initialgenotype == 'random':
-		parsed_args.population_initialization = 'random'
-		parsed_args.initialgenotype = None
-	else:
-		parsed_args.population_initialization = 'clone'
-	return parsed_args
+	return parser.parse_args()
 
 
 def ensureDir(string):
@@ -245,14 +182,9 @@ def main():
 	parsed_args = parseArguments()
 	print("Argument values:", ", ".join(['%s=%s' % (arg, getattr(parsed_args, arg)) for arg in vars(parsed_args)]))
 	OPTIMIZATION_CRITERIA = parsed_args.opt.split(",")
-	match parsed_args.flibclass:
-		case 'competition':
-			framsLib = FramsticksLibCompetition(parsed_args.path, parsed_args.lib, parsed_args.sim)
-		case 'wHist':
-			# Also implements Evolutionary Strategy (remembers all past mutations, and adjusts weights)
-			framsLib = FramsticksLibCompetitionWithHistory(
-				parsed_args.path, parsed_args.lib, parsed_args.sim, frams, ESalgo='freqWindow')
-	toolbox = prepareToolbox(framsLib, OPTIMIZATION_CRITERIA, parsed_args.tournament, parsed_args.genformat, parsed_args.initialgenotype)
+	from FramsticksLibCompetition import FramsticksLibCompetition
+	framsLib = FramsticksLibCompetition(parsed_args.path, parsed_args.lib, parsed_args.sim)
+	toolbox = prepareToolbox(framsLib, OPTIMIZATION_CRITERIA, parsed_args.tournament, '1' if parsed_args.genformat is None else parsed_args.genformat, parsed_args.initialgenotype)
 	pop = toolbox.population(n=parsed_args.popsize)
 	hof = tools.HallOfFame(parsed_args.hof_size)
 	stats = tools.Statistics(lambda ind: ind.fitness.values)
@@ -266,12 +198,12 @@ def main():
 	stats.register("evalTime", lambda _: framsLib._evaluation_time)
 	import time
 	stats.register("noneval_Time", lambda _: time.perf_counter() - framsLib._time0 - framsLib._evaluation_time)
-	from .dalgorithm.AdaptMut import adaptMut
-	pop, log = adaptMut(
+	from DynMut import dynMut
+	pop, log = dynMut(
 				pop, toolbox,
 				cxpb=parsed_args.pxov, mutpb=parsed_args.pmut, ngen=parsed_args.generations,
-				restart_method=parsed_args.restart_method, restart_patience=parsed_args.restart_patience,
-				added_ind=parsed_args.added_ind,
+				framsLib=framsLib, max_numparts=parsed_args.max_numparts, max_numneurons=parsed_args.max_numneurons,
+				restart_patience=10,
 				stats=stats, halloffame=hof, verbose=True)
 	print('Best individuals:')
 	for ind in hof:
