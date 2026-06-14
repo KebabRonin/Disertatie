@@ -27,7 +27,7 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 	Custom wrapper which adds some data tracking. Keeps track of all generated individuals over the course of a run.
 	"""
 
-	def __init__(self, frams_path, frams_lib_name, sim_settings_files, frams_module,
+	def __init__(self, frams_path, frams_lib_name, sim_settings_files, frams_module, wHist_ignorefitnesscmaes,
 					cacheActive=False, score_fn='ratio', genformat='0',
 					decay=0.985, # Should forget deltas after ~500 evaluations, aka. 50 ind x 10 generations (but it can differ by algorithm)
 					norm_method='mean',
@@ -35,6 +35,7 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 				):
 		super().__init__(frams_path, frams_lib_name, sim_settings_files)
 		self.ESalgo = ESalgo
+		self.wHist_ignorefitnesscmaes = wHist_ignorefitnesscmaes
 		self.genformat = genformat
 		self.norm_method = norm_method
 		CmutFramsLibReference.custom_mut_frams_lib_reference = frams_module
@@ -206,10 +207,19 @@ class FramsticksLibCompetitionWithHistory(FramsticksLibCompetition):
 		# 	individual.past_fitness = [0.0 for _ in range(len(new_fitness))]
 		match self.ESalgo:
 			case 'freqWindow':
-				if new_fitness[0] == -999999.0: # FIXME: This should be FITNESS_VALUE_INFEASIBLE_SOLUTION instead.
-					# Don't count invalid individuals.
-					# This is mainly to avoid a feedback loop for AdaptMut with neg score_fn and max_numparts 3 , so f0_p_add isn't promoted into oblivion and you end up with an all-infeasible population.
-					return
+				match self.wHist_ignorefitnesscmaes:
+					case 'ignore_infeasible':
+						if new_fitness[0] == -999999.0: # FIXME: This should be FITNESS_VALUE_INFEASIBLE_SOLUTION instead.
+							# Don't count invalid individuals.
+							# This is mainly to avoid a feedback loop for AdaptMut with neg score_fn and max_numparts 3 , so f0_p_add isn't promoted into oblivion and you end up with an all-infeasible population.
+							return
+					case 'ignore_infeasible_constraints':
+						## Only ignore infeasible if it's because numparts/numneuros constraints (and not because invalid genotype)
+						if not self.isValidCreature([individual[0]]) and new_fitness[0] == -999999.0: # FIXME: This should be FITNESS_VALUE_INFEASIBLE_SOLUTION instead.
+							# This is mainly to avoid a feedback loop for AdaptMut with neg score_fn and max_numparts 3 , so f0_p_add isn't promoted into oblivion and you end up with an all-infeasible population.
+							return
+					case 'none':
+						pass
 				# Soft window by using decay
 				old_fitness = [individual.past_fitness] if isinstance(individual.past_fitness, float) else individual.past_fitness
 				fitness_delta = float(new_fitness[0] - old_fitness[0])

@@ -8,6 +8,16 @@
 
 [Source Index](#source-index)
 
+## Feedback
+
+* [x] **You should not need to change FramsticksEvolution.py**. You should be able to call framsLib.isValidCreature() from your code, right?
+* [x] The algorithm does not have to support multi-criteria optimization. All testing fitness functions in the competition are generated based on COGpath.  
+* [x] Don't ever use eval() or exec(). If you need to dynamically set parameters, you can use getattr() and setattr().
+* [x] Provide explicit argument values to Random.normalvariate().
+	* Removed entirely
+* [ ] Is a superclass (FramsticksLibCompetitionWithHistory and inheritance from FramstickLibCompetition) needed? The original idea was that your algorithm should import FramstickLibCompetition and use (i.e., call) its functions.
+* [x] "-generations 100" runs the algorithm for the specified number of generations. However, the computational budget is well defined in  [https://www.framsticks.com/gecco-competition](https://www.framsticks.com/gecco-competition) which means that you can introduce the "competition mode" so that your algorithm is adapted to (and aware of) the competition restrictions. Or is "-generations 100" exactly how we should run your algorithm?
+
 ## Installation instructions
 
 0. Follow the instructions on the [Official Competition Website](https://framsticks.com/gecco-competition) ([Archive link - 2025/03/24](https://web.archive.org/web/20250324230252/http://www.framsticks.com/gecco-competition)) to install Framsticks.
@@ -331,7 +341,10 @@ https://github.com/marcovirgolin/GP-GOMEA
 
 
 
-
+- Is it ok to present the Framsticks simulator in detail in the introduction (2-3pagini)? Is it plagiat?
+	- De unde mai scot pagini?
+	- 14 pag cu referinte etc, 29 pag cu tot cu appendix de `All runs table`
+- Il trec pe prof ca parte din echipa la submission?
 
 
 

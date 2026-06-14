@@ -26,6 +26,7 @@ BASELINES = [
 
 HIGHLIGHT = {
     'eaSimpleF1': 'red',
+    'preliminary3': 'gold',
     # 'AdaptMutF0pmut08added_indrandom': 'red',
     # 'AdaptMutF0pmut08': 'red',
     BASELINE: 'red'
@@ -36,7 +37,7 @@ def get_algo_color(algo_name):
     random.seed(algo_name)
     return random.choice(COLORS)
 
-N_RUNS = 20
+N_RUNS = 50
 MAX_STEPS = 100_001
 example_idx = 0
 
@@ -60,6 +61,8 @@ def parseArgs():
     parser.add_argument('-s', '--silent', action='store_true', help='To output or not to output')
     parser.add_argument('--redo', action='store_true', help='To output or not to output')
     parser.add_argument('--latex', action='store_true', help='To output the leaderboard in latex format')
+    parser.add_argument('--filterbest', action='store_true', help='Only display the best run of each algo type')
+    parser.add_argument('--nodel', action='store_true', help='Just build the pictures, don\'t recompute stats')
     return parser.parse_args()
 
 def running_stat(arr, fn, radius=50):
@@ -67,50 +70,53 @@ def running_stat(arr, fn, radius=50):
 
 def order_fn_median(names):
     ordered_names = list(names.keys())
-    ordered_names.sort(key=lambda n: np.median(names[n]['runs']), reverse=True)
+    ordered_names.sort(key=lambda n: np.median(names[n]['runs'][:N_RUNS]), reverse=True)
     return ordered_names
 
 def order_fn_mean(names):
     ordered_names = list(names.keys())
-    ordered_names.sort(key=lambda n: np.mean(names[n]['runs']), reverse=True)
+    ordered_names.sort(key=lambda n: np.mean(names[n]['runs'][:N_RUNS]), reverse=True)
     return ordered_names
 
 def order_fn_max(names):
     ordered_names = list(names.keys())
-    ordered_names.sort(key=lambda n: max(names[n]['runs']), reverse=True)
+    ordered_names.sort(key=lambda n: max(names[n]['runs'][:N_RUNS]), reverse=True)
     return ordered_names
 
 def order_fn_min(names):
     ordered_names = list(names.keys())
-    ordered_names.sort(key=lambda n: min(names[n]['runs']), reverse=True)
+    ordered_names.sort(key=lambda n: min(names[n]['runs'][:N_RUNS]), reverse=True)
     return ordered_names
 
 def parse_algo_params(name: str):
     params = {}
-    ook = False
-    for file_name in [p for p in os.listdir(os.path.join(EXPERIMENTS_PATH, name)) if re.match(r'^results_\d+\.stdout$', p)]:
-        with open(os.path.join(EXPERIMENTS_PATH, name, file_name), 'r') as f:
-            parstr = ''
-            ok = False
-            for currstr in f.readlines():
-                if currstr.startswith('Using Framsticks version'):
-                    ok = True
-                    break
-                parstr += currstr
-                currstr = f.readline()
-            if not ok:
-                continue
-            ook = True
-            break
-    if ook == False:
-        raise ("No valid files in folder " + name)
-    parstr = parstr.strip()
-    nextarg = ', skipinitialgenotype=' if parstr.split(', initialgenotype=')[1].find(', skipinitialgenotype=') != -1 else ', algorithm='
-    params['initialgenotype'] = parstr.split(', initialgenotype=')[1].split(nextarg)[0]
-    parstr = parstr.split(', initialgenotype=')[0] + nextarg + parstr.split(nextarg)[1]
-    pp = re.findall(PARAM_PATT, parstr)
-    for g in pp:
-        params[g[0]] = g[1]
+    try:
+        ook = False
+        for file_name in [p for p in os.listdir(os.path.join(EXPERIMENTS_PATH, name)) if re.match(r'^results_\d+\.stdout$', p)]:
+            with open(os.path.join(EXPERIMENTS_PATH, name, file_name), 'r') as f:
+                parstr = ''
+                ok = False
+                for currstr in f.readlines():
+                    if currstr.startswith('Using Framsticks version'):
+                        ok = True
+                        break
+                    parstr += currstr
+                    currstr = f.readline()
+                if not ok:
+                    continue
+                ook = True
+                break
+        if ook == False:
+            raise ("No valid files in folder " + name)
+        parstr = parstr.strip()
+        nextarg = ', skipinitialgenotype=' if parstr.split(', initialgenotype=')[1].find(', skipinitialgenotype=') != -1 else ', algorithm='
+        params['initialgenotype'] = parstr.split(', initialgenotype=')[1].split(nextarg)[0]
+        parstr = parstr.split(', initialgenotype=')[0] + nextarg + parstr.split(nextarg)[1]
+        pp = re.findall(PARAM_PATT, parstr)
+        for g in pp:
+            params[g[0]] = g[1]
+    except Exception as e:
+        print('Exception:', e)
     return params
 
 PARAM_PATT = re.compile(r'\b([\w0-9]+)=([\w0-9_\-\n \/.;:]+)')
@@ -389,6 +395,15 @@ def violins(names, order_fn=order_fn_median):
         if tick.get_text() in HIGHLIGHT:
             tick.set_color(HIGHLIGHT[tick.get_text()])
 
+def getTopOfEachAlgo(ordered_names):
+    bbest = []
+    bbo = []
+    for idx, n in enumerate(ordered_names):
+        if 'algorithm' in names[n]['params'] and names[n]['params']['algorithm'] not in bbest:
+            bbest.append(names[n]['params']['algorithm'])
+            bbo.append(n)
+    return bbo
+
 def boxplots(names, order_fn=order_fn_median):
     global HIGHLIGHT
     hhighlight = {}
@@ -397,15 +412,15 @@ def boxplots(names, order_fn=order_fn_median):
     plt.figure(figsize=FIGSIZE)
     ordered_names = order_fn(names)
     for idx, n in enumerate(ordered_names):
-        if len(names[n]['runs']) < 20:
+        if len(names[n]['runs'][:N_RUNS]) < 20:
             hhighlight[n] = 'blue'
-        if names[n]['params']['algorithm'] not in bbest:
-            hhighlight[n] = 'green'
+        if 'algorithm' in names[n]['params'] and  names[n]['params']['algorithm'] not in bbest:
+            hhighlight[n] = 'pink' if n in hhighlight and hhighlight[n] != 'blue' else (HIGHLIGHT_COLOR)
             bbest.append(names[n]['params']['algorithm'])
     for idx, n in enumerate(reversed(ordered_names)):
-        plt.scatter(names[n]['runs'], [idx+1] * len(names[n]['runs']), color=get_algo_color(n), label=n, alpha=0.2)
-    plt.boxplot([names[n]['runs'] for n in reversed(ordered_names)], showmeans=True, orientation='horizontal')
-    plt.axvline(x=243.49050, color='red', linestyle='--', linewidth=2)
+        plt.scatter(names[n]['runs'][:N_RUNS], [idx+1] * len(names[n]['runs'][:N_RUNS]), color=get_algo_color(n), label=n, alpha=0.2)
+    plt.boxplot([names[n]['runs'][:N_RUNS] for n in reversed(ordered_names)], showmeans=True, orientation='horizontal')
+    plt.axvline(x=249.01476, color='red', linestyle='--', linewidth=2)
     plt.yticks(range(1, len(names)+1), reversed(ordered_names), rotation=0, ha='right')
     ax = plt.gca()
     for tick in ax.get_yticklabels():
@@ -499,16 +514,18 @@ def show_runs(rs: dict, d, example_idx, run_idx, plot=True, printout=False, arr_
             plt.tight_layout(pad=0.2)
             plt.savefig(plotname)
             plt.close()
-    # actual_idx = rs[d]['run_idx']
-    # with open(os.path.join(get_experiments_dir(), d, f"hof_{actual_idx}.txt"), 'r') as f:
-    #     content = f.read()
-    #     m = re.findall(HOF_SCORE, content)
-    #     print(m, d, actual_idx)
-    #     if len(m) > 0:
-    #         best_val_hof = float(m[0])
-    #     else:
-    #         print("[Warning] Empty hof file? For ", example_idx, d)
-    #         best_val_hof = -1
+    actual_idx = rs[d]['run_idx']
+    with open(os.path.join(get_experiments_dir(), d, f"hof_{actual_idx}.txt"), 'r') as f:
+        content = f.read()
+        m = re.findall(HOF_SCORE, content)
+        # print(m, d, actual_idx)
+        if len(m) > 0:
+            best_val_hof = float(m[0])
+        else:
+            print("[Warning] Empty hof file? For ", example_idx, d)
+            best_val_hof = float('-inf')
+            exit(-1)
+    best_val = best_val_hof
     best_val = max(map(lambda x: x[1] if x[1] else 0, rs[d][arr_to_plot][example_idx])) if len(rs[d][arr_to_plot][example_idx]) > 0 else float('-inf')
     if 'islands' in rs[d]:
         islbests = []
@@ -571,7 +588,7 @@ def print_clasament(names, latex):
 
     names_sorted = list(names.keys())
     names = {n: names[n] for n in names_sorted} # Ensure different evalfns are not listed together
-    names_sorted.sort(key=lambda x: np.mean(names[x]['runs']), reverse=True)
+    names_sorted.sort(key=lambda x: np.mean(names[x]['runs'][:N_RUNS]), reverse=True)
     comments = json.load(open(os.path.join(get_disertatie_root(), 'algo_comments.json'), 'r'))
 
     best_max = [(n, np.max(names[n]['runs'][:N_RUNS])) for n in names_sorted]
@@ -611,7 +628,6 @@ def print_clasament(names, latex):
                 + f'|{np.std(names[n]['runs'][:N_RUNS]):10.5f}|{mean}|{median}|{maxx}'
                 + f'|`({runs_time_exceeded}/{len(names[n]['runs'][:N_RUNS])})`|{namm}|{comment}|')
 
-FIGSIZE=(25,25)
 if __name__ == '__main__':
     sc = get_best_genotypes_over_all_runs()
     print(len(sc))
@@ -624,7 +640,8 @@ if __name__ == '__main__':
         print = lambda *x, **kw: x
     if parsedargs.redo:
         os.system(f'rm {DATA_FILE}')
-    os.system(f'rm {STATS_FILE}')
+    if not parsedargs.nodel:
+        os.system(f'rm {STATS_FILE}')
     if not os.path.exists(STATS_FILE):
         if not os.path.exists(DATA_FILE):
             print('Parsing results...')
@@ -707,6 +724,13 @@ if __name__ == '__main__':
     print_clasament({n: names[n] for n in names.keys() if 'evalfn6' in n}, parsedargs.latex)
     print(' Evalfn3 '.center(130, '*'))
     names = {n: names[n] for n in names.keys() if 'evalfn6' not in n and 'evalfn5' not in n and 'evalfn4' not in n}
+    if parsedargs.filterbest:
+        FIGSIZE=(25,5)
+        HIGHLIGHT_COLOR="black"
+        names = {n: names[n] for n in names.keys() if n in getTopOfEachAlgo(order_fn_mean(names)) or n in BASELINES or n in HIGHLIGHT}
+    else:
+        FIGSIZE=(25,25)
+        HIGHLIGHT_COLOR="#0d729a"
     # print_clasament({n: names[n] for n in names.keys() if 'evalfn5' not in n and 'evalfn4' not in n})
     print_clasament(names, parsedargs.latex)
 

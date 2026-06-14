@@ -92,115 +92,91 @@ def getUnrunExperiments():
     print (f"{alr_run}/{runns} ({alr_run/runns:.3f})")
 
 runs_cfgs = [
-    # { # more best so far, so I can see how the distribution changes
+    { # best so far, f0 no fitness ignore
+        'convection': None, #[None, 'convection_'],
+        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+        'genformat': 0, # [0, 1],
+        'pmut': 0.8, # [None, 0.8, 0.5],
+        'pop': None, # [None, 100, 500],
+        'lbda': None, # [100, 350]
+        'extra': ' -continuerun -runname no_det_AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegwHist_ignorefitnesscmaesnone -nodet 1 -nruns 10 ', # -nodet 1
+        'extra_cargs': ' -initialgenotype random -added_ind random -dissim PHENE_STRUCT_GREEDY -restart_method soft_perturb_best -restart_patience 10 -flibclass wHist -wHist_scorefn neg -wHist_ignorefitnesscmaes ignore_infeasible ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+        'nameSuffix': '',
+        'namePrefix': '',
+    },
+    { # best so far, f1 nodet
+        'convection': None, #[None, 'convection_'],
+        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+        'genformat': 1, # [0, 1],
+        'pmut': 0.8, # [None, 0.8, 0.5],
+        'pop': None, # [None, 100, 500],
+        'lbda': None, # [100, 350]
+        'extra': ' -nodet 1 -nruns 10', # -nodet 1
+        'extra_cargs': ' -initialgenotype random -added_ind random -dissim PHENE_STRUCT_GREEDY -restart_method soft_perturb_best -restart_patience 10 -flibclass wHist -wHist_scorefn neg ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+        'nameSuffix': '',
+        'namePrefix': '',
+    },
+    { # best so far, f0 fitness ignore
+        'convection': None, #[None, 'convection_'],
+        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+        'genformat': 0, # [0, 1],
+        'pmut': 0.8, # [None, 0.8, 0.5],
+        'pop': None, # [None, 100, 500],
+        'lbda': None, # [100, 350]
+        'extra': ' -continuerun -runname no_det_AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegwHist_ignorefitnesscmaesignoreinfeasible -nodet 1 -nruns 10 ', # -nodet 1
+        'extra_cargs': ' -initialgenotype random -added_ind random -dissim PHENE_STRUCT_GREEDY -restart_method soft_perturb_best -restart_patience 10 -flibclass wHist -wHist_scorefn neg -wHist_ignorefitnesscmaes ignore_infeasible_constraints ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+        'nameSuffix': '',
+        'namePrefix': '',
+    },
+    { # best so far, f0  fitness ignore constraints
+        'convection': None, #[None, 'convection_'],
+        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+        'genformat': 0, # [0, 1],
+        'pmut': 0.8, # [None, 0.8, 0.5],
+        'pop': None, # [None, 100, 500],
+        'lbda': None, # [100, 350]
+        'extra': ' -continuerun -runname no_det_AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegwHist_ignorefitnesscmaesignoreinfeasibleconstraints -nodet 1 -nruns 10 ', # -nodet 1
+        'extra_cargs': ' -initialgenotype random -added_ind random -dissim PHENE_STRUCT_GREEDY -restart_method soft_perturb_best -restart_patience 10 -flibclass wHist -wHist_scorefn neg -wHist_ignorefitnesscmaes none ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+        'nameSuffix': '',
+        'namePrefix': '',
+    },
+    # { # best so far, f1
     #     'convection': None, #[None, 'convection_'],
     #     'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-    #     'genformat': 0, # [0, 1],
+    #     'genformat': 1, # [0, 1],
     #     'pmut': 0.8, # [None, 0.8, 0.5],
     #     'pop': None, # [None, 100, 500],
     #     'lbda': None, # [100, 350]
-    #     'extra': ' -runname AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnneg -continuerun -nruns 10 ', # -nodet 1
+    #     'extra': ' ', # -nodet 1
+    #     'extra_cargs': ' -initialgenotype random -added_ind random -dissim PHENE_STRUCT_GREEDY -restart_method soft_perturb_best -restart_patience 10 -flibclass wHist -wHist_scorefn neg ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+    #     'nameSuffix': '',
+    #     'namePrefix': '',
+    # },
+    # { # eaMuCommaLambda fix run count
+    #     'convection': None, #[None, 'convection_'],
+    #     'algorithm': 'eaMuCommaLambda', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+    #     'genformat': 0, # [0, 1],
+    #     'pmut': None, # [None, 0.8, 0.5],
+    #     'pop': None, # [None, 100, 500],
+    #     'lbda': None, # [100, 350]
+    #     'extra': '-continuerun -nruns 10 -runname rn_evalfn3_eaMuCommaLambda_algoeaMuCommaLambda_genf0_initf0XX_lbda500_pmut0635_pops500_pxov0365_tour6 ', # -nodet 1
     #     'extra_cargs': ' ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
     #     'nameSuffix': '',
     #     'namePrefix': '',
     # },
-    { # best so far, no random initial population
-        'convection': None, #[None, 'convection_'],
-        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-        'genformat': 0, # [0, 1],
-        'pmut': 0.8, # [None, 0.8, 0.5],
-        'pop': None, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' ', # -nodet 1
-        'extra_cargs': ' -added_ind random -dissim PHENE_STRUCT_GREEDY -restart_method soft_perturb_best -restart_patience 10 -flibclass wHist -wHist_scorefn neg ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-        'nameSuffix': '',
-        'namePrefix': '',
-    },
-    { # scorefn neg (best so far), no restarts
-        'convection': None, #[None, 'convection_'],
-        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-        'genformat': 0, # [0, 1],
-        'pmut': 0.8, # [None, 0.8, 0.5],
-        'pop': None, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' -nruns 10 ', # -nodet 1
-        'extra_cargs': ' -initialgenotype random -added_ind random -dissim PHENE_STRUCT_GREEDY -flibclass wHist -wHist_scorefn neg ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-        'nameSuffix': '',
-        'namePrefix': '',
-    },
-    { # best so far, soft_restart_best_all
-        'convection': None, #[None, 'convection_'],
-        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-        'genformat': 0, # [0, 1],
-        'pmut': 0.8, # [None, 0.8, 0.5],
-        'pop': None, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' ', # -nodet 1
-        'extra_cargs': ' -initialgenotype random -added_ind random -dissim PHENE_STRUCT_GREEDY -restart_method soft_perturb_best_all -restart_patience 10 -flibclass wHist -wHist_scorefn neg ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-        'nameSuffix': '',
-        'namePrefix': '',
-    },
-    { # moore decay 0.95
-        'convection': None, #[None, 'convection_'],
-        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-        'genformat': 0, # [0, 1],
-        'pmut': None, # [None, 0.8, 0.5],
-        'pop': None, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' -runname AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegwHist_decay095 -continuerun -nruns 10', # -nodet 1
-        'extra_cargs': ' ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-        'nameSuffix': '',
-        'namePrefix': '',
-    },
-    { # moore decay 0.93
-        'convection': None, #[None, 'convection_'],
-        'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-        'genformat': 0, # [0, 1],
-        'pmut': None, # [None, 0.8, 0.5],
-        'pop': None, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' -runname AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegwHist_decay093 -continuerun -nruns 10', # -nodet 1
-        'extra_cargs': ' ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-        'nameSuffix': '',
-        'namePrefix': '',
-    },
-    { # MAPElites, no restart
-        'convection': None, #[None, 'convection_'],
-        'algorithm': 'MAPElites', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-        'genformat': 0, # [0, 1],
-        'pmut': None, # [None, 0.8, 0.5],
-        'pop': None, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' ', # -nodet 1
-        'extra_cargs': ' -popsize 20 -wHist_cacheActive 1 -flibclass wHist -wHist_ESalgo none -novelty_sel random_meta -tournament 50 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-        'nameSuffix': '',
-        'namePrefix': '',
-    },
-    
-    # { # best so far evalfn4
+    # { # eaMuPlusLambda fix run count
     #     'convection': None, #[None, 'convection_'],
-    #     'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+    #     'algorithm': 'eaMuPlusLambda', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
     #     'genformat': 0, # [0, 1],
-    #     'pmut': 0.8, # [None, 0.8, 0.5],
+    #     'pmut': None, # [None, 0.8, 0.5],
     #     'pop': None, # [None, 100, 500],
     #     'lbda': None, # [100, 350]
-    #     'extra': ' ', # -nodet 1
-    #     'extra_cargs': ' -initialgenotype random -added_ind random -restart_method soft_perturb_best -restart_patience 10 -flibclass wHist -wHist_scorefn neg -evalfn 4', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+    #     'extra': '-continuerun -nruns 10 -runname rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_initf1random_lbda245_pmut066_pops120_pxov033999999999999997_tour8 ', # -nodet 1
+    #     'extra_cargs': ' ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
     #     'nameSuffix': '',
     #     'namePrefix': '',
     # },
-    # { # best so far evalfn5
-    #     'convection': None, #[None, 'convection_'],
-    #     'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-    #     'genformat': 0, # [0, 1],
-    #     'pmut': 0.8, # [None, 0.8, 0.5],
-    #     'pop': None, # [None, 100, 500],
-    #     'lbda': None, # [100, 350]
-    #     'extra': ' ', # -nodet 1
-    #     'extra_cargs': ' -initialgenotype random -added_ind random -restart_method soft_perturb_best -restart_patience 10 -flibclass wHist -wHist_scorefn neg -evalfn 5', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-    #     'nameSuffix': '',
-    #     'namePrefix': '',
-    # },
+
     # { # best so far evalfn6
     #     'convection': None, #[None, 'convection_'],
     #     'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
@@ -213,46 +189,7 @@ runs_cfgs = [
     #     'nameSuffix': '',
     #     'namePrefix': '',
     # },
-    # { # best so far + f1
-    #     'convection': None, #[None, 'convection_'],
-    #     'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-    #     'genformat': 1, # [0, 1],
-    #     'pmut': 0.8, # [None, 0.8, 0.5],
-    #     'pop': None, # [None, 100, 500],
-    #     'lbda': None, # [100, 350]
-    #     'extra': ' ', # -nodet 1
-    #     'extra_cargs': ' -initialgenotype random -added_ind random -restart_method soft_perturb_best -restart_patience 10 -flibclass wHist -wHist_scorefn neg ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-    #     'nameSuffix': '',
-    #     'namePrefix': '',
-    # },
 
-    { # MAPElites, quality?
-        'convection': None, #[None, 'convection_'],
-        'algorithm': 'MAPElites', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-        'genformat': 0, # [0, 1],
-        'pmut': None, # [None, 0.8, 0.5],
-        'pop': None, # [None, 100, 500],
-        'lbda': None, # [100, 350]
-        'extra': ' ', # -nodet 1
-        'extra_cargs': ' -popsize 20 -wHist_cacheActive 1 -flibclass wHist -wHist_ESalgo none -novelty_sel quality -restart_method soft_perturb_best -restart_patience 100 -tournament 50 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-        'nameSuffix': '',
-        'namePrefix': '',
-    },
-
-    # { # best so far
-    #     'convection': None, #[None, 'convection_'],
-    #     'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-    #     'genformat': 0, # [0, 1],
-    #     'pmut': 0.8, # [None, 0.8, 0.5],
-    #     'pop': None, # [None, 100, 500],
-    #     'lbda': None, # [100, 350]
-    #     'extra': ' ', # -nodet 1
-    #     'extra_cargs': ' -initialgenotype random -added_ind random -dissim PHENE_STRUCT_GREEDY -restart_method soft_perturb_best -restart_patience 10 -flibclass wHist -wHist_scorefn neg ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-    #     'nameSuffix': '',
-    #     'namePrefix': '',
-    # },
-]
-## Maybe later if I have nothing else to do:
     # { # Baseline -1
     #     'convection': None, #[None, 'convection_'],
     #     'algorithm': 'eaSimple', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
@@ -289,6 +226,20 @@ runs_cfgs = [
     #     'nameSuffix': '',
     #     'namePrefix': '',
     # },
+
+    # { # best so far
+    #     'convection': None, #[None, 'convection_'],
+    #     'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+    #     'genformat': 0, # [0, 1],
+    #     'pmut': 0.8, # [None, 0.8, 0.5],
+    #     'pop': None, # [None, 100, 500],
+    #     'lbda': None, # [100, 350]
+    #     'extra': ' ', # -nodet 1
+    #     'extra_cargs': ' -initialgenotype random -added_ind random -dissim PHENE_STRUCT_GREEDY -restart_method soft_perturb_best -restart_patience 10 -flibclass wHist -wHist_scorefn neg ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+    #     'nameSuffix': '',
+    #     'namePrefix': '',
+    # },
+]
 runs = []
 print('Running the following commands:')
 for run in runs_cfgs:

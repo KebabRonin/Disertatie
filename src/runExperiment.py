@@ -385,6 +385,7 @@ def parseArguments():
 	parser.add_argument('-wHist_norm_method', required=False, choices=['mean', 'mean100', 'none', 'eps'], default='mean')
 	parser.add_argument('-wHist_cacheActive', required=False, default='0')
 	parser.add_argument('-wHist_ESalgo', required=False, choices=['none', 'cmaes', 'freqWindow', 'indstore'], default='freqWindow')
+	parser.add_argument('-wHist_ignorefitnesscmaes', choices=['none', 'ignore_infeasible', 'ignore_infeasible_constraints'], default='none', help="How to pick the next individual to evaluate") #, choices=['random']
 	parser.add_argument('-algorithm', required=True, choices=[
 		'eaSimple', 'eaOnePlusLambdaLambda', 'eaMuPlusLambda', 'eaMuCommaLambda',
 		'AdaptMut', 'convection_AdaptMut', 'convection_eaSimple', 'Annealer',
@@ -474,7 +475,7 @@ def main():
 		case 'wHist':
 			# Also implements Evolutionary Strategy (remembers all past mutations, and adjusts weights)
 			framsLib = FramsticksLibCompetitionWithHistory(
-				parsed_args.path, parsed_args.lib, parsed_args.sim, frams,
+				parsed_args.path, parsed_args.lib, parsed_args.sim, frams, wHist_ignorefitnesscmaes=parsed_args.wHist_ignorefitnesscmaes,
 				cacheActive=parsed_args.wHist_cacheActive, score_fn=parsed_args.wHist_scorefn, decay=parsed_args.wHist_decay,
 				norm_method=parsed_args.wHist_norm_method, ESalgo=parsed_args.wHist_ESalgo,
 			)
