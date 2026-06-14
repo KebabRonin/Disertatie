@@ -152,11 +152,11 @@ class Mutator:
 	"""
 	Stores mutation rates, and handles mutating genotypes.
 	"""
-	def __init__(self):
+	def __init__(self, genoformat):
 		global mutator_ignored_operation_types
 		# Ignore some genetic operations for CMA-ES, based on the current simulator settings
 		mutator_ignored_operation_types += [
-			p for p in get_all_prop_names() if getExpProperty(p) == 0
+			p for p in get_all_prop_names(genoformat) if getExpProperty(p) == 0
 		]
 		mutator_ignored_operation_types += [
 			'crossover', 'invalid',
@@ -166,9 +166,10 @@ class Mutator:
 		self.decay = 0.985
 		printextra('ignored_operation_types', mutator_ignored_operation_types)
 		self.cmaes_store = {
-			pname: {'pos': 0.0, 'neg': 0.0, 'countpos': 0, 'countneg':0} for pname in get_all_prop_names()
+			pname: {'pos': 0.0, 'neg': 0.0, 'countpos': 0, 'countneg':0} for pname in get_all_prop_names(genoformat)
 		}
-		self.applied_operations = [] # To store the mutation types that were applied.
+		self.cmaes_store['crossover'] = {'pos': 0.0, 'neg': 0.0, 'countpos': 0, 'countneg':0}
+		self.cmaes_store['invalid'] = {'pos': 0.0, 'neg': 0.0, 'countpos': 0, 'countneg':0}
 		self.score_fn = lambda r: r['neg']
 		self.last_hash = None
 		printextra('recorded', list(self.cmaes_store.keys()))
@@ -200,6 +201,28 @@ class Mutator:
 			offspring = offspring_new
 		return offspring,
 
+	def custom_crossover(self, individual1: creator.Individual, individual2: creator.Individual):
+		off1 = self._custom_crossover(individual1, individual2)
+		off2 = self._custom_crossover(individual2, individual1)
+		return off1, off2
+
+	def _custom_crossover(self, genotype_parent1: creator.Individual, genotype_parent2: creator.Individual):
+		"""
+		Copied from `FramsticksLib.py`
+		Returns:
+			The genotype of the offspring. self.GENOTYPE_INVALID if the crossing over failed.
+		"""
+		offspring = frams.GenMan.crossOver(frams.Geno.newFromString(genotype_parent1[0]), frams.Geno.newFromString(genotype_parent2[0]))
+		if offspring.genotype._string() == FramsticksLib.GENOTYPE_INVALID and FramsticksLib.GENOTYPE_INVALID_OFFSPRING_SUBSTITUTE_ORIGINAL:
+			print('[WARN] crossOver(%s, %s) failed but you requested GENOTYPE_INVALID_OFFSPRING_SUBSTITUTE_ORIGINAL, so returning a random parent instead. Reason for failure: %s' % (FramsticksLib.shortGenotype(genotype_parent1), FramsticksLib.shortGenotype(genotype_parent2), offspring.info._string()))
+			offspring = random.choice([genotype_parent1, genotype_parent2])
+		else:
+			offspring_new = creator.Individual([offspring.genotype._string()])
+			setattr(offspring_new, 'past_operations', [get_applied_mutation(offspring)])
+			setattr(offspring_new, 'past_fitness', getattr(genotype_parent1, 'past_fitness', [0.0]))
+			offspring = offspring_new
+		return offspring
+
 	def updateMutationStatistics(self, individual, new_fitness):
 		"""
 		This is called on every evaluate() call, to consume the operation history stored on each genotype.
@@ -210,10 +233,11 @@ class Mutator:
 		* If n operations were applied, contribute 1/n to each operation's sum
 		* Later on, you this dict can be used to compute the simulation parameters for each operation
 		"""
-		if new_fitness[0] == FITNESS_VALUE_INFEASIBLE_SOLUTION: # FIXME: This should be FITNESS_VALUE_INFEASIBLE_SOLUTION instead.
-			# Don't count invalid individuals.
-			# This is mainly to avoid a feedback loop for AdaptMut with neg score_fn and max_numparts 3 , so f0_p_add isn't promoted into oblivion and you end up with an all-infeasible population.
-			return
+		# if new_fitness[0] == FITNESS_VALUE_INFEASIBLE_SOLUTION: # FIXME: This should be FITNESS_VALUE_INFEASIBLE_SOLUTION instead.
+		# 	# Don't count invalid individuals.
+		# 	# This is mainly to avoid a feedback loop for AdaptMut with neg score_fn and max_numparts 3 , so f0_p_add isn't promoted into oblivion and you end up with an all-infeasible population.
+		# Edit: The all-infeasible population doesn't really happen for popsize=50, so it should be ok. For some reason, the feedback loop kills itself after a while. Maybe because the fitness is shared, so all other mutation types have a chance to get ahead?
+		# 	return
 		# Soft window by using decay
 		fness = getattr(individual, 'past_fitness', 0.0)
 		old_fitness = [0.0] if fness == 0.0 else fness
@@ -253,7 +277,6 @@ class Mutator:
 """
 <Marker> Moved from runExperiment.py (setting up and function definitions)
 """
-mutator = Mutator()
 
 
 def custom_Eval(frams_lib: FramsticksLib, toolbox, individual):
@@ -328,7 +351,7 @@ def varAnd(population, toolbox, cxpb, mutpb, mutstrength):
 	# Apply crossover and mutation on the offspring
 	for i in range(1, len(offspring), 2):
 		if random.random() < cxpb:
-			offspring[i - 1], offspring[i] = toolbox.mate(offspring[i - 1],
+			offspring[i - 1], offspring[i] = mutator.custom_crossover(offspring[i - 1],
 														  offspring[i])
 			del offspring[i - 1].fitness.values, offspring[i].fitness.values
 
@@ -347,6 +370,10 @@ def varAnd(population, toolbox, cxpb, mutpb, mutstrength):
 def dynMut(population, toolbox, cxpb, mutpb, ngen, framsLib, max_numparts, max_numneurons,
 			restart_patience,
 			stats=None, halloffame=None, verbose=__debug__):
+	global mutator
+	# Get the geno format we'll use this time:
+	genoformat = str(frams.Geno.newFromString(population[0][0]).format)
+	mutator = Mutator(genoformat)
 	# Augument the toolbox with some extra tools, for generating random individuals.
 	init(framsLib, toolbox, max_numparts, max_numneurons)
 	"""
