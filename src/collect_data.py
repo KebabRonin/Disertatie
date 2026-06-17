@@ -116,7 +116,9 @@ def parse_algo_params(name: str):
         for g in pp:
             params[g[0]] = g[1]
     except Exception as e:
-        print('Exception:', e)
+        import traceback
+        print(name)
+        traceback.print_exception(e)
     return params
 
 PARAM_PATT = re.compile(r'\b([\w0-9]+)=([\w0-9_\-\n \/.;:]+)')

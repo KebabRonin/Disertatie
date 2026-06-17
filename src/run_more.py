@@ -80,7 +80,7 @@ def main(params):
     experiments_dir = get_experiments_dir()
     if not os.path.exists(experiments_dir):
         os.mkdir(experiments_dir)
-    if params['nodet']:
+    if params['nodet'] and 'no_det_' not in params['runname'] and 'nodet' not in params['runname']:
         params['runname'] = 'no_det_' + params['runname']
     run_dir = os.path.join(experiments_dir, params['runname'])
     if os.path.exists(run_dir):

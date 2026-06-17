@@ -8,16 +8,6 @@
 
 [Source Index](#source-index)
 
-## Feedback
-
-* [x] **You should not need to change FramsticksEvolution.py**. You should be able to call framsLib.isValidCreature() from your code, right?
-* [x] The algorithm does not have to support multi-criteria optimization. All testing fitness functions in the competition are generated based on COGpath.  
-* [x] Don't ever use eval() or exec(). If you need to dynamically set parameters, you can use getattr() and setattr().
-* [x] Provide explicit argument values to Random.normalvariate().
-	* Removed entirely
-* [ ] Is a superclass (FramsticksLibCompetitionWithHistory and inheritance from FramstickLibCompetition) needed? The original idea was that your algorithm should import FramstickLibCompetition and use (i.e., call) its functions.
-* [x] "-generations 100" runs the algorithm for the specified number of generations. However, the computational budget is well defined in  [https://www.framsticks.com/gecco-competition](https://www.framsticks.com/gecco-competition) which means that you can introduce the "competition mode" so that your algorithm is adapted to (and aware of) the competition restrictions. Or is "-generations 100" exactly how we should run your algorithm?
-
 ## Installation instructions
 
 0. Follow the instructions on the [Official Competition Website](https://framsticks.com/gecco-competition) ([Archive link - 2025/03/24](https://web.archive.org/web/20250324230252/http://www.framsticks.com/gecco-competition)) to install Framsticks.
@@ -383,6 +373,16 @@ apetrei razvan - ceva GA pe grafuri
 python -m src.runExperiment -path "/home/xwiki/Documents/fac/GECCO_Robot_Body/Framsticks54" -sim "/home/xwiki/Documents/fac/GECCO_Robot_Body/Disertatie/framspy/eval-allcriteria.sim;/home/xwiki/Documents/fac/GECCO_Robot_Body/Disertatie/framspy/deterministic.sim;/home/xwiki/Documents/fac/GECCO_Robot_Body/Disertatie/framspy/recording-body-coords.sim" -evalfn "3" -genformat "0" -algorithm "RandomMutationCount" -opt COGpath -generations "100000000" -maxmutationsperstep 10 -restart_method soft_perturb_best -restart_patience 5 -initialgenotype random -selMethod roulette
 ```
 
+
+#### Feedback
+
+* [x] **You should not need to change FramsticksEvolution.py**. You should be able to call framsLib.isValidCreature() from your code, right?
+* [x] The algorithm does not have to support multi-criteria optimization. All testing fitness functions in the competition are generated based on COGpath.  
+* [x] Don't ever use eval() or exec(). If you need to dynamically set parameters, you can use getattr() and setattr().
+* [x] Provide explicit argument values to Random.normalvariate().
+	* Removed entirely
+* [x] Is a superclass (FramsticksLibCompetitionWithHistory and inheritance from FramstickLibCompetition) needed? The original idea was that your algorithm should import FramstickLibCompetition and use (i.e., call) its functions.
+* [x] "-generations 100" runs the algorithm for the specified number of generations. However, the computational budget is well defined in  [https://www.framsticks.com/gecco-competition](https://www.framsticks.com/gecco-competition) which means that you can introduce the "competition mode" so that your algorithm is adapted to (and aware of) the competition restrictions. Or is "-generations 100" exactly how we should run your algorithm?
 #### Observations/Takeaways
 
 * `eaOnePlusLambdaLambda` - allow fitness-neutral improvements, otherwise you'll never leave the starting genotype
@@ -395,6 +395,9 @@ python -m src.runExperiment -path "/home/xwiki/Documents/fac/GECCO_Robot_Body/Fr
 #### TODO
 https://pmc.ncbi.nlm.nih.gov/articles/PMC12238971/pdf/nihms-2059158.pdf
 _Roughly ordered by difficulty/impact_
+
+- [ ] Benchmark for ignoreinfeasible with maxnumparts=3-5
+- [ ] Create a mutation probability visualisation for DynMut over the generations.
 
 - #idea Find a way to record neuron activity as part of an evaluation - this data could be used to compute which neurons/connections are most important
 	- Most important could be the neurons with most strong activations/most fluctuant activations? They also need to be connected to a muscle that is often active
@@ -482,8 +485,8 @@ _Roughly ordered by difficulty/impact_
 			* ! Highest performing solutions already contain most possible neuron types (even if they aren't used), so this might speed things up
 
 For competition:
-* [ ] Create standalone Python file (containing all the code, and which creates the necessary dependencies (.sim files, etc), also include a TOC and file sections as comments)
-* [ ] Write email
+* [x] Create standalone Python file (containing all the code, and which creates the necessary dependencies (.sim files, etc), also include a TOC and file sections as comments)
+* [x] Write email
 
 For disertation:
 * [ ] Write the paper [overleaf link](https://www.overleaf.com/read/rghmrhnrdqdd#cce283)
@@ -558,136 +561,183 @@ Fitness functions examples (included in the Competition example):
 
 |idx.|std       |mean      |median    |max       |overtime  |name      |comment   |
 |----|----------|----------|----------|----------|----------|----------|----------|
-|  1.| 115.73354|**354.04500**|**368.00850**| 580.82600|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnneg||
-|  2.| 128.03199| 342.58060| 326.74850| 608.65300|`(0/20)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0675_pops20_pxov0675_restsoftperturbbest_rest77_tour12_xmut1||
-|  3.| 111.97438| 331.45400| 304.09750| 550.99900|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
-|  4.| 102.77578| 330.52145| 320.04050| 548.32400|`(0/20)`|AdaptMutF0pmut08pop30initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
-|  5.| 104.81810| 329.57775| 307.57950| 606.28900|`(0/20)`|AdaptMutF0pmut0675pop20initialgenotyperandomadded_indinitialpxov0675restart_methodsoftperturbbestrestart_patience77tournament12xmut_enabled1flibclasswHistwHist_scorefnneg||
-|  6.| 123.45178| 328.82731| 318.28450| 658.92900|`(0/20)`|AdaptMutF0pmut0675pop20initialgenotyperandomadded_indinitialpxov0675restart_methodsoftperturbbestrestart_patience77tournament12xmut_enabled1flibclasswHistwHist_scorefnnegwHist_decay0965||
-|  7.| 122.42487| 324.94940| 299.01250| 626.36200|`(0/20)`|AdaptMutF0pmut0675pop20initialgenotyperandomadded_indinitialpxov0675restart_methodsoftperturbbestrestart_patience77tournament12||
-|  8.| 134.25382| 319.74365| 288.59050| 585.24100|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnratiofifthrule||
-|  9.|  85.61303| 316.91730| 270.41350| 515.06600|`(0/10)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegwHist_decay095||
-| 10.| 128.80235| 315.33540| 276.37700| 567.40000|`(0/10)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegwHist_decay093||
+|  1.| 118.56489|**361.60925**| 318.37850| 645.18800|`(0/20)`|no_det_AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegwHist_ignorefitnesscmaesnone||
+|  2.| 110.28801| 345.41403|**337.74450**| 580.82600|`(0/30)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnneg||
+|  3.| 128.03199| 342.58060| 326.74850| 608.65300|`(0/20)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0675_pops20_pxov0675_restsoftperturbbest_rest77_tour12_xmut1||
+|  4.| 111.97438| 331.45400| 304.09750| 550.99900|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
+|  5.| 102.77578| 330.52145| 320.04050| 548.32400|`(0/20)`|AdaptMutF0pmut08pop30initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
+|  6.| 104.81810| 329.57775| 307.57950| 606.28900|`(0/20)`|AdaptMutF0pmut0675pop20initialgenotyperandomadded_indinitialpxov0675restart_methodsoftperturbbestrestart_patience77tournament12xmut_enabled1flibclasswHistwHist_scorefnneg||
+|  7.| 123.45178| 328.82731| 318.28450| 658.92900|`(0/20)`|AdaptMutF0pmut0675pop20initialgenotyperandomadded_indinitialpxov0675restart_methodsoftperturbbestrestart_patience77tournament12xmut_enabled1flibclasswHistwHist_scorefnnegwHist_decay0965||
+|  8.| 118.59155| 326.90425| 306.65950| 679.97300|`(0/20)`|MAPElitesF0popsize20wHist_cacheActive1flibclasswHistwHist_ESalgononenovelty_selqualityrestart_methodsoftperturbbestrestart_patience100tournament50||
+|  9.| 122.42487| 324.94940| 299.01250| 626.36200|`(0/20)`|AdaptMutF0pmut0675pop20initialgenotyperandomadded_indinitialpxov0675restart_methodsoftperturbbestrestart_patience77tournament12||
+| 10.| 134.25382| 319.74365| 288.59050| 585.24100|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnratiofifthrule||
 | 11.|  97.16209| 314.85470| 291.77600| 557.78800|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegxmut_enabled0||
 | 12.|  88.82923| 311.49910| 317.95350| 456.20800|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHist||
 | 13.|  84.49988| 309.37380| 302.49750| 468.78500|`(0/20)`|AdaptMutF0pmut08lbda25added_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
-| 14.|  97.59817| 305.53770| 259.04250| 586.95500|`(0/20)`|AdaptMutF0initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10pxov0||
-| 15.|  98.29305| 302.81513| 301.69750| 475.45600|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_ESalgoindstorexov_mutschemachoice||
-| 16.|  97.48249| 294.72713| 279.29700| 455.23300|`(0/20)`|AdaptMutF0pmut0675pop20initialgenotyperandomadded_indrandompxov0675restart_methodsoftperturbbestrestart_patience77tournament12xmut_enabled1||
-| 17.| 103.15403| 293.27265| 266.98850| 518.02800|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandom||
-| 18.| 106.87032| 290.43345| 325.88800| 521.60900|`(0/20)`|AdaptMutF0pmut08pop100initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
-| 19.| 102.78720| 289.99870| 240.26400| 558.26000|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_ESalgoindstorexov_mutschemarand||
-| 20.| 103.29228| 289.90270| 258.58600| 535.15500|`(0/20)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0705_pops121_pxov055_restsoftperturbbest_rest80_tour4_xmut1||
-| 21.| 114.94601| 286.66845| 267.44150| 524.85500|`(0/20)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut065_pops24_pxov0645_restsoftperturbbest_rest81_tour9_xmut1||
-| 22.|  79.87178| 285.36440| 272.86650| 528.28200|`(0/20)`|AdaptMutF0|Intermittent drops in fitness are soft restarts, stagnation is hard to notice (if it exists at all)|
-| 23.| 133.68427| 282.76680| 242.10850| 560.34300|`(0/10)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnratiov2||
-| 24.|  83.35859| 281.50755| 267.16100| 485.09700|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegconservative||
-| 25.|  82.81854| 279.92820| 288.10200| 459.31700|`(0/20)`|AdaptMutF0pmut08fix_invalidmutateinitialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
-| 26.|  83.49951| 275.89170| 253.00300| 447.68000|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnpos||
-| 27.|  86.91072| 315.34210| 294.05300| 567.68100|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnconst||
-| 28.| 118.67421| 267.96500| 236.49000|**684.94600**|`(0/20)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_pmut06849999999999999_pops25_pxov041000000000000003_tour12_xmut1||
-| 29.|  99.18738| 266.63089| 249.66900| 486.33400|`(0/20)`|AdaptMutF0pmut08pop25|Way more jittery|
-| 30.|  97.40148| 265.57255| 231.03900| 507.45900|`(0/20)`|MAPElitesF0popsize20wHist_cacheActive1flibclasswHistwHist_ESalgononenovelty_selrandommetarestart_methodsoftperturbbestrestart_patience100tournament50||
-| 31.|  58.36792| 264.93970| 234.42800| 367.80700|`(0/10)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_pmut0775_pops116_pxov0355_resthard_rest25_tour13_xmut1||
-| 32.|  66.77494| 261.18310| 258.63550| 389.02800|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestallrestart_patience10||
-| 33.|  51.76372| 259.74575| 262.11900| 356.24500|`(0/20)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_pmut073_pops6_pxov042_restsoftperturbbest_rest75_tour6_xmut1||
-| 34.|  91.60685| 257.50975| 248.16950| 565.93500|`(0/20)`|AdaptMutF0pmut08selMethodrouletteinitialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
-| 35.| 102.15915| 256.33370| 252.95950| 505.72300|`(0/10)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_pmut0995_pops54_pxov0685_restsoftperturbbest_rest30_tour15_xmut1||
-| 36.|  64.06549| 323.78730| 299.85550| 466.64000|`(0/20)`|AdaptMutF0pmut08pop250initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
-| 37.|  76.19516| 252.28110| 238.67850| 400.73700|`(0/20)`|no_det_nodet_convection_AdaptMutF0pop500|Steady-ish progress|
-| 38.|  60.06200| 250.20824| 265.23500| 326.23300|`(0/20)`|NEAT_speciationF0pop75initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDY||
-| 39.| 102.88860| 249.01476| 243.49050| 509.24100|`(0/20)`|***AdaptMutF0pmut08added_indrandom - baseline***||
-| 40.|  87.02664| 246.97250| 224.06150| 487.45100|`(0/20)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut049_pops11_pxov0665_restsoftperturbbest_rest81_tour4_xmut1||
-| 41.|  39.66782| 244.64800| 250.33750| 301.13400|`(0/20)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_initf0XX_pmut072_pops59_pxov0395_resthard_rest27_tour7_xmut1||
-| 42.| 125.57638| 243.00344| 219.46000| 518.69400|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf0XXneurons_pmut078_pops58_pxov0745_restsoftperturbbest_rest2_tour9_xmut1||
-| 43.|  83.07671| 240.69130| 237.80850| 469.03600|`(0/20)`|AdaptMutF0initialgenotype0_f0_basic2|Slightly more prone to break good solutions|
-| 44.|  94.69579| 237.20980| 263.34450| 430.82200|`(0/20)`|AdaptMutF0initialgenotype0_f0_neurons|Almost instant fitness increase, no prolonged warmup time, but more stagnant overall ( #idea maybe use the genotype to init population, but for replacement mutation still use the X genotype)|
-| 45.|  61.67079| 259.71925| 229.51000| 447.50900|`(2/20)`|NEAT_speciationF0popsize100nislands10dissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience15initialgenotyperandom||
-| 46.| 110.93452| 234.14576| 235.27100| 543.96200|`(0/20)`|AdaptMutF0pmut08|Long periods of stagnation, with little drops but no improvements|
-| 47.|  76.00070| 280.18335| 247.90350| 492.87700|`(0/20)`|convection_AdaptMutF0pmut08||
-| 48.|  76.21921| 231.36780| 214.71050| 382.48100|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut06_pops21_pxov0665_restsoftperturbbest_rest96_tour13_xmut1||
-| 49.|  88.12868| 229.04553| 240.24650| 337.70500|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_pmut07_pops135_pxov0015_tour5_xmut1||
-| 50.|  59.58351| 228.82040| 211.21350| 359.47600|`(0/10)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_initf0XX_pmut076_pops85_pxov0935_restsoftperturbbest_rest38_tour14_xmut1||
-| 51.|  99.34002| 228.31046| 222.26500| 444.28900|`(0/20)`|no_det_nodet_convection_eaSimpleF1pop100|A couple of moderate jumps, but long periods with no improvement|
-| 52.|  56.32415| 228.25305| 222.77950| 322.31200|`(0/20)`|convection_eaSimpleF0initialgenotyperandomadded_indrandom||
-| 53.|  65.45451| 228.12980| 229.77300| 314.20400|`(0/10)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf1_initf1random_pmut071_pops56_pxov058_restsoftperturbbest_rest77_tour5_xmut1||
-| 54.|  96.41741| 227.00315| 201.45100| 522.81500|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_decay10||
-| 55.|  82.98468| 222.51854| 206.76750| 415.99400|`(0/20)`|AdaptMutF0pmut08pop100|More stable, but slow, small improvement|
-| 56.|  60.62238| 221.44330| 202.37500| 329.46400|`(0/10)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_pmut066_pops45_pxov0055_restsoftperturbbest_rest19_tour8_xmut1||
-| 57.|  96.47617| 218.16910| 183.35400| 373.00300|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf1_initf1random_pmut065_pops106_pxov063_restsoftperturbbest_rest69_tour12_xmut1||
-| 58.|  61.55864| 216.86779| 228.40650| 296.21800|`(0/10)`|rn_evalfn3_NEAT_speciation_algoNEATspeciation_dissGENELEVENSHTEIN_genf0_initf1random_nisl3_pmut0755_pops7_pxov003_tour11||
-| 59.|  56.00542| 212.95135| 202.77800| 356.09700|`(0/20)`|convection_AdaptMutF0initialgenotyperandomadded_indrandom||
-| 60.|  80.11475| 209.76748| 224.81550| 415.27300|`(0/20)`|no_det_nodet_AdaptMutF0pmut08|More consistently gets better results|
-| 61.|  66.51568| 209.73650| 185.65150| 374.40500|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut06799999999999999_pops31_pxov038_restsoftperturbbest_rest2_tour7_xmut1||
-| 62.|  93.26182| 206.14497| 168.68200| 410.86000|`(0/20)`|NEAT_speciationF0pop100|Big potential for spikes, but can also get stuck in stagnation|
-| 63.| 105.09188| 205.27519| 192.79650| 554.37200|`(0/20)`|no_det_nodet_AdaptMutF0|Strangely stable with frequent small jitter, but lower fitness overall|
-| 64.|  43.17245| 203.42930| 199.95300| 288.89000|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut05650000000000001_pops14_pxov0015_restsoftperturbbest_rest2_tour9_xmut1||
-| 65.|  73.73456| 193.74000| 169.70600| 378.94300|`(0/10)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_pmut0595_pops84_pxov039_restsoftperturbbest_rest3_tour11_xmut1||
-| 66.|  73.01028| 193.69287| 174.94050| 324.67000|`(0/20)`|NEAT_speciationF0|Good initial growth, decent jitter, steady increase|
-| 67.|  40.83007| 190.73325| 182.97050| 309.40200|`(0/20)`|NEAT_speciationF0pop200nislands15|More stagnant ( #advice maybe less generations per run, not enough time for species to mature)|
-| 68.|  57.04898| 189.49424| 180.27850| 303.23000|`(0/20)`|NEAT_speciationF0dissimPHENESTRUCTGREEDY|A bit more stable than the default|
-| 69.| 103.76094| 188.69955| 189.65600| 474.34500|`(0/20)`|rn_evalfn3_eaSimple_algoeaSimple_genf0_initf1random_pmut07_pops158_pxov05700000000000001_tour2||
-| 70.|  72.23801| 182.61131| 157.29050| 353.59800|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf1_pmut078_pops116_pxov035000000000000003_restsoftperturbbest_rest11_tour12_xmut1||
-| 71.|  86.04574| 181.19127| 150.70550| 349.12000|`(0/20)`|AdaptMutF1initialgenotypeXX|A bit more unpredictable than the basic version, but still big stagnation|
-| 72.|  85.51423| 179.28712| 154.63700| 373.58200|`(0/10)`|rn_evalfn3_eaMuCommaLambda_algoeaMuCommaLambda_genf0_initf0XX_lbda500_pmut0635_pops500_pxov0365_tour6||
-| 73.|  51.59143| 176.70240| 154.11850| 269.15600|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0715_pops124_pxov059_restsoftperturbbest_rest81_tour2_xmut1||
-| 74.|  42.74749| 176.14970| 186.08450| 245.84500|`(0/10)`|rn_evalfn3_eaSimple_algoeaSimple_genf0_pmut0615_pops33_pxov0015_tour3||
-| 75.|  42.59994| 175.14930| 164.95400| 267.44600|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_initf1random_lbda245_pmut066_pops120_pxov033999999999999997_tour8||
-| 76.|  62.84837| 172.29113| 157.24650| 318.19800|`(3/20)`|NEAT_speciationF1dissimPHENESTRUCTGREEDY|More moderate spikes over entire run, better progress in some runs, but still plateaus in first quarter pretty frequently|
-| 77.|  97.42668| 171.55590| 146.49150| 406.93200|`(0/20)`|eaSimpleF0|Very slow/stagnation in second half, but good enough growth in the first half|
-| 78.|  61.32771| 169.08129| 159.87450| 274.47900|`(0/20)`|NEAT_speciationF0nislands5|Steady spikes overall, but prone to long periods of stagnation|
-| 79.|  74.73547| 167.46403| 155.23850| 357.24000|`(0/20)`|NEAT_speciationF0dissimFITNESS||
-| 80.|  60.30816| 163.28717| 166.47900| 334.73300|`(0/20)`|NEAT_speciationF0pop100nislands5|Noticeably lower fitness overall, more stable and slow-ish increase|
-| 81.|  74.96505| 161.70664| 168.61600| 297.67400|`(0/10)`|rn_evalfn3_eaMuCommaLambda_algoeaMuCommaLambda_genf0_initf1random_lbda230_pmut069_pops115_pxov031000000000000005_tour9||
-| 82.|  61.49788| 160.86270| 164.83750| 287.16600|`(0/10)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegwHist_decay1||
-| 83.|  36.26507| 159.07465| 153.75300| 233.91200|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_initf1random_lbda240_pmut0785_pops25_pxov021499999999999997_tour2||
-| 84.| 102.29949| 158.55645| 140.20150| 441.26800|`(0/20)`|AdaptMutF1|BIG STAGNATION in the second half, and in general|
-| 85.|  63.03672| 158.54638| 154.61500| 315.77500|`(1/20)`|NEAT_speciationF1nislands5|Gets 1 big spike then plateaus/stagnates mostly|
-| 86.|  51.38081| 215.26100| 207.99550| 336.39300|`(0/20)`|eaOnePlusLambdaLambdaF0pop1||
-| 87.|  46.01961| 153.61436| 144.87000| 253.04200|`(0/10)`|rn_evalfn3_AdaptMut_algoAdaptMut_genf0_pmut0535_pops435_pxov048_tour4_xmut1||
-| 88.|  97.49192| 147.39023| 123.26300| 383.96800|`(0/20)`|AdaptMutF1initialgenotypeXXGGpartTSN|Less 'almost instant' fitness improvement, still stagnation|
-| 89.|  76.95924| 146.69567| 135.20300| 316.40900|`(0/10)`|NEAT_speciationF1dissimFITNESS||
-| 90.|  45.91179| 145.26954| 144.85750| 230.89800|`(0/20)`|eaMuPlusLambdaF0pmut08lbda100|Larger and generally more early spikes compared to Comma, but still stagnation|
-| 91.|  28.74714| 144.45570| 134.20250| 206.65400|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_islabestToWorst_migr41_nisl81_pmut069_pops491_pxov044_tour9||
-| 92.|  42.67774| 142.36872| 132.55850| 262.88300|`(0/20)`|eaSimpleF0initialgenotype0_f0_basic2|Jumps in first third and one more moderate jump at 2/3|
-| 93.|  46.16849| 140.86175| 122.53750| 224.99800|`(0/20)`|eaMuCommaLambdaF0pmut08lbda100|Kinda hillclimber, but it can go down|
-| 94.|  58.64210| 140.14862| 122.09950| 250.84900|`(0/10)`|rn_evalfn3_eaOnePlusLambdaLambda_algoeaOnePlusLambdaLambda_genf0_initf1random_pmut023500000000000001_pops1_pxov0365||
-| 95.|  60.65619| 139.72842| 125.46100| 292.21700|`(0/10)`|rn_evalfn3_eaMuCommaLambda_algoeaMuCommaLambda_genf0_initf1random_lbda213_pmut0785_pops33_pxov021499999999999997_tour6||
-| 96.|  71.88942| 130.98950| 126.90950| 342.90200|`(0/20)`|eaSimpleF0initialgenotype0_f0_neurons|Faster initial growth, but less diversity I think (it tends to stagnate and has stable results (aka most runs arrive in the same fitness ballbark))|
-| 97.|  45.19881| 130.69818| 135.26300| 215.82000|`(0/10)`|rn_evalfn3_eaOnePlusLambdaLambda_algoeaOnePlusLambdaLambda_genf1_pmut062_pops1_pxov0035||
-| 98.|  68.52382| 129.94296| 109.77900| 332.84800|`(0/20)`|eaSimpleF0pmut08|Spikes happen later|
-| 99.|  61.58722| 129.18333| 147.07950| 221.11400|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_lbda500_pmut08099999999999999_pops500_pxov019000000000000006_tour5||
-|100.|  71.52893| 126.27572|  95.65995| 321.39800|`(0/20)`|AdaptMutF1pmut08|Stagnation|
-|101.|  72.13336| 122.41123| 105.47150| 293.15400|`(1/20)`|NEAT_speciationF1|Way lower increases per spike than f0|
-|102.|  66.95189| 122.10886|  89.82540| 279.38800|`(0/20)`|eaMuPlusLambdaF0pmut08lbda350|Disappointingly slow and steady, Comma looked better wrt. jitter|
-|103.|  64.57591| 121.83612| 138.47600| 197.28800|`(0/10)`|rn_evalfn3_eaSimple_algoeaSimple_genf0_pmut0325_pops111_pxov004_tour9||
-|104.|  46.51430| 120.22287| 112.46950| 224.62600|`(0/20)`|eaMuCommaLambdaF0pmut08lbda350|Very slow warmup (eval budget go brrr)|
-|105.|  50.13103| 119.74849| 104.49100| 245.62800|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_initf0XX_lbda500_pmut084_pops365_pxov016000000000000003_tour10||
-|106.|  47.05908| 116.59629| 119.23650| 242.66000|`(0/20)`|eaOnePlusLambdaLambdaF0pop1initialgenotype0||
-|107.|  45.07542| 100.32251|  94.20590| 204.39900|`(0/20)`|eaSimpleF1initialgenotypeXX|Even bigger stagnation|
-|108.|  21.97628|  96.90388| 102.58200| 129.30900|`(0/10)`|rn_evalfn3_convection_eaSimple_algoconvectioneaSimple_genf0_islabestToWorst_migr28_nisl51_pmut076_pops109_pxov035000000000000003_tour10||
-|109.|  51.67827|  94.73865|  85.56765| 217.86300|`(0/10)`|rn_evalfn3_eaSimple_algoeaSimple_genf1_initf1random_pmut0635_pops85_pxov006_tour11||
-|110.|  58.26179|  94.44432|  91.13255| 251.47300|`(0/20)`|eaSimpleF1pmut08|Not much difference with default pmut|
-|111.|  53.30151|  89.18116|  73.74875| 222.89700|`(15/20)`|NEAT_speciationF1pop100nislands5|Struggles to clear 100, low fitness|
-|112.|  46.52943|  87.73373|  78.88120| 186.71600|`(0/20)`|eaSimpleF1|Lower fitness, big stagnation|
-|113.|  39.10576|  81.30353|  77.50035| 176.81000|`(0/20)`|no_det_nodet_eaSimpleF1|Struggles to clear 100, big stagnation|
-|114.|  47.04598|  74.61855|  66.99510| 194.15300|`(0/20)`|NEAT_speciationF1dissimGENELEVENSHTEIN|Struggles to clear 100 fitness|
-|115.|  12.97105|  74.02647|  72.55660| 101.45500|`(0/10)`|rn_evalfn3_convection_eaSimple_algoconvectioneaSimple_genf0_initf0XXneurons_islabestToWorst_migr48_nisl99_pmut076_pops165_pxov0025_tour5||
-|116.|  42.89914|  73.12026|  67.67320| 204.55300|`(0/20)`|eaSimpleF1initialgenotypeXXGGpartTSN|Even BIGGER stagnation, not faster initial growth|
-|117.|  24.80531|  71.30608|  65.28875| 153.88800|`(0/20)`|AdaptMutF0pmut08selMethodbestinitialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
-|118.|  29.02296|  64.12219|  61.02105| 141.53600|`(0/20)`|eaMuCommaLambdaF1pmut08lbda350|Struggling very much, but much better than lbda100|
-|119.|  74.91810|  60.89176|  40.37395| 283.34200|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_islabestToWorst_migr7_nisl17_pmut01_pops407_pxov08300000000000001_tour2||
-|120.|  56.08614|  60.04540|  57.69920| 226.25700|`(0/20)`|eaMuPlusLambdaF1pmut08lbda100|Infrequent jumps, low fitness|
-|121.|  33.63212|  57.10363|  49.96515| 151.52100|`(0/10)`|rn_evalfn3_convection_eaSimple_algoconvectioneaSimple_genf0_islabestToWorst_migr36_nisl2_pmut079_pops3_pxov007_tour3||
-|122.|  49.55113|  53.89931|  42.86660| 224.64700|`(0/20)`|eaMuCommaLambdaF1pmut08lbda100|Very bad ( #idea the F1 mutation/xover operators are weaker than F0)|
-|123.|  33.83895|  39.37166|  19.75955| 126.18800|`(0/20)`|eaMuPlusLambdaF1pmut08lbda350|Even lower fitness, for some reason it struggles to get over 50 fitness|
-|124.|  33.54458|  38.91425|  26.58150| 113.21000|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf1_lbda416_pmut0775_pops341_pxov022499999999999998_tour19||
-|125.|   7.43011|  34.52932|  33.92020|  44.64750|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf1random_islabestToWorst_migr28_nisl59_pmut0515_pops86_pxov078_tour15||
-|126.|  27.95409|  26.19581|  13.71005|  86.35990|`(20/20)`|NEAT_speciationF1dissimPHENEDENSITYFREQ|Gets close to 100 fitness, gets ~5000 evals before stopping|
-|127.|  17.11060|  13.11953|   4.41728|  63.76950|`(20/20)`|NEAT_speciationF1dissimPHENEDENSITYCOUNT|Struggles to clear 50 fitness, gets ~1000 evals before stopping|
-|128.|  25.35968|  11.21698|   3.47358| 119.45800|`(20/20)`|NEAT_speciationF1dissimPHENEDESCRIPTORS|Struggles to clear 20 fitness, gets ~200 evals before stopping|
-|129.|   6.91842|   7.99027|   6.75836|  25.42220|`(0/10)`|rn_evalfn3_eaSimple_algoeaSimple_genf0_initf1random_pmut073_pops1_pxov0025_tour8||
-|130.|   0.00000|   0.00000|   0.00000|   0.00000|`(0/10)`|rn_evalfn3_eaOnePlusLambdaLambda_algoeaOnePlusLambdaLambda_genf1_pmut067_pops1_pxov0275|No fitness neutral mutations are chosen, so the algorithm stagnates with the first generated genotype. An improvement would be to generate lambda individuals with more than one mutation.|
+| 14.| 106.85136| 306.89310| 265.82100| 567.40000|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegwHist_decay093||
+| 15.|  97.59817| 305.53770| 259.04250| 586.95500|`(0/20)`|AdaptMutF0initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10pxov0||
+| 16.|  68.80471| 304.58320| 291.93150| 499.29900|`(0/20)`|AdaptMutF0pmut08added_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnneg||
+| 17.|  98.29305| 302.81513| 301.69750| 475.45600|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_ESalgoindstorexov_mutschemachoice||
+| 18.| 108.49403| 302.76495| 270.41350| 516.86600|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegwHist_decay095||
+| 19.|  97.48249| 294.72713| 279.29700| 455.23300|`(0/20)`|AdaptMutF0pmut0675pop20initialgenotyperandomadded_indrandompxov0675restart_methodsoftperturbbestrestart_patience77tournament12xmut_enabled1||
+| 20.| 103.15403| 293.27265| 266.98850| 518.02800|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandom||
+| 21.|  65.90289| 292.39450| 273.83200| 434.40500|`(0/20)`|no_det_AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegwHist_ignorefitnesscmaesignoreinfeasibleconstraints||
+| 22.| 106.87032| 290.43345| 325.88800| 521.60900|`(0/20)`|AdaptMutF0pmut08pop100initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
+| 23.| 102.78720| 289.99870| 240.26400| 558.26000|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_ESalgoindstorexov_mutschemarand||
+| 24.| 103.29228| 289.90270| 258.58600| 535.15500|`(0/20)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0705_pops121_pxov055_restsoftperturbbest_rest80_tour4_xmut1||
+| 25.| 120.81813| 289.86785| 275.52600| 529.32700|`(0/20)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr19_nisl6_pmut085_pops465_pxov03_tour7||
+| 26.|  92.75917| 289.58560| 256.06950| 479.96700|`(0/10)`|no_det_AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegwHist_ignorefitnesscmaesignoreinfeasible||
+| 27.| 114.94601| 286.66845| 267.44150| 524.85500|`(0/20)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut065_pops24_pxov0645_restsoftperturbbest_rest81_tour9_xmut1||
+| 28.|  79.87178| 285.36440| 272.86650| 528.28200|`(0/20)`|AdaptMutF0|Intermittent drops in fitness are soft restarts, stagnation is hard to notice (if it exists at all)|
+| 29.|  77.16551| 284.73340| 263.99200| 422.69100|`(0/20)`|no_det_AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnneg||
+| 30.| 125.82745| 283.17560| 272.94300| 595.53200|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr24_nisl6_pmut098_pops495_pxov0115_tour3|Steady increase, greater spikes in first generations|
+| 31.| 133.68427| 282.76680| 242.10850| 560.34300|`(0/10)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnratiov2||
+| 32.|  83.35859| 281.50755| 267.16100| 485.09700|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegconservative||
+| 33.|  82.81854| 279.92820| 288.10200| 459.31700|`(0/20)`|AdaptMutF0pmut08fix_invalidmutateinitialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
+| 34.|  86.90849| 277.86785| 282.18550| 505.65900|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestallrestart_patience10flibclasswHistwHist_scorefnneg||
+| 35.|  60.18809| 277.33560| 274.57800| 360.78400|`(0/10)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYflibclasswHistwHist_scorefnneg||
+| 36.|  93.04061| 276.39540| 260.04750| 540.02400|`(0/20)`|preliminary3||
+| 37.|  83.49951| 275.89170| 253.00300| 447.68000|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnpos||
+| 38.|  83.55977| 270.61985| 287.27300| 417.56500|`(0/20)`|convection_AdaptMutF0pop500||
+| 39.|  98.24565| 269.85420| 252.74300| 567.68100|`(0/30)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnconst||
+| 40.| 118.67421| 267.96500| 236.49000|**684.94600**|`(0/20)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_pmut06849999999999999_pops25_pxov041000000000000003_tour12_xmut1||
+| 41.|  99.18738| 266.63089| 249.66900| 486.33400|`(0/20)`|AdaptMutF0pmut08pop25|Way more jittery|
+| 42.|  97.40148| 265.57255| 231.03900| 507.45900|`(0/20)`|MAPElitesF0popsize20wHist_cacheActive1flibclasswHistwHist_ESalgononenovelty_selrandommetarestart_methodsoftperturbbestrestart_patience100tournament50||
+| 43.|  58.36792| 264.93970| 234.42800| 367.80700|`(0/10)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_pmut0775_pops116_pxov0355_resthard_rest25_tour13_xmut1||
+| 44.|  66.77494| 261.18310| 258.63550| 389.02800|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestallrestart_patience10||
+| 45.|  51.76372| 259.74575| 262.11900| 356.24500|`(0/20)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_pmut073_pops6_pxov042_restsoftperturbbest_rest75_tour6_xmut1||
+| 46.|  91.60685| 257.50975| 248.16950| 565.93500|`(0/20)`|AdaptMutF0pmut08selMethodrouletteinitialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
+| 47.| 102.15915| 256.33370| 252.95950| 505.72300|`(0/10)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_pmut0995_pops54_pxov0685_restsoftperturbbest_rest30_tour15_xmut1||
+| 48.|  45.08143| 256.26170| 251.66100| 344.25600|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr21_nisl6_pmut071_pops465_pxov0275_tour7||
+| 49.|  89.02414| 253.70295| 247.94150| 466.64000|`(0/40)`|AdaptMutF0pmut08pop250initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
+| 50.|  76.19516| 252.28110| 238.67850| 400.73700|`(0/20)`|no_det_nodet_convection_AdaptMutF0pop500|Steady-ish progress|
+| 51.|  60.06200| 250.20824| 265.23500| 326.23300|`(0/20)`|NEAT_speciationF0pop75initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDY||
+| 52.|  62.08689| 249.39080| 234.35150| 384.60900|`(0/10)`|no_det_no_det_AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegwHist_ignorefitnesscmaesnone_but_actually_ignoreinfeasible_actually||
+| 53.| 102.88860| 249.01476| 243.49050| 509.24100|`(0/20)`|***AdaptMutF0pmut08added_indrandom - baseline***||
+| 54.| 122.67286| 248.97780| 211.05800| 580.27500|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr23_nisl5_pmut074_pops465_pxov0295_tour7||
+| 55.|  87.02664| 246.97250| 224.06150| 487.45100|`(0/20)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut049_pops11_pxov0665_restsoftperturbbest_rest81_tour4_xmut1||
+| 56.|  75.62944| 245.00700| 258.95100| 379.95700|`(0/20)`|convection_eaSimpleF1||
+| 57.|  39.66782| 244.64800| 250.33750| 301.13400|`(0/20)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_initf0XX_pmut072_pops59_pxov0395_resthard_rest27_tour7_xmut1||
+| 58.|  68.06847| 243.16535| 233.65450| 381.50200|`(0/20)`|convection_AdaptMutF0||
+| 59.| 125.57638| 243.00344| 219.46000| 518.69400|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf0XXneurons_pmut078_pops58_pxov0745_restsoftperturbbest_rest2_tour9_xmut1||
+| 60.|  65.75100| 241.76984| 228.48550| 492.87700|`(0/50)`|convection_AdaptMutF0pmut08||
+| 61.|  83.07671| 240.69130| 237.80850| 469.03600|`(0/20)`|AdaptMutF0initialgenotype0_f0_basic2|Slightly more prone to break good solutions|
+| 62.|  76.20256| 237.87615| 233.75750| 375.80300|`(0/20)`|convection_eaSimpleF0||
+| 63.|  76.41129| 237.25845| 237.04800| 408.54700|`(0/20)`|convection_eaSimpleF1pmut08||
+| 64.|  94.69579| 237.20980| 263.34450| 430.82200|`(0/20)`|AdaptMutF0initialgenotype0_f0_neurons|Almost instant fitness increase, no prolonged warmup time, but more stagnant overall ( #idea maybe use the genotype to init population, but for replacement mutation still use the X genotype)|
+| 65.| 110.34577| 235.89450| 210.62450| 558.28300|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr18_nisl3_pmut05700000000000001_pops410_pxov041500000000000004_tour7||
+| 66.| 110.93452| 234.14576| 235.27100| 543.96200|`(0/20)`|AdaptMutF0pmut08|Long periods of stagnation, with little drops but no improvements|
+| 67.|  92.56128| 234.04941| 218.34800| 438.23900|`(0/10)`|no_det_AdaptMutF1pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnneg||
+| 68.|  66.50227| 233.40955| 218.69150| 436.75800|`(0/20)`|convection_AdaptMutF0xmut_enabled0||
+| 69.|  68.40235| 232.52396| 217.55700| 447.50900|`(2/28)`|NEAT_speciationF0popsize100nislands10dissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience15initialgenotyperandom||
+| 70.|  76.21921| 231.36780| 214.71050| 382.48100|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut06_pops21_pxov0665_restsoftperturbbest_rest96_tour13_xmut1||
+| 71.|  88.12868| 229.04553| 240.24650| 337.70500|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_pmut07_pops135_pxov0015_tour5_xmut1||
+| 72.|  59.58351| 228.82040| 211.21350| 359.47600|`(0/10)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_initf0XX_pmut076_pops85_pxov0935_restsoftperturbbest_rest38_tour14_xmut1||
+| 73.|  99.34002| 228.31046| 222.26500| 444.28900|`(0/20)`|no_det_nodet_convection_eaSimpleF1pop100|A couple of moderate jumps, but long periods with no improvement|
+| 74.|  56.32415| 228.25305| 222.77950| 322.31200|`(0/20)`|convection_eaSimpleF0initialgenotyperandomadded_indrandom||
+| 75.|  76.60084| 228.22349| 219.10850| 437.91500|`(0/20)`|convection_AdaptMutF1pop100xmut_enabled0||
+| 76.|  65.45451| 228.12980| 229.77300| 314.20400|`(0/10)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf1_initf1random_pmut071_pops56_pxov058_restsoftperturbbest_rest77_tour5_xmut1||
+| 77.|  61.89369| 227.00630| 222.91400| 383.42600|`(0/20)`|convection_eaSimpleF0pmut08||
+| 78.|  96.41741| 227.00315| 201.45100| 522.81500|`(0/20)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_decay10||
+| 79.|  72.61134| 226.32945| 206.06100| 363.00300|`(0/20)`|convection_AdaptMutF1pmut08xmut_enabled0||
+| 80.|  87.30806| 226.05770| 189.55650| 447.52000|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr30_nisl7_pmut0855_pops425_pxov027_tour3||
+| 81.|  73.85333| 223.47885| 215.32750| 350.03900|`(0/20)`|convection_eaSimpleF1pop200||
+| 82.|  68.95538| 222.61520| 192.88100| 323.21800|`(0/20)`|convection_eaSimpleF1pmut07||
+| 83.|  82.98468| 222.51854| 206.76750| 415.99400|`(0/20)`|AdaptMutF0pmut08pop100|More stable, but slow, small improvement|
+| 84.|  60.62238| 221.44330| 202.37500| 329.46400|`(0/10)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_pmut066_pops45_pxov0055_restsoftperturbbest_rest19_tour8_xmut1||
+| 85.|  96.47617| 218.16910| 183.35400| 373.00300|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf1_initf1random_pmut065_pops106_pxov063_restsoftperturbbest_rest69_tour12_xmut1||
+| 86.|  65.07585| 218.12545| 224.04450| 351.91400|`(0/20)`|convection_AdaptMutF1pmut08||
+| 87.|  61.55864| 216.86779| 228.40650| 296.21800|`(0/10)`|rn_evalfn3_NEAT_speciation_algoNEATspeciation_dissGENELEVENSHTEIN_genf0_initf1random_nisl3_pmut0755_pops7_pxov003_tour11||
+| 88.|  61.87346| 213.96295| 206.66400| 365.82300|`(0/20)`|convection_AdaptMutF1||
+| 89.|  73.96963| 213.25335| 194.79800| 338.67200|`(0/20)`|MAPElitesF0popsize20wHist_cacheActive1flibclasswHistwHist_ESalgononenovelty_selrandommetatournament50||
+| 90.|  56.00542| 212.95135| 202.77800| 356.09700|`(0/20)`|convection_AdaptMutF0initialgenotyperandomadded_indrandom||
+| 91.|  69.87975| 211.34505| 196.68300| 395.87400|`(0/20)`|MAPElitesF0popsize20wHist_cacheActive1flibclasswHistwHist_ESalgononenovelty_selrandommetarestart_methodsoftperturbbestrestart_patience100tournament25||
+| 92.|  80.11475| 209.76748| 224.81550| 415.27300|`(0/20)`|no_det_nodet_AdaptMutF0pmut08|More consistently gets better results|
+| 93.|  66.51568| 209.73650| 185.65150| 374.40500|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut06799999999999999_pops31_pxov038_restsoftperturbbest_rest2_tour7_xmut1||
+| 94.|  73.25258| 208.26150| 192.66050| 412.64400|`(0/20)`|MAPElitesF0pmut0675pxov0675popsize20wHist_cacheActive1flibclasswHistwHist_ESalgononenovelty_selrandommetarestart_methodsoftperturbbestrestart_patience100tournament50||
+| 95.|  55.63186| 207.42730| 193.13900| 333.87500|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr24_nisl5_pmut0735_pops460_pxov03_tour7||
+| 96.| 111.40678| 207.12883| 193.75100| 532.74400|`(0/20)`|convection_eaSimpleF1pop100||
+| 97.|  93.26182| 206.14497| 168.68200| 410.86000|`(0/20)`|NEAT_speciationF0pop100|Big potential for spikes, but can also get stuck in stagnation|
+| 98.| 105.09188| 205.27519| 192.79650| 554.37200|`(0/20)`|no_det_nodet_AdaptMutF0|Strangely stable with frequent small jitter, but lower fitness overall|
+| 99.|  43.17245| 203.42930| 199.95300| 288.89000|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut05650000000000001_pops14_pxov0015_restsoftperturbbest_rest2_tour9_xmut1||
+|100.|  50.34269| 198.82950| 196.75200| 289.71000|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XXneurons_islabestToWorst_migr22_nisl20_pmut0655_pops440_pxov047500000000000003_tour5||
+|101.|  80.20317| 198.37750| 174.87850| 379.49800|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr44_nisl7_pmut0965_pops465_pxov002_tour2||
+|102.|  68.90135| 198.14890| 185.83250| 310.82700|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr23_nisl6_pmut0975_pops495_pxov011_tour3|Steady improvement|
+|103.|  50.96380| 196.63790| 187.82050| 285.83900|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr25_nisl4_pmut0765_pops500_pxov089_tour12||
+|104.|  73.73456| 193.74000| 169.70600| 378.94300|`(0/10)`|rn_evalfn3_AdaptMut_adderandom_algoAdaptMut_genf0_pmut0595_pops84_pxov039_restsoftperturbbest_rest3_tour11_xmut1||
+|105.|  73.01028| 193.69287| 174.94050| 324.67000|`(0/20)`|NEAT_speciationF0|Good initial growth, decent jitter, steady increase|
+|106.|  40.83007| 190.73325| 182.97050| 309.40200|`(0/20)`|NEAT_speciationF0pop200nislands15|More stagnant ( #advice maybe less generations per run, not enough time for species to mature)|
+|107.| 102.48241| 190.27813| 131.56450| 368.17100|`(0/10)`|AdaptMutF1pmut08initialgenotyperandomadded_indrandomrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnneg||
+|108.|  73.95906| 189.64228| 177.21600| 390.06700|`(0/20)`|convection_eaSimpleF1pmut08pop100||
+|109.|  57.04898| 189.49424| 180.27850| 303.23000|`(0/20)`|NEAT_speciationF0dissimPHENESTRUCTGREEDY|A bit more stable than the default|
+|110.| 103.76094| 188.69955| 189.65600| 474.34500|`(0/20)`|rn_evalfn3_eaSimple_algoeaSimple_genf0_initf1random_pmut07_pops158_pxov05700000000000001_tour2||
+|111.|  72.23801| 182.61131| 157.29050| 353.59800|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf1_pmut078_pops116_pxov035000000000000003_restsoftperturbbest_rest11_tour12_xmut1||
+|112.|  86.04574| 181.19127| 150.70550| 349.12000|`(0/20)`|AdaptMutF1initialgenotypeXX|A bit more unpredictable than the basic version, but still big stagnation|
+|113.|  65.36974| 177.93512| 170.24400| 312.38400|`(0/20)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_initf1random_lbda245_pmut066_pops120_pxov033999999999999997_tour8||
+|114.|  51.59143| 176.70240| 154.11850| 269.15600|`(0/10)`|rn_evalfn3_AdaptMut_addeinitial_algoAdaptMut_genf0_initf1random_pmut0715_pops124_pxov059_restsoftperturbbest_rest81_tour2_xmut1||
+|115.|  42.74749| 176.14970| 186.08450| 245.84500|`(0/10)`|rn_evalfn3_eaSimple_algoeaSimple_genf0_pmut0615_pops33_pxov0015_tour3||
+|116.|  75.91908| 175.99690| 151.50400| 331.23400|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf1_initf1XX_islabestToWorst_migr24_nisl5_pmut08_pops410_pxov0595_tour6||
+|117.|  54.50076| 174.87040| 154.07750| 297.60500|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_islabestToWorst_migr20_nisl29_pmut0725_pops488_pxov038_tour3||
+|118.|  62.84837| 172.29113| 157.24650| 318.19800|`(3/20)`|NEAT_speciationF1dissimPHENESTRUCTGREEDY|More moderate spikes over entire run, better progress in some runs, but still plateaus in first quarter pretty frequently|
+|119.|  97.42668| 171.55590| 146.49150| 406.93200|`(0/20)`|eaSimpleF0|Very slow/stagnation in second half, but good enough growth in the first half|
+|120.|  61.32771| 169.08129| 159.87450| 274.47900|`(0/20)`|NEAT_speciationF0nislands5|Steady spikes overall, but prone to long periods of stagnation|
+|121.|  74.73547| 167.46403| 155.23850| 357.24000|`(0/20)`|NEAT_speciationF0dissimFITNESS||
+|122.|  92.60794| 166.60894| 144.80900| 402.12800|`(0/20)`|rn_evalfn3_eaMuCommaLambda_algoeaMuCommaLambda_genf0_initf0XX_lbda500_pmut0635_pops500_pxov0365_tour6||
+|123.|  60.30816| 163.28717| 166.47900| 334.73300|`(0/20)`|NEAT_speciationF0pop100nislands5|Noticeably lower fitness overall, more stable and slow-ish increase|
+|124.|  74.96505| 161.70664| 168.61600| 297.67400|`(0/10)`|rn_evalfn3_eaMuCommaLambda_algoeaMuCommaLambda_genf0_initf1random_lbda230_pmut069_pops115_pxov031000000000000005_tour9||
+|125.|  61.49788| 160.86270| 164.83750| 287.16600|`(0/10)`|AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegwHist_decay1||
+|126.|  36.26507| 159.07465| 153.75300| 233.91200|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_initf1random_lbda240_pmut0785_pops25_pxov021499999999999997_tour2||
+|127.|  38.21639| 158.67507| 158.06450| 237.81800|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_islabestToWorst_migr35_nisl60_pmut0695_pops446_pxov0405_tour6||
+|128.| 102.29949| 158.55645| 140.20150| 441.26800|`(0/20)`|AdaptMutF1|BIG STAGNATION in the second half, and in general|
+|129.|  63.03672| 158.54638| 154.61500| 315.77500|`(1/20)`|NEAT_speciationF1nislands5|Gets 1 big spike then plateaus/stagnates mostly|
+|130.|  70.11401| 158.53893| 138.54300| 336.39300|`(0/40)`|eaOnePlusLambdaLambdaF0pop1||
+|131.|  46.01961| 153.61436| 144.87000| 253.04200|`(0/10)`|rn_evalfn3_AdaptMut_algoAdaptMut_genf0_pmut0535_pops435_pxov048_tour4_xmut1||
+|132.|  50.60606| 153.42078| 165.59550| 238.72700|`(0/10)`|no_det_no_det_AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnnegwHist_ignorefitnesscmaesignoreinfeasible||
+|133.|  97.49192| 147.39023| 123.26300| 383.96800|`(0/20)`|AdaptMutF1initialgenotypeXXGGpartTSN|Less 'almost instant' fitness improvement, still stagnation|
+|134.|  76.95924| 146.69567| 135.20300| 316.40900|`(0/10)`|NEAT_speciationF1dissimFITNESS||
+|135.|  67.68371| 145.57736| 131.59850| 260.21800|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf0XX_islabestToWorst_migr1_nisl14_pmut10_pops495_pxov03_tour7|Pretty slow start, ~2 spikes in second half|
+|136.|  45.91179| 145.26954| 144.85750| 230.89800|`(0/20)`|eaMuPlusLambdaF0pmut08lbda100|Larger and generally more early spikes compared to Comma, but still stagnation|
+|137.|  28.74714| 144.45570| 134.20250| 206.65400|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_islabestToWorst_migr41_nisl81_pmut069_pops491_pxov044_tour9||
+|138.|  42.67774| 142.36872| 132.55850| 262.88300|`(0/20)`|eaSimpleF0initialgenotype0_f0_basic2|Jumps in first third and one more moderate jump at 2/3|
+|139.|  46.16849| 140.86175| 122.53750| 224.99800|`(0/20)`|eaMuCommaLambdaF0pmut08lbda100|Kinda hillclimber, but it can go down|
+|140.|  58.64210| 140.14862| 122.09950| 250.84900|`(0/10)`|rn_evalfn3_eaOnePlusLambdaLambda_algoeaOnePlusLambdaLambda_genf0_initf1random_pmut023500000000000001_pops1_pxov0365||
+|141.|  60.65619| 139.72842| 125.46100| 292.21700|`(0/10)`|rn_evalfn3_eaMuCommaLambda_algoeaMuCommaLambda_genf0_initf1random_lbda213_pmut0785_pops33_pxov021499999999999997_tour6||
+|142.|  71.88942| 130.98950| 126.90950| 342.90200|`(0/20)`|eaSimpleF0initialgenotype0_f0_neurons|Faster initial growth, but less diversity I think (it tends to stagnate and has stable results (aka most runs arrive in the same fitness ballbark))|
+|143.|  45.19881| 130.69818| 135.26300| 215.82000|`(0/10)`|rn_evalfn3_eaOnePlusLambdaLambda_algoeaOnePlusLambdaLambda_genf1_pmut062_pops1_pxov0035||
+|144.|  27.65701| 130.11578| 120.58100| 172.70400|`(0/10)`|rn_evalfn3_convection_eaSimple_algoconvectioneaSimple_genf0_islabestToWorst_migr21_nisl79_pmut071_pops488_pxov075_tour9||
+|145.|  68.52382| 129.94296| 109.77900| 332.84800|`(0/20)`|eaSimpleF0pmut08|Spikes happen later|
+|146.|  61.58722| 129.18333| 147.07950| 221.11400|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_lbda500_pmut08099999999999999_pops500_pxov019000000000000006_tour5||
+|147.|  71.52893| 126.27572|  95.65995| 321.39800|`(0/20)`|AdaptMutF1pmut08|Stagnation|
+|148.|  72.13336| 122.41123| 105.47150| 293.15400|`(1/20)`|NEAT_speciationF1|Way lower increases per spike than f0|
+|149.|  66.95189| 122.10886|  89.82540| 279.38800|`(0/20)`|eaMuPlusLambdaF0pmut08lbda350|Disappointingly slow and steady, Comma looked better wrt. jitter|
+|150.|  64.57591| 121.83612| 138.47600| 197.28800|`(0/10)`|rn_evalfn3_eaSimple_algoeaSimple_genf0_pmut0325_pops111_pxov004_tour9||
+|151.|  46.51430| 120.22287| 112.46950| 224.62600|`(0/20)`|eaMuCommaLambdaF0pmut08lbda350|Very slow warmup (eval budget go brrr)|
+|152.|  50.13103| 119.74849| 104.49100| 245.62800|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf0_initf0XX_lbda500_pmut084_pops365_pxov016000000000000003_tour10||
+|153.|  47.05908| 116.59629| 119.23650| 242.66000|`(0/20)`|eaOnePlusLambdaLambdaF0pop1initialgenotype0||
+|154.|  45.07542| 100.32251|  94.20590| 204.39900|`(0/20)`|eaSimpleF1initialgenotypeXX|Even bigger stagnation|
+|155.|  21.97628|  96.90388| 102.58200| 129.30900|`(0/10)`|rn_evalfn3_convection_eaSimple_algoconvectioneaSimple_genf0_islabestToWorst_migr28_nisl51_pmut076_pops109_pxov035000000000000003_tour10||
+|156.|  51.67827|  94.73865|  85.56765| 217.86300|`(0/10)`|rn_evalfn3_eaSimple_algoeaSimple_genf1_initf1random_pmut0635_pops85_pxov006_tour11||
+|157.|  58.26179|  94.44432|  91.13255| 251.47300|`(0/20)`|eaSimpleF1pmut08|Not much difference with default pmut|
+|158.|  53.30151|  89.18116|  73.74875| 222.89700|`(15/20)`|NEAT_speciationF1pop100nislands5|Struggles to clear 100, low fitness|
+|159.|  46.52943|  87.73373|  78.88120| 186.71600|`(0/20)`|eaSimpleF1|Lower fitness, big stagnation|
+|160.|  39.10576|  81.30353|  77.50035| 176.81000|`(0/20)`|no_det_nodet_eaSimpleF1|Struggles to clear 100, big stagnation|
+|161.|  47.04598|  74.61855|  66.99510| 194.15300|`(0/20)`|NEAT_speciationF1dissimGENELEVENSHTEIN|Struggles to clear 100 fitness|
+|162.|  12.97105|  74.02647|  72.55660| 101.45500|`(0/10)`|rn_evalfn3_convection_eaSimple_algoconvectioneaSimple_genf0_initf0XXneurons_islabestToWorst_migr48_nisl99_pmut076_pops165_pxov0025_tour5||
+|163.|  42.89914|  73.12026|  67.67320| 204.55300|`(0/20)`|eaSimpleF1initialgenotypeXXGGpartTSN|Even BIGGER stagnation, not faster initial growth|
+|164.|  24.80531|  71.30608|  65.28875| 153.88800|`(0/20)`|AdaptMutF0pmut08selMethodbestinitialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10||
+|165.|  29.02296|  64.12219|  61.02105| 141.53600|`(0/20)`|eaMuCommaLambdaF1pmut08lbda350|Struggling very much, but much better than lbda100|
+|166.|  74.91810|  60.89176|  40.37395| 283.34200|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_islabestToWorst_migr7_nisl17_pmut01_pops407_pxov08300000000000001_tour2||
+|167.|  56.08614|  60.04540|  57.69920| 226.25700|`(0/20)`|eaMuPlusLambdaF1pmut08lbda100|Infrequent jumps, low fitness|
+|168.|  33.63212|  57.10363|  49.96515| 151.52100|`(0/10)`|rn_evalfn3_convection_eaSimple_algoconvectioneaSimple_genf0_islabestToWorst_migr36_nisl2_pmut079_pops3_pxov007_tour3||
+|169.|  49.55113|  53.89931|  42.86660| 224.64700|`(0/20)`|eaMuCommaLambdaF1pmut08lbda100|Very bad ( #idea the F1 mutation/xover operators are weaker than F0)|
+|170.|  33.83895|  39.37166|  19.75955| 126.18800|`(0/20)`|eaMuPlusLambdaF1pmut08lbda350|Even lower fitness, for some reason it struggles to get over 50 fitness|
+|171.|  33.54458|  38.91425|  26.58150| 113.21000|`(0/10)`|rn_evalfn3_eaMuPlusLambda_algoeaMuPlusLambda_genf1_lbda416_pmut0775_pops341_pxov022499999999999998_tour19||
+|172.|   7.43011|  34.52932|  33.92020|  44.64750|`(0/10)`|rn_evalfn3_convection_AdaptMut_algoconvectionAdaptMut_genf0_initf1random_islabestToWorst_migr28_nisl59_pmut0515_pops86_pxov078_tour15||
+|173.|  27.95409|  26.19581|  13.71005|  86.35990|`(20/20)`|NEAT_speciationF1dissimPHENEDENSITYFREQ|Gets close to 100 fitness, gets ~5000 evals before stopping|
+|174.|  17.11060|  13.11953|   4.41728|  63.76950|`(20/20)`|NEAT_speciationF1dissimPHENEDENSITYCOUNT|Struggles to clear 50 fitness, gets ~1000 evals before stopping|
+|175.|  25.35968|  11.21698|   3.47358| 119.45800|`(20/20)`|NEAT_speciationF1dissimPHENEDESCRIPTORS|Struggles to clear 20 fitness, gets ~200 evals before stopping|
+|176.|   6.91842|   7.99027|   6.75836|  25.42220|`(0/10)`|rn_evalfn3_eaSimple_algoeaSimple_genf0_initf1random_pmut073_pops1_pxov0025_tour8||
+|177.|   0.00000|   0.00000|   0.00000|   0.00000|`(0/10)`|rn_evalfn3_eaOnePlusLambdaLambda_algoeaOnePlusLambdaLambda_genf1_pmut067_pops1_pxov0275|No fitness neutralmutations are chosen, so the algorithm stagnates with the first generated genotype. An improvement would be to generate lambda individuals with more than one mutation.|
 
 ```
 P-value: 0.005359 AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10flibclasswHistwHist_scorefnneg

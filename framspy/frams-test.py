@@ -96,10 +96,7 @@ initial_genotype = """//0
 p:
 p:1
 j:0, 1, dx=1
-n:p=1, d=T
-n:p=1
-n:p=1, d=@
-c:0,1"""
+n:p=1, d=T"""
 
 print("Let's perform a few simulation steps of the initial genotype:", initial_genotype)
 frams.ExpProperties.initialgen = initial_genotype
@@ -112,38 +109,16 @@ frams.Simulator.init()  # adds initial_genotype to gene pool (calls onInit() fro
 frams.Simulator.start()  # this does not actually start the simulation, just sets the "Simulator.running" status variable
 step = frams.Simulator.step  # cache reference to avoid repeated lookup in the loop (just for performance)
 # frams.Simulator.eval("while(Simulator.running) Simulator.step();")  # loop in FramScript much faster than loop in python
-# frams.GenMan.f1_smX = 0.5
-# frams.GenMan.f1_smJunct = 0.4
-# frams.GenMan.f1_smComma = 0.4
-# frams.GenMan.f1_smModif = 0.4
-# frams.GenMan.f1_nmNeu = 0.4
-# frams.GenMan.f1_nmConn = 0.4
-# frams.GenMan.f1_nmProp = 0.4
-# frams.GenMan.f1_nmWei = 0.4
-# frams.GenMan.f1_nmVal = 0.4
-frams.GenMan.f0_n_del = 1000000000000
-set
-
 frams.GenMan.gen_extmutinfo = 2
-frams.GenMan.gen_hist = 1
 from ..src.dalgorithm.customMutation import *
 CmutFramsLibReference.custom_mut_frams_lib_reference = frams
 print(CmutFramsLibReference.custom_mut_frams_lib_reference)
-initial_genotype = """//0
-p:
-p:1
-j:0, 1, dx=1
-n:p=1, d=G
-n:p=1, d=T
-n:p=1
-n:p=1, d=@
-c:1,2"""
+# initial_genotype = """X"""
 print(len(frams.Populations[0]))
-for k in get_all_prop_names('0'):
+for k in get_all_prop_names():
 	setExpProperty(k, 0)
 setExpProperty('f0_n_del', 1)
-print(get_all_prop_names('1'))
-exit(0)
+setExpProperty('f0_p_del', 1)
 d = {}
 for s in range(3000):
 	step()  # first step performs selection and revives one genotype according to standard.expdef rules
@@ -151,7 +126,6 @@ for s in range(3000):
 	offspring = frams.GenMan.mutate(frams.Geno.newFromString(initial_genotype))
 	# print(offspring.genotype)
 	d[offspring.genotype._value()] = 1 + d.setdefault(offspring.genotype._value(), 0)
-frams.GenMan.f1_nmNeu = 0.5
 print('oops')
 for k in d:
 	print(d[k], k)
