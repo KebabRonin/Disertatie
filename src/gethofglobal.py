@@ -10,8 +10,7 @@ for alg in os.listdir(get_experiments_dir()):
       idx, = m.groups()
       with open(os.path.join(get_experiments_dir(), alg, run)) as f:
         text = f.read()
-      it = re.finditer(r"""
-org:
+      it = re.finditer(r"""org:
 genotype:([\n\(\)a-zA-NP-Z:\-\d\*\.,\s\|\[\]@\/\~=\"]*)
 COGpath:([\d\.]+)""", text)
       for i in it:
@@ -26,10 +25,12 @@ COGpath:([\d\.]+)""", text)
     name = frams_escape(name)
     genotype = frams_escape(genotype)
     info = '' #frams_escape(info)
+    ## Added velocity so Framsticks import shows the COGpath as the final fitness
     print(f"""
 org:
 name:{name}
 genotype:{genotype}
 COGpath:{score}
+velocity:{score}
 
 """)

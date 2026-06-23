@@ -19,9 +19,14 @@ ARR_TO_PLOT = 'mx_arrs' # 'avg_arrs' #
 
 BASELINES = [
     BASELINE,
+    'AdaptMutF0pmut08added_indrandom',
     'AdaptMutF0pmut08added_indrandomevalfn4',
     'AdaptMutF0pmut08added_indrandomevalfn5',
     'AdaptMutF0pmut08added_indrandomevalfn6',
+    'eaSimpleF1evalfn4',
+    'eaSimpleF1evalfn5',
+    'eaSimpleF1evalfn6',
+    'eaSimpleF1',
 ]
 
 HIGHLIGHT = {
@@ -31,6 +36,8 @@ HIGHLIGHT = {
     # 'AdaptMutF0pmut08': 'red',
     BASELINE: 'red'
 }
+for b in BASELINES:
+    HIGHLIGHT[b] = 'red'
 COLORS = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'magenta']
 
 def get_algo_color(algo_name):
@@ -111,7 +118,7 @@ def parse_algo_params(name: str):
         parstr = parstr.strip()
         nextarg = ', skipinitialgenotype=' if parstr.split(', initialgenotype=')[1].find(', skipinitialgenotype=') != -1 else ', algorithm='
         params['initialgenotype'] = parstr.split(', initialgenotype=')[1].split(nextarg)[0]
-        parstr = parstr.split(', initialgenotype=')[0] + nextarg + parstr.split(nextarg)[1]
+        parstr = parstr.split(', initialgenotype=')[0] + nextarg + parstr.split(nextarg)[1] if len(parstr.split(nextarg)) > 1 else ''
         pp = re.findall(PARAM_PATT, parstr)
         for g in pp:
             params[g[0]] = g[1]
@@ -150,6 +157,9 @@ def get_algo_dict(rk):
     return names
 
 def get_finished_runs(runname):
+    if not os.path.exists(os.path.join(EXPERIMENTS_PATH, runname)):
+        print(f'[Warning] Path for {runname} does not exist.')
+        return []
     files = os.listdir(os.path.join(EXPERIMENTS_PATH, runname))
     finished_runs = []
     for f in files:
@@ -422,13 +432,15 @@ def boxplots(names, order_fn=order_fn_median):
     for idx, n in enumerate(reversed(ordered_names)):
         plt.scatter(names[n]['runs'][:N_RUNS], [idx+1] * len(names[n]['runs'][:N_RUNS]), color=get_algo_color(n), label=n, alpha=0.2)
     plt.boxplot([names[n]['runs'][:N_RUNS] for n in reversed(ordered_names)], showmeans=True, orientation='horizontal')
-    plt.axvline(x=249.01476, color='red', linestyle='--', linewidth=2)
+    baseline = BASELINE if BASELINE in ordered_names else list(filter(lambda x: x.startswith('AdaptMutF0pmut08added_indrandom'), ordered_names))[0]
+    baseline_mean = np.mean(names[baseline]['runs'][:N_RUNS])
+    plt.axvline(x=baseline_mean, color='red', linestyle='--', linewidth=2)
     plt.yticks(range(1, len(names)+1), reversed(ordered_names), rotation=0, ha='right')
     ax = plt.gca()
     for tick in ax.get_yticklabels():
         if tick.get_text() in hhighlight:
             tick.set_color(hhighlight[tick.get_text()])
-    idx_baseline = ordered_names.index(BASELINE)
+    idx_baseline = ordered_names.index(baseline) + 1
     return ordered_names[:idx_baseline]
 
 HOF_SCORE = re.compile(f"\\nCOGpath:{rgx}\\n")
@@ -726,6 +738,7 @@ if __name__ == '__main__':
     print_clasament({n: names[n] for n in names.keys() if 'evalfn6' in n}, parsedargs.latex)
     print(' Evalfn3 '.center(130, '*'))
     names = {n: names[n] for n in names.keys() if 'evalfn6' not in n and 'evalfn5' not in n and 'evalfn4' not in n}
+    # names = {n: names[n] for n in names.keys() if 'dissim' in n}
     if parsedargs.filterbest:
         FIGSIZE=(25,5)
         HIGHLIGHT_COLOR="black"
@@ -766,10 +779,11 @@ if __name__ == '__main__':
     from scipy.stats import ttest_ind
     SIGLVL = 0.05
     ss = ['']
-    print(f"T-test with baseline ({BASELINE})")
+    baseline = BASELINE if BASELINE in ordered_names else list(filter(lambda x: x.startswith('AdaptMutF0pmut08added_indrandom'), ordered_names))[0]
+    print(f"T-test with baseline ({baseline})")
     for on in ordered_names:
         # Perform two-sample t-test
-        t_statistic, p_value = ttest_ind(names[BASELINE]['runs'][:N_RUNS], names[on]['runs'][:N_RUNS], equal_var=False)
+        t_statistic, p_value = ttest_ind(names[baseline]['runs'][:N_RUNS], names[on]['runs'][:N_RUNS], equal_var=False)
 
         # Output the results
         if p_value < SIGLVL:
