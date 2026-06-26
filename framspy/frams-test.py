@@ -92,11 +92,12 @@ c:2, 5, 1.451
 c:6, 10, 2.322
 c:6, 11, -2.376"""
 initial_genotype = """MXX[*][S][N, 10:-7.496, 10:3.812, 0:2.899, 0:0.527, 0:-21.133, 0:16.436, 0:-3.347, 1:-13.831, -1:10.714, 4:-4.933, 4:1.753, 0:0.761,8:1][Gpart, rz:3.991, ry:2.984]qfMXfFX[Gpart][T][N, -4:0.95, -3:-2.129, -5:-4.18, -4:4.344, -2:2.306, -3:1.398,-6:-4.825,0:1]RLMfc(, QFMX[|, 5:28.963][@, 4:-36.341]MF(, qX[T]M(MlX[S][@, -8:1.232, p:0.816][Gpart,ry:0])))"""  # simple body with touch and gyroscope sensors
-initial_genotype = """//0
-p:
-p:1
-j:0, 1, dx=1
-n:p=1, d=T"""
+initial_genotype = """/*4*/X"""
+
+# print(frams.Model.newFromString(initial_genotype))
+# print(frams.Model.newFromString(initial_genotype))
+
+# exit(0)
 
 print("Let's perform a few simulation steps of the initial genotype:", initial_genotype)
 frams.ExpProperties.initialgen = initial_genotype
@@ -114,22 +115,22 @@ from ..src.dalgorithm.customMutation import *
 CmutFramsLibReference.custom_mut_frams_lib_reference = frams
 print(CmutFramsLibReference.custom_mut_frams_lib_reference)
 # initial_genotype = """X"""
-print(len(frams.Populations[0]))
-for k in get_all_prop_names():
-	setExpProperty(k, 0)
-setExpProperty('f0_n_del', 1)
-setExpProperty('f0_p_del', 1)
-d = {}
-for s in range(3000):
-	step()  # first step performs selection and revives one genotype according to standard.expdef rules
-	# creature = frams.Populations[0][0]  # FramScript Creature object
-	offspring = frams.GenMan.mutate(frams.Geno.newFromString(initial_genotype))
-	# print(offspring.genotype)
-	d[offspring.genotype._value()] = 1 + d.setdefault(offspring.genotype._value(), 0)
-print('oops')
-for k in d:
-	print(d[k], k)
-exit(0)
+# print(len(frams.Populations[0]))
+# for k in get_all_prop_names():
+# 	setExpProperty(k, 0)
+# setExpProperty('f0_n_del', 1)
+# setExpProperty('f0_p_del', 1)
+# d = {}
+# for s in range(3000):
+# 	step()  # first step performs selection and revives one genotype according to standard.expdef rules
+# 	# creature = frams.Populations[0][0]  # FramScript Creature object
+# 	offspring = frams.GenMan.mutate(frams.Geno.newFromString(initial_genotype))
+# 	# print(offspring.genotype)
+# 	d[offspring.genotype._value()] = 1 + d.setdefault(offspring.genotype._value(), 0)
+# print('oops')
+# for k in d:
+# 	print(d[k], k)
+# exit(0)
 parent = frams.Geno.newFromString(initial_genotype)
 child = frams.GenMan.mutate(parent)
 
@@ -137,28 +138,30 @@ print("child.info type:", type(child.info))
 print("child.info repr:", repr(str(child.info)))
 print("child.info text:\n", str(child.info))
 
-namespace = {'frams': frams}
 for bmut in get_all_prop_names():
 	setExpProperty(bmut, 1)
-
+setExpProperty("f4_mut_add", 0)
+setExpProperty("f4_mut_del", 0)
 d = {}
 """
 0
 {'added Neuron': 5177, 'changed Joint color': 4915, 'removed neural connection': 5073, 'changed Part density': 5157, 'added neural connection': 5118, 'changed Neuron property': 2995, 'changed Joint stamina': 5212, 'changed Part ingestion': 5255, 'added Joint': 3334, 'changed Joint stiffness': 5076, 'changed neural connection weight': 5069, 'changed Part friction': 5080, 'removed Part': 3159, 'changed Part assimilation': 5186, 'swapped Part': 3880, 'removed Neuron': 5161, 'changed Part color': 5260, 'added Part': 5061, 'removed Joint': 4708, 'changed Part position': 5129, 'changed Joint rotational stiffness': 4995}
 1
 {'added or removed a neuron': 7033, 'changed neural connection weight': 7009, 'added or removed neural connection': 7034, 'added or removed a modifier': 27813, 'added or removed a comma': 6450, 'added or removed X': 26034, 'added or removed neuron property': 6935, 'changed neuron property': 7040, 'added or removed branching': 4652}
+4
 """
 import re
-
+initial_genotype = "/*4*/c<<CXR>MfmN:Gpart>fN:@[1:0.788]>"
 for s in range(100_000):
 	step()  # first step performs selection and revives one genotype according to standard.expdef rules
 	# creature = frams.Populations[0][0]  # FramScript Creature object
 	offspring = frams.GenMan.mutate(frams.Geno.newFromString(initial_genotype))
 	# print(offspring.genotype)
 	print(offspring.info)
-	exit(0)
+	# exit(0)
 	mutation_match = re.search(r'mutation\((.*?)\)', str(offspring.info)).group(1)
 	mutkind = get_applied_mutation(offspring)
+	initial_genotype = offspring.genotype._string()
 	d[mutkind] = d.get(mutkind, 0) + 1
 print(d)
 exit(0)

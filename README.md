@@ -323,6 +323,11 @@ https://github.com/marcovirgolin/GP-GOMEA
 
 #### For prof next time
 
+- Where to put AI acknowledgements ? Is it ok after conclusions, as an unnumbered section?
+
+
+
+
 - Is it ok to leave disertation code to be open source? Trebuie ceva declaratie in plus pentru asta? (trebuie mentionat ca parte din GECCO submission)
 - Odd behavior with `neg` mutation weighting function (why does it work so well?)
 - CMA-ES:?
@@ -393,7 +398,6 @@ python -m src.runExperiment -path "/home/xwiki/Documents/fac/GECCO_Robot_Body/Fr
 	  * [ ] Installation doesn't work, last updated 5 years ago. Seems I was duped
 
 #### TODO
-https://pmc.ncbi.nlm.nih.gov/articles/PMC12238971/pdf/nihms-2059158.pdf
 _Roughly ordered by difficulty/impact_
 
 - [ ] Benchmark for ignoreinfeasible with maxnumparts=3-5
@@ -791,6 +795,17 @@ https://www.youtube.com/watch?v=hv2BXzjYeRw
 https://www.youtube.com/watch?v=2xVN-qY78P4 - tutorial
 https://www.youtube.com/watch?v=7VBKLH3oDuw - original paper
 
+[^risto-neuro-insights]: [Neuroevolution insights into biological neural computation](https://pmc.ncbi.nlm.nih.gov/articles/PMC12238971/pdf/nihms-2059158.pdf)
+	- "The solutions may appear more complex than they need to be, which is important to keep in mind when understanding neural circuits."
+	- Neuroevolution is useful in encouraging creativity in neurology/biology sectors. It is not proof, but evidence towards a particular research direction
+	- Modularity arises when optimizing 2 or more tasks at once
+	- "A particular well-studied large-scale circuitry is that of locomotion."
+	- "Compared with hand-designed CPGs, evolved CPGs are closer in connectivity and oscillation patterns to biological circuits and instantiate more robust and flexible control."
+	- Spiking neural network: Like regular NN, but information propagates only when the neuron decides it (so more async than FF-NN)
+	- "Neuroevolution can thus realize the potential of such biologically more accurate models, suggesting how behavior can arise from the biophysical properties expressed in their parameters."
+	- "The same conclusion applies to behaviors of creatures that are not human at all, such as evolved virtual creatures"
+
+
 [^gecco-cma-es-tutorial]: https://www.youtube.com/watch?v=7VBKLH3oDuw
 	- #advice 1/5-th success rule: It's optimal to have only 20% offspring better than parent (so adjust mutation params accordingly)
 	- #idea update mutation step based on genome length?
@@ -864,7 +879,7 @@ https://www.youtube.com/watch?v=7VBKLH3oDuw - original paper
 		- Keep track of innovations across topologies & generations
 	- Kinds of complexification:
 		- #advice **Gene duplication** is a special kind of mutation in which one or more parental genes are copied into an offspring's genome more than once. The offspring then has redundant genes expressing the same proteins.
-			- Base pair mutations in the generations following duplication **partition** the initially redundant regulatory roles of genes into separate lasses. The genes that determine the overall body-plan are confined to more specific roles, since there are more of them.
+			- Base pair mutations in the generations following duplication **partition** the initially redundant regulatory roles of genes into separate classes. The genes that determine the overall body-plan are confined to more specific roles, since there are more of them.
 			- After partitioning, mutations within the duplicated cluster of genes affect different steps in development than mutations within the original cluster. In other words, duplication **creates more points at which mutations can occur**. In this manner, developmental processes complexify.
 			- This may be possible in `f0`, and for `f1` maybe just for neurons (but duplicate neurons get removed at phenotype creation)
 		- **Challenges with Gene Duplication**:

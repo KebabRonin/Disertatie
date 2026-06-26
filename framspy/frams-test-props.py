@@ -36,25 +36,33 @@ def printFramsProperties(v):
 				printSingleProperty(v, p)
 	print('\n\n')
 
+initial_genotype = 'X[@]X'
 # printFramsProperties(frams.Simulator)
 printFramsProperties(frams.GenMan)
+# mdl = frams.Model.newFromString(frams.GenMan.getSimplest('4').genotype._string())
+mdl = frams.GenMan.getSimplest('4').genotype._string()
+print(mdl)
+# printFramsProperties(mdl)
+# print(mdl.getJoint(0))
+# printFramsProperties(mdl.getJoint(0))
+exit(0)
 # printFramsProperties(frams.World)
 # printFramsProperties(frams.ExpProperties)
 frams.GenMan.gen_extmutinfo = 1
-print(frams.GenMan.gen_extmutinfo)
+# print(frams.GenMan.gen_extmutinfo)
 egg = frams.GenMan.crossOver(frams.Geno.newFromString('X(X,XX)XX'), frams.Geno.newFromString('XX(X,XX,X,,X)'))
-printFramsProperties(egg)
-print(egg.info)
-print(egg.format._value().__class__)
-print(frams.Geno.newFromString('X(X,XX)XX').format._value())
+# printFramsProperties(egg)
+# print(egg.info)
+# print(egg.format._value().__class__)
+# print(frams.Geno.newFromString('X(X,XX)XX').format._value())
 exit(0)
 printFramsProperties(frams.Simulator)
 print(dir(frams.Simulator))
 
 frams.Simulator.ximport("eval-allcriteria.sim", 4 + 8 + 0)
-print(frams.GenMan.f0_p_swp)
+# print(frams.GenMan.f0_p_swp)
 frams.GenMan.f0_p_swp = 1.0
-print(frams.GenMan.f0_p_swp)
+# print(frams.GenMan.f0_p_swp)
 # printFramsProperties(frams.World)", frams_evaluate, frams_lib
 
 # printFramsProperties(frams.GenePools[0].add('X'))  # add('X') returns a Genotype object
@@ -71,12 +79,12 @@ toolbox = base.Toolbox()
 toolbox.register("attr_simplest_genotype", frams_getsimplest, initial_genotype)  # "Attribute generator"
 
 toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_simplest_genotype, 1)
-print(toolbox.individual())
-print(type(toolbox.individual().fitness))
-print(type(toolbox.individual().fitness.values))
+# print(toolbox.individual())
+# print(type(toolbox.individual().fitness))
+# print(type(toolbox.individual().fitness.values))
 
 printFramsProperties(frams.Model.newFromString(initial_genotype))
-printFramsProperties(frams.Model.newFromString(initial_genotype).getNeuroDef(0))
+# printFramsProperties(frams.Model.newFromString(initial_genotype).getNeuroDef(0))
 # toolbox.individual().fitness.values = 1.0
 # toolbox.register("evaluate", frams_evaluate, frams_lib)
 

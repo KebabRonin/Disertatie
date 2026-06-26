@@ -44,7 +44,7 @@ def get_algo_color(algo_name):
     random.seed(algo_name)
     return random.choice(COLORS)
 
-N_RUNS = 50
+N_RUNS = 20
 MAX_STEPS = 100_001
 example_idx = 0
 
@@ -75,24 +75,28 @@ def parseArgs():
 def running_stat(arr, fn, radius=50):
     return [fn(arr[i-radius:i+radius]) for i in range(len(arr))]
 
+def nruns_muzzle(runs):
+    random.seed(42)
+    return random.sample(runs, min(len(runs), N_RUNS))
+
 def order_fn_median(names):
     ordered_names = list(names.keys())
-    ordered_names.sort(key=lambda n: np.median(names[n]['runs'][:N_RUNS]), reverse=True)
+    ordered_names.sort(key=lambda n: np.median(nruns_muzzle(names[n]['runs'])), reverse=True)
     return ordered_names
 
 def order_fn_mean(names):
     ordered_names = list(names.keys())
-    ordered_names.sort(key=lambda n: np.mean(names[n]['runs'][:N_RUNS]), reverse=True)
+    ordered_names.sort(key=lambda n: np.mean(nruns_muzzle(names[n]['runs'])), reverse=True)
     return ordered_names
 
 def order_fn_max(names):
     ordered_names = list(names.keys())
-    ordered_names.sort(key=lambda n: max(names[n]['runs'][:N_RUNS]), reverse=True)
+    ordered_names.sort(key=lambda n: max(nruns_muzzle(names[n]['runs'])), reverse=True)
     return ordered_names
 
 def order_fn_min(names):
     ordered_names = list(names.keys())
-    ordered_names.sort(key=lambda n: min(names[n]['runs'][:N_RUNS]), reverse=True)
+    ordered_names.sort(key=lambda n: min(nruns_muzzle(names[n]['runs'])), reverse=True)
     return ordered_names
 
 def parse_algo_params(name: str):
@@ -411,7 +415,11 @@ def getTopOfEachAlgo(ordered_names):
     bbest = []
     bbo = []
     for idx, n in enumerate(ordered_names):
-        if 'algorithm' in names[n]['params'] and names[n]['params']['algorithm'] not in bbest:
+        if 'DynMut' in n:
+            if 'DynMut' not in bbest:
+                bbest.append('DynMut')
+                bbo.append(n)
+        elif 'algorithm' in names[n]['params'] and names[n]['params']['algorithm'] not in bbest:
             bbest.append(names[n]['params']['algorithm'])
             bbo.append(n)
     return bbo
@@ -424,23 +432,27 @@ def boxplots(names, order_fn=order_fn_median):
     plt.figure(figsize=FIGSIZE)
     ordered_names = order_fn(names)
     for idx, n in enumerate(ordered_names):
-        if len(names[n]['runs'][:N_RUNS]) < 20:
+        if len(nruns_muzzle(names[n]['runs'])) < 20:
             hhighlight[n] = 'blue'
         if 'algorithm' in names[n]['params'] and  names[n]['params']['algorithm'] not in bbest:
             hhighlight[n] = 'pink' if n in hhighlight and hhighlight[n] != 'blue' else (HIGHLIGHT_COLOR)
             bbest.append(names[n]['params']['algorithm'])
     for idx, n in enumerate(reversed(ordered_names)):
-        plt.scatter(names[n]['runs'][:N_RUNS], [idx+1] * len(names[n]['runs'][:N_RUNS]), color=get_algo_color(n), label=n, alpha=0.2)
-    plt.boxplot([names[n]['runs'][:N_RUNS] for n in reversed(ordered_names)], showmeans=True, orientation='horizontal')
-    baseline = BASELINE if BASELINE in ordered_names else list(filter(lambda x: x.startswith('AdaptMutF0pmut08added_indrandom'), ordered_names))[0]
-    baseline_mean = np.mean(names[baseline]['runs'][:N_RUNS])
-    plt.axvline(x=baseline_mean, color='red', linestyle='--', linewidth=2)
+        plt.scatter(nruns_muzzle(names[n]['runs']), [idx+1] * len(nruns_muzzle(names[n]['runs'])), color=get_algo_color(n), label=n, alpha=0.2)
+    plt.boxplot([nruns_muzzle(names[n]['runs']) for n in reversed(ordered_names)], showmeans=True, orientation='horizontal')
+    try:
+        baseline = BASELINE if BASELINE in ordered_names else list(filter(lambda x: x.startswith('AdaptMutF0pmut08added_indrandom'), ordered_names))[0]
+        baseline_mean = np.mean(nruns_muzzle(names[baseline]['runs']))
+        plt.axvline(x=baseline_mean, color='red', linestyle='--', linewidth=2)
+        idx_baseline = ordered_names.index(baseline) + 1
+    except Exception as e:
+        print(e)
+        idx_baseline = 100000000
     plt.yticks(range(1, len(names)+1), reversed(ordered_names), rotation=0, ha='right')
     ax = plt.gca()
     for tick in ax.get_yticklabels():
         if tick.get_text() in hhighlight:
             tick.set_color(hhighlight[tick.get_text()])
-    idx_baseline = ordered_names.index(baseline) + 1
     return ordered_names[:idx_baseline]
 
 HOF_SCORE = re.compile(f"\\nCOGpath:{rgx}\\n")
@@ -602,27 +614,27 @@ def print_clasament(names, latex):
 
     names_sorted = list(names.keys())
     names = {n: names[n] for n in names_sorted} # Ensure different evalfns are not listed together
-    names_sorted.sort(key=lambda x: np.mean(names[x]['runs'][:N_RUNS]), reverse=True)
+    names_sorted.sort(key=lambda x: np.mean(nruns_muzzle(names[x]['runs'])), reverse=True)
     comments = json.load(open(os.path.join(get_disertatie_root(), 'algo_comments.json'), 'r'))
 
-    best_max = [(n, np.max(names[n]['runs'][:N_RUNS])) for n in names_sorted]
+    best_max = [(n, np.max(nruns_muzzle(names[n]['runs']))) for n in names_sorted]
     best_max.sort(key=lambda x: x[1], reverse=True)
     best_max = best_max[0][0]
-    best_mean = [(n, np.mean(names[n]['runs'][:N_RUNS])) for n in names_sorted]
+    best_mean = [(n, np.mean(nruns_muzzle(names[n]['runs']))) for n in names_sorted]
     best_mean.sort(key=lambda x: x[1], reverse=True)
     best_mean = best_mean[0][0]
-    best_median = [(n, np.median(names[n]['runs'][:N_RUNS])) for n in names_sorted]
+    best_median = [(n, np.median(nruns_muzzle(names[n]['runs']))) for n in names_sorted]
     best_median.sort(key=lambda x: x[1], reverse=True)
     best_median = best_median[0][0]
-
+    s = 0
     for idx, n in enumerate(names_sorted):
-        mean = f'{np.mean(names[n]['runs'][:N_RUNS]):10.5f}'
+        mean = f'{np.mean(nruns_muzzle(names[n]['runs'])):10.5f}'
         if n == best_mean:
             mean = f'**{mean.strip()}**' if not latex else '\\textbf{' + mean.strip() + '}'
-        median = f'{np.median(names[n]['runs'][:N_RUNS]):10.5f}'
+        median = f'{np.median(nruns_muzzle(names[n]['runs'])):10.5f}'
         if n == best_median:
             median = f'**{median.strip()}**' if not latex else '\\textbf{' + median.strip() + '}'
-        maxx = f'{np.max(names[n]['runs'][:N_RUNS]):10.5f}'
+        maxx = f'{np.max(nruns_muzzle(names[n]['runs'])):10.5f}'
         if n == best_max:
             maxx = f'**{maxx.strip()}**' if not latex else '\\textbf{' + maxx.strip() + '}'
         comment = comments[n] if n in comments else ''
@@ -631,17 +643,19 @@ def print_clasament(names, latex):
             namm = f'***{n} - baseline***' if not latex else '\\textbf{\\textit{' + n + '}}'
         else:
             namm = n
+        s += len(nruns_muzzle(names[n]['runs']))
         if latex:
             print(
                 f'{idx+1:>3}.'
                 + f'&{np.std(names[n]['runs']):10.5f}&{mean}&{median}&{maxx}'
-                + f'&({runs_time_exceeded}/{len(names[n]['runs'])})&\\seqsplit{"{"}{namm.replace('_', '\\_')}{"}"}\\\\ \\hline')
+                + f'&({runs_time_exceeded}/{len(nruns_muzzle(names[n]['runs']))})&\\seqsplit{"{"}{namm.replace('_', '\\_')}{"}"}\\\\ \\hline')
         else:
             print(
                 f'|{idx+1:>3}.'
-                + f'|{np.std(names[n]['runs'][:N_RUNS]):10.5f}|{mean}|{median}|{maxx}'
-                + f'|`({runs_time_exceeded}/{len(names[n]['runs'][:N_RUNS])})`|{namm}|{comment}|')
-
+                + f'|{np.std(nruns_muzzle(names[n]['runs'])):10.5f}|{mean}|{median}|{maxx}'
+                + f'|`({runs_time_exceeded}/{len(nruns_muzzle(names[n]['runs']))})`|{namm}|{comment}|')
+    print(f"Total executed runs: {s}")
+    print(f"Total executed experiments: {len(names_sorted)}")
 if __name__ == '__main__':
     sc = get_best_genotypes_over_all_runs()
     print(len(sc))
@@ -738,13 +752,14 @@ if __name__ == '__main__':
     print_clasament({n: names[n] for n in names.keys() if 'evalfn6' in n}, parsedargs.latex)
     print(' Evalfn3 '.center(130, '*'))
     names = {n: names[n] for n in names.keys() if 'evalfn6' not in n and 'evalfn5' not in n and 'evalfn4' not in n}
-    # names = {n: names[n] for n in names.keys() if 'dissim' in n}
+    # names = {n: names[n] for n in names.keys() if 'novelty_sel' in n and 'patience100tournament50' in n and 'pmut0675' not in n}#re.match(r'novelty_sel', n)}
     if parsedargs.filterbest:
-        FIGSIZE=(25,5)
+        FIGSIZE=(15,5)
         HIGHLIGHT_COLOR="black"
+        # names = {('DynMut' if 'DynMut' in n else (n if n in BASELINES else names[n]['params']['algorithm'])): names[n] for n in names.keys() if n in getTopOfEachAlgo(order_fn_mean(names)) or n in BASELINES or n in HIGHLIGHT}
         names = {n: names[n] for n in names.keys() if n in getTopOfEachAlgo(order_fn_mean(names)) or n in BASELINES or n in HIGHLIGHT}
     else:
-        FIGSIZE=(25,25)
+        FIGSIZE=(25,int(len(names) // 2))
         HIGHLIGHT_COLOR="#0d729a"
     # print_clasament({n: names[n] for n in names.keys() if 'evalfn5' not in n and 'evalfn4' not in n})
     print_clasament(names, parsedargs.latex)
@@ -779,16 +794,19 @@ if __name__ == '__main__':
     from scipy.stats import ttest_ind
     SIGLVL = 0.05
     ss = ['']
-    baseline = BASELINE if BASELINE in ordered_names else list(filter(lambda x: x.startswith('AdaptMutF0pmut08added_indrandom'), ordered_names))[0]
-    print(f"T-test with baseline ({baseline})")
-    for on in ordered_names:
-        # Perform two-sample t-test
-        t_statistic, p_value = ttest_ind(names[baseline]['runs'][:N_RUNS], names[on]['runs'][:N_RUNS], equal_var=False)
+    try:
+        baseline = BASELINE if BASELINE in ordered_names else list(filter(lambda x: x.startswith('AdaptMutF0pmut08added_indrandom'), ordered_names))[0]
+        print(f"T-test with baseline ({baseline})")
+        for on in ordered_names:
+            # Perform two-sample t-test
+            t_statistic, p_value = ttest_ind(nruns_muzzle(names[baseline]['runs']), nruns_muzzle(names[on]['runs']), equal_var=False)
 
-        # Output the results
-        if p_value < SIGLVL:
-            ss += [f"P-value: {p_value:.6f} {on}"]
-            # print(f"t-statistic: {t_statistic}")
-    ss.sort()
-    print('\n'.join(ss))
+            # Output the results
+            if p_value < SIGLVL:
+                ss += [f"P-value: {p_value:.6f} {on}"]
+                # print(f"t-statistic: {t_statistic}")
+        ss.sort()
+        print('\n'.join(ss))
+    except Exception as e:
+        print(e)
     exit()

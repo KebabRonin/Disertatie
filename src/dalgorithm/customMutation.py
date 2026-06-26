@@ -97,6 +97,26 @@ If you include (0.0) after a symbol, this bans that symbol as if it was not pres
  * f1_nmProp "Add/remove neuron property setting" type="f 0 100 1" flags=0 group=15 help=""
  * f1_nmWei "Change connection weight" type="f 0 100 1" flags=0 group=15 help=""
  * f1_nmVal "Change property value" type="f 0 100 1" flags=0 group=15 help=""
+
+------------------- Group #16: Genetics: f4 -------------------
+ * f4_mut_add "Add node" type="f 0 100 4" flags=0 group=16 help="Mutation: probability of adding a node"
+ * f4_mut_add_div "- add division" type="f 0 100 4" flags=0 group=16 help="Add node mutation: probability of adding a division"
+ * f4_mut_add_conn "- add connection" type="f 0 100 1" flags=0 group=16 help="Add node mutation: probability of adding a neural connection"
+ * f4_mut_add_neupar "- add neuron property" type="f 0 100 1" flags=0 group=16 help="Add node mutation: probability of adding a neuron property/modifier"
+ * f4_mut_add_rep "- add repetition '#'" type="f 0 100 1" flags=0 group=16 help="Add node mutation: probability of adding the '#' repetition gene"
+ * f4_mut_add_simp "- add simple node" type="f 0 100 4" flags=0 group=16 help="Add node mutation: probability of adding a random, simple gene"
+ * f4_mut_del "Delete node" type="f 0 100 1" flags=0 group=16 help="Mutation: probability of deleting a node"
+ * f4_mut_mod "Modify node" type="f 0 100 1" flags=0 group=16 help="Mutation: probability of changing a node"
+ * f4_mut_modneu_conn "- neuron input: modify source" type="f 0 100 3" flags=0 group=16 help="Neuron input mutation: probability of changing its source neuron"
+ * f4_mut_modneu_weight "- neuron input: modify weight" type="f 0 100 3" flags=0 group=16 help="Neuron input mutation: probability of changing its weight"
+ * f4_mut_max_rep "Maximum number for '#' repetitions" type="d 2 20 6" flags=0 group=17 help="Maximum allowed number of repetitions for the '#' repetition gene"
+ * f4_mut_modifiers "Allowed modifiers" type="s 0 100" flags=0 group=17 help="Modifier symbols that will be added or deleted during mutation
+(from the full set: LlRrCcQqFfMmEeWwSsAaIiDdGgBb).
+
+You may use the extended syntax: after every allowed symbol, you may include its probability value in parentheses.
+Without parentheses, all allowed symbols behave as if they had (1.0) appended.
+If you include (0.0) after a symbol, this bans that symbol as if it was not present in this string."
+
 """
 # These values are taken from eval-allcriteria.sim, but it would be better to load them on Framsticks initialization.
 BODY_MUT = {
@@ -125,6 +145,17 @@ BODY_MUT = {
     "f1_smComma": 0.02,
     "f1_smModif": 0.1,
   },
+  "4": {
+  "f4_mut_add":50.0, # Is a gate to all the mut_add props below. Setting it to 0 will disable all mut_add properties
+  "f4_mut_add_div":20.0,
+  "f4_mut_add_conn":15.0,
+  "f4_mut_add_rep":10.0,
+  "f4_mut_add_simp":50.0,
+  "f4_mut_del":20.0,
+  "f4_mut_mod":30.0,
+  # "f4_mut_max_rep":6,
+  # "f4_mut_modifiers":"LlRrCcQqFfMm",
+  },
 }
 
 NEURO_MUT = {
@@ -148,6 +179,12 @@ NEURO_MUT = {
     "f1_nmProp": 0.1,
     "f1_nmWei": 1.0,
     "f1_nmVal": 0.05,
+  },
+  "4":  {
+    # These seem unused?
+    "f4_mut_add_neupar":5.0,
+    "f4_mut_modneu_conn":3.0,
+    "f4_mut_modneu_weight":3.0,
   },
   "generic": {
 # Which kinds of neurons to generate.
@@ -232,7 +269,19 @@ INFO_MUT = {
     "added or removed a comma": "f1_smComma",
     "added or removed X": "f1_smX",
     "added or removed branching": "f1_smJunct",
-  }
+  },
+  '4': {
+    "added repetition gene": "f4_mut_add_rep",
+    "added a simple node": "f4_mut_add_simp",
+    "added division": "f4_mut_add_div",
+    "added neural connection": "f4_mut_add_conn",
+    "added neuron property": "f4_mut_add_neupar",
+    "deleted a node": "f4_mut_del",
+    "modified a node": "f4_mut_mod",
+    # "added division": "f4_mut_modneu_conn", # Has no specific message, it's the same as mut_mod
+    # "added division": "f4_mut_modneu_weight", # Has no specific message, it's the same as mut_mod
+    # "added division": "f4_mut_add", # Is a common prop for all mod_add props
+  },
 }
 class CmutFramsLibReference:
   custom_mut_frams_lib_reference = None
@@ -255,8 +304,13 @@ def set_general_weights(framsLib, w_body=None, w_neuro=None):
 
 def get_all_prop_names(genetic_repr = None):
     #list(NEURO_MUT["generic"].keys()) + 
-  names = list(NEURO_MUT["0"].keys() if genetic_repr != '1' else []) + list(NEURO_MUT["1"].keys() if genetic_repr != '0' else []) + \
-    list(BODY_MUT["0"].keys() if genetic_repr != '1' else []) + list(BODY_MUT["1"].keys() if genetic_repr != '0' else [])
+  if genetic_repr == None:
+    gentypes = list(BODY_MUT.keys())
+  else:
+    gentypes = [genetic_repr]
+  names = []
+  for gentype in gentypes:
+    names += list(NEURO_MUT[gentype].keys()) + list(BODY_MUT[gentype].keys())
   return list(set(filter(lambda x: x not in CmutFramsLibReference.ignored_operation_types, names)))
 
 def get_current_weights(genetic_repr):

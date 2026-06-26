@@ -262,7 +262,9 @@ def main():
 
     labels, series, restart_flags = build_series_with_restarts(blocks, restart_flags)
 
-    output_path = "test.gif"
+    import re
+    idx = re.findall(r'results_(\d+)\.stdout', input_path)[0]
+    output_path = os.path.join(os.path.dirname(input_path), f"probgif_{idx}.gif")
     report = draw_animation(labels, series, output_path, restart_flags)
     print(f"Saved GIF to {output_path}")
     print()
