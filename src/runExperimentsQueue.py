@@ -92,30 +92,18 @@ def getUnrunExperiments():
     print (f"{alr_run}/{runns} ({alr_run/runns:.3f})")
 
 runs_cfgs = [
-    # { # best so far devel encoding
-    #     'convection': None, #[None, 'convection_'],
-    #     'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-    #     'genformat': 4, # [0, 1],
-    #     'pmut': 0.8, # [None, 0.8, 0.5],
-    #     'pop': None, # [None, 100, 500],
-    #     'lbda': None, # [100, 350]
-    #     'extra': ' ', # -nodet 1
-    #     'extra_cargs': ' -initialgenotype random -added_ind random -restart_method soft_perturb_best -restart_patience 10 -flibclass wHist -wHist_scorefn neg ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-    #     'nameSuffix': '',
-    #     'namePrefix': '',
-    # },
-    # { # TODO: Run best MAPElites on all evalfns. Ideally, run the best config of each algorithm on all functions.
-    #     'convection': None, #[None, 'convection_'],
-    #     'algorithm': 'MAPElites', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
-    #     'genformat': 0, # [0, 1],
-    #     'pmut': None, # [None, 0.8, 0.5],
-    #     'pop': 20, # [None, 100, 500],
-    #     'lbda': None, # [100, 350]
-    #     'extra': ' ', # -nodet 1
-    #     'extra_cargs': ' -wHist_cacheActive 1 -flibclass wHist -wHist_ESalgo none -novelty_sel quality -restart_method soft_perturb_best -restart_patience 100 -tournament 50 -evalfn 4', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
-    #     'nameSuffix': '',
-    #     'namePrefix': '',
-    # },
+    { # TODO: Run best MAPElites on all evalfns. Ideally, run the best config of each algorithm on all functions.
+        'convection': None, #[None, 'convection_'],
+        'algorithm': 'MAPElites', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],
+        'genformat': 0, # [0, 1],
+        'pmut': None, # [None, 0.8, 0.5],
+        'pop': 20, # [None, 100, 500],
+        'lbda': None, # [100, 350]
+        'extra': ' ', # -nodet 1
+        'extra_cargs': ' -wHist_cacheActive 1 -flibclass wHist -wHist_ESalgo none -novelty_sel quality -restart_method none -tournament 50 ', #f' -initialgenotype \\"{SIMPLEST_GENOTYPE["f1_basic2"]}\\" ',
+        'nameSuffix': '',
+        'namePrefix': '',
+    },
     # { # best so far
     #     'convection': None, #[None, 'convection_'],
     #     'algorithm': 'AdaptMut', # ['AdaptMut', 'eaSimple', 'eaMuPlusLambda', 'eaMuCommaLambda', 'NEAT_speciation'],

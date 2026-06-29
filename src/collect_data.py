@@ -44,7 +44,7 @@ def get_algo_color(algo_name):
     random.seed(algo_name)
     return random.choice(COLORS)
 
-N_RUNS = 20
+N_RUNS = 100
 MAX_STEPS = 100_001
 example_idx = 0
 
@@ -138,6 +138,7 @@ def get_algo_params(name):
             'run_start': os.stat(os.path.join(EXPERIMENTS_PATH, name['runname'], f'results_{name['runidx']}.stdout')).st_mtime,
             'run_end': os.stat(os.path.join(EXPERIMENTS_PATH, name['runname'], f'results_{name['runidx']}.stdout')).st_ctime,
             'generations': int(name['generations']),
+            'best_at': int(name['best_at']),
             'invalid_genos': int(name['invalid_genos']),
             'nonevalTime': None if name['nonevalTime'] is None else float(name['nonevalTime']),
             'totalevals': None if name['totalevals'] is None else int(name['totalevals']),
@@ -383,6 +384,11 @@ def parse_data(rs=None):
             'species_dicts': species_dicts,
             'islands_arrs': islands_arrs,
         }
+        rs[d]['best_at'] = []
+        for barr in rs[d][ARR_TO_PLOT]:
+            bee = sorted(barr, key=lambda x: x[1] if x[1] is not None else -1, reverse=True)[0]
+            bee = bee[0] # get the evalcount
+            rs[d]['best_at'].append(bee)
         modified = True
         if len(species_dicts) > 0:
             rs[d]['species'] = species_dicts
@@ -435,7 +441,7 @@ def boxplots(names, order_fn=order_fn_median):
         if len(nruns_muzzle(names[n]['runs'])) < 20:
             hhighlight[n] = 'blue'
         if 'algorithm' in names[n]['params'] and  names[n]['params']['algorithm'] not in bbest:
-            hhighlight[n] = 'pink' if n in hhighlight and hhighlight[n] != 'blue' else (HIGHLIGHT_COLOR)
+            hhighlight[n] = hhighlight[n] if n in hhighlight and hhighlight[n] != 'blue' else (HIGHLIGHT_COLOR)
             bbest.append(names[n]['params']['algorithm'])
     for idx, n in enumerate(reversed(ordered_names)):
         plt.scatter(nruns_muzzle(names[n]['runs']), [idx+1] * len(nruns_muzzle(names[n]['runs'])), color=get_algo_color(n), label=n, alpha=0.2)
@@ -558,6 +564,8 @@ def show_runs(rs: dict, d, example_idx, run_idx, plot=True, printout=False, arr_
         for isl in rs[d]['islands'][example_idx]:
             islbests += list(map(lambda x: x[1] if x[1] else 0, rs[d]['islands'][example_idx][isl][arr_to_plot]))
         best_val = max(best_val, max(islbests))
+        # I can't be bothered to make this work.
+        # best_val_idx = rs[d][arr_to_plot][example_idx].index(best_val) if best_val in rs[d][arr_to_plot][example_idx] else -1
     # if f"{best_val:.3f}" != f"{best_val_hof:.3f}":
     #     print(f"[Warning] Best mismatch between hof ({best_val_hof:.6f}) and my parsed best ({best_val:.6f}) For ", example_idx, d)
     res.append((d, max(best_val, best_val), rs[d], example_idx))
@@ -699,6 +707,7 @@ if __name__ == '__main__':
                 'runname': f[0],
                 'fitness': f[1],
                 'runidx': f[2]['run_idx'],
+                'best_at': f[2]['best_at'][i],
                 'generations': f[2]['generations'][i],
                 'nonevalTime': f[2]['nonevalTime'][i],
                 'invalid_genos': f[2]['invalid_genos'][i],
@@ -752,14 +761,16 @@ if __name__ == '__main__':
     print_clasament({n: names[n] for n in names.keys() if 'evalfn6' in n}, parsedargs.latex)
     print(' Evalfn3 '.center(130, '*'))
     names = {n: names[n] for n in names.keys() if 'evalfn6' not in n and 'evalfn5' not in n and 'evalfn4' not in n}
+    # names = {n: names[n] for n in names.keys() if 'evalfn6' in n}
     # names = {n: names[n] for n in names.keys() if 'novelty_sel' in n and 'patience100tournament50' in n and 'pmut0675' not in n}#re.match(r'novelty_sel', n)}
     if parsedargs.filterbest:
-        FIGSIZE=(15,5)
+        print(len(names))
         HIGHLIGHT_COLOR="black"
-        # names = {('DynMut' if 'DynMut' in n else (n if n in BASELINES else names[n]['params']['algorithm'])): names[n] for n in names.keys() if n in getTopOfEachAlgo(order_fn_mean(names)) or n in BASELINES or n in HIGHLIGHT}
-        names = {n: names[n] for n in names.keys() if n in getTopOfEachAlgo(order_fn_mean(names)) or n in BASELINES or n in HIGHLIGHT}
+        names = {('DynMut' if 'DynMut' in n else (n if n in BASELINES else names[n]['params']['algorithm'])): names[n] for n in names.keys() if n in getTopOfEachAlgo(order_fn_mean(names)) or n in BASELINES or n in HIGHLIGHT}
+        FIGSIZE=(15,len(names) // 2)
+        # names = {n: names[n] for n in names.keys() if n in getTopOfEachAlgo(order_fn_mean(names)) or n in BASELINES or n in HIGHLIGHT}
     else:
-        FIGSIZE=(25,int(len(names) // 2))
+        FIGSIZE=(25,int(len(names) // 5))
         HIGHLIGHT_COLOR="#0d729a"
     # print_clasament({n: names[n] for n in names.keys() if 'evalfn5' not in n and 'evalfn4' not in n})
     print_clasament(names, parsedargs.latex)
@@ -773,7 +784,7 @@ if __name__ == '__main__':
 
     print(' By mean '.center(90, '*'))
     ordered_names += boxplots(names, order_fn=order_fn_mean)
-    plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by mean value')
+    # plt.title(f'Experiment {ARR_TO_PLOT} (maximum value over all generations, for each run). Sorted by mean value')
     plt.tight_layout(pad=0.2)
     plt.savefig(os.path.join(get_disertatie_root(), f'Run_results_boxplot_{ARR_TO_PLOT}_ordermean.png'))
 
@@ -792,6 +803,7 @@ if __name__ == '__main__':
     ordered_names = set(ordered_names)
     # t-test to see if better solutions are statistically significant
     from scipy.stats import ttest_ind
+    from scipy.stats import mannwhitneyu
     SIGLVL = 0.05
     ss = ['']
     try:
@@ -799,7 +811,12 @@ if __name__ == '__main__':
         print(f"T-test with baseline ({baseline})")
         for on in ordered_names:
             # Perform two-sample t-test
-            t_statistic, p_value = ttest_ind(nruns_muzzle(names[baseline]['runs']), nruns_muzzle(names[on]['runs']), equal_var=False)
+            # t_statistic, p_value = ttest_ind(nruns_muzzle(names[baseline]['runs']), nruns_muzzle(names[on]['runs']), equal_var=False)
+            t_statistic, p_value = mannwhitneyu(
+                nruns_muzzle(names[on]['runs']),
+                nruns_muzzle(names[baseline]['runs']),
+                alternative="two-sided"
+            )
 
             # Output the results
             if p_value < SIGLVL:
@@ -809,4 +826,33 @@ if __name__ == '__main__':
         print('\n'.join(ss))
     except Exception as e:
         print(e)
+
+
+    for p1, p2 in [
+        ('eaSimpleF0', 'eaSimpleF0initialgenotype0_f0_neurons'),
+        ('eaSimpleF0', 'eaSimpleF0initialgenotype0_f0_basic2'),
+        ('eaSimpleF0', 'eaSimpleF0initialgenotyperandom'),
+        ('eaSimpleF0', 'eaSimpleF0restart_methodsoftperturbbestrestart_patience10'),
+        ('AdaptMutF0', 'AdaptMutF0initialgenotype0_f0_neurons'),
+        ('AdaptMutF0', 'AdaptMutF0initialgenotype0_f0_basic2'),
+        ('AdaptMutF0', 'AdaptMutF0initialgenotyperandom'),
+        ('AdaptMutF0pmut08', 'AdaptMutF0pmut08fix_invalidmutate'),
+        ('AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10', 'AdaptMutF0pmut08selMethodrouletteinitialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10'),
+        ('AdaptMutF0pmut08initialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10', 'AdaptMutF0pmut08selMethodbestinitialgenotyperandomadded_indrandomdissimPHENESTRUCTGREEDYrestart_methodsoftperturbbestrestart_patience10'),
+        ('eaSimpleF1', 'eaSimpleF1initialgenotypeXXGGpartTSN'),
+        ('eaSimpleF1', 'eaSimpleF1initialgenotypeXX'),
+        ('eaSimpleF1', 'eaSimpleF1initialgenotyperandom'),
+        ('AdaptMutF1', 'AdaptMutF1initialgenotypeXXGGpartTSN'),
+        ('AdaptMutF1', 'AdaptMutF1initialgenotypeXX'),
+        ('AdaptMutF1', 'AdaptMutF1initialgenotyperandom'),
+    ]:
+        t_statistic, p_value = mannwhitneyu(
+            nruns_muzzle(names[p1]['runs']),
+            nruns_muzzle(names[p2]['runs']),
+            alternative="two-sided"
+        )
+        # Output the results
+        print(f"P-value: {p_value:.6f} [{p1} {p2}]")
+    print('siglvl:', SIGLVL)
+
     exit()

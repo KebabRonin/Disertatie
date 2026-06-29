@@ -57,11 +57,20 @@ def frams_compute_crowding_distance(frams_lib, dissim_method, population: list[l
 
 def frams_evaluate(frams_lib, individual, population=None, dissim_method=DissimMethod.GENE_LEVENSHTEIN):
 	FITNESS_CRITERIA_INFEASIBLE_SOLUTION = [FITNESS_VALUE_INFEASIBLE_SOLUTION] * len(OPTIMIZATION_CRITERIA)  # this special fitness value indicates that the solution should not be propagated via selection ("that genotype is invalid"). The floating point value is only used for compatibility with DEAP. If you implement your own optimization algorithm, instead of a negative value in this constant, use a special value like None to properly distinguish between feasible and infeasible solutions.
+	genotype = individual[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	if not frams_lib.isValidCreature([individual[0]])[0]:
 		# Short circuit if invalid genotype.
 		# individual.fitness.values = (FITNESS_CRITERIA_INFEASIBLE_SOLUTION,)
+		# print('Actual not ignore fitness')
+		# fitness = FITNESS_CRITERIA_INFEASIBLE_SOLUTION
+		# if isinstance(frams_lib, FramsticksLibCompetitionWithHistory):
+		# 	# frams_lib.updateCached(genotype, eval_fit=fitness)
+		# 	# Update CMA-ES statistics
+		# 	frams_lib.updateMutationStatistics(individual, fitness)
+		# 	# print(f'Consumed {individual.past_operations} for "{individual[0][:25].replace('\n','\\n')}"')
+		# 	individual.past_fitness = fitness
+		# 	individual.past_operations = []
 		return FITNESS_CRITERIA_INFEASIBLE_SOLUTION
-	genotype = individual[0]  # individual[0] because we can't (?) have a simple str as a DEAP genotype/individual, only list of str.
 	if isinstance(frams_lib, FramsticksLibCompetitionWithHistory) and frams_lib.getCached(genotype) is not None:
 		assert frams_lib.getCached(genotype)['eval_fit'] is not None
 		frams_lib.updateMutationStatistics(individual, frams_lib.getCached(genotype)['eval_fit'])
